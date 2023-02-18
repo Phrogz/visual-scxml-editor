@@ -1,0 +1,4 @@
+/* this stylesheet is intended for rules that may be modified by code at view time */
+.transition text {
+    display: block;
+}

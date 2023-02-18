@@ -1,0 +1,229 @@
+html,body {
+    margin:0; padding:0;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    height: 100%
+}
+svg {
+    display:block;
+    position:absolute;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:#fff;
+}
+
+#shadows rect {
+    opacity:0.3;
+    filter:url(#stateshadow);
+}
+.state rect.body {
+    fill:white; fill-opacity:0.5;
+    stroke-width:2px; stroke-opacity:0.6;
+    vector-effect: non-scaling-stroke;
+    cursor:move;
+}
+.selected.state rect.body {
+    stroke-opacity:1;
+}
+.state.parallel.selected .parallel-divider-h {
+    stroke:black
+}
+.selected text {
+    opacity:1 !important;
+}
+svg text {
+    font:14px 'Trebuchet MS', Calibri;
+    text-anchor:middle;
+    dominant-baseline:central;
+    cursor:default;
+}
+
+.state.parallel .parallel-divider,
+.state.parallel-child .parallel-divider {
+    stroke:black; stroke-opacity:0.4;
+}
+
+.state.parallel-child .parallel-divider-v {
+    stroke-dasharray:5 5;
+    stroke-width:1;
+    stroke-dashoffset:-2;
+}
+.state.parallel-child .parallel-divider-v2 {
+    stroke-width:5;
+    stroke-dasharray:1 9;
+    stroke-dashoffset:-4;
+}
+.state.parallel-child.first-parallel-child .parallel-divider {
+    display:none;
+}
+
+.state.parallel-child > rect.body {
+    /* make the rect clickable, but otherwise hidden until selected */
+    stroke:none !important;
+    fill:transparent;
+}
+
+g.transition {
+    cursor:pointer;
+}
+
+.state .enter,
+.state .exit  { stroke:black; fill:none; stroke-width:2px; display:none }
+
+.state.enter .enter { display:inline; }
+.state.exit  .exit { display:inline; }
+
+.transition text {
+    font-family:Tahoma, 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    font-size:11px;
+    text-anchor:start;
+    opacity:0.5;
+}
+.transition.eventless text {
+    display:none;
+}
+.transition.targetless text {
+    text-anchor:middle;
+}
+
+path.line {
+    stroke:#000; stroke-opacity:0.1; stroke-width:2px; vector-effect:non-scaling-stroke;
+    fill:none;
+    marker-start:url(#source);
+}
+.transition.conditional path.line {
+    marker-start:url(#source-conditional);
+}
+
+.transition.targeted path.line {
+    marker-end:url(#target);
+}
+.transition.targeted.actions path.line {
+    marker-end:url(#target-actions);
+}
+
+.transition.eventless.conditionless path.line
+{
+    stroke:var(--vscode-editorError-foreground); stroke-opacity:1;
+    marker-start:url(#source-error);
+}
+.transition.eventless.conditionless.targeted path.line
+{
+    marker-end:url(#target-error);
+}
+.transition.eventless.conditionless.targeted.actions path.line
+{
+    marker-end:url(#target-actions-error);
+}
+
+.catcher {
+    fill:none; stroke:transparent; stroke-width:8px;
+}
+
+.transition.selected path.line {
+    stroke-opacity:0.8; stroke-width:2px;
+}
+.transition.selected path.catcher {
+    stroke:yellow; stroke-opacity:0.5;
+    stroke-linecap: round;
+}
+
+.transition.targetless path.line {
+    stroke:none ! important;
+    marker-start:url(#targetless);
+    fill:transparent;
+}
+.transition.targetless.actions path.line {
+    marker-end:url(#targetless-actions);
+}
+.transition.targetless.conditional.actionless path.line,
+.transition.targeterror.conditional path.line {
+    marker-start:url(#source-conditional-error);
+}
+.transition.targetless.conditional.actions path.line {
+    marker-start:url(#source-conditional);
+}
+.transition.targetless.eventless.conditionless.actions path.line,
+.transition.targeterror.actions path.line {
+    marker-end:url(#targetless-actions-error);
+}
+.transition.targetless.actionless path.line,
+.transition.targeterror path.line {
+    marker-start:url(#source-error);
+}
+
+.transition.targetless.selected path.catcher {
+    fill:yellow; fill-opacity:0.5;
+}
+
+#inspector {
+    display:none;
+    position:absolute; top:10px; right:10px;
+    width:240px;
+    background:#eee;
+    border:1px solid rgba(0,0,0,0.5);
+    border-radius: 5px;
+    border-spacing: 0;
+    box-sizing: border-box;
+}
+#inspector * {
+    box-sizing: border-box;
+}
+#inspector tr > * {
+    margin:0;
+    padding:1px 4px;
+    font-family:'Trebuchet MS', Calibri;
+    border-top:1px solid #ddd;
+}
+#inspector #stateProperties tr:first-child > * {
+    border-top:0;
+}
+#inspector #transProperties tr:first-child > * {
+    border-top:2 px solid #aaa
+}
+#inspector th {
+    text-align:left;
+    font-weight:bold;
+    color:#333;
+    width:1px;
+    white-space:nowrap;
+}
+#inspector td {
+    display:flex;
+}
+#inspector td > *, #inspector textarea {
+    display:block; width:100%;
+}
+#inspector textarea {
+    white-space:nowrap;
+    overflow-x:hidden;
+    overflow-y:auto;
+    font-family: Consolas, 'Andale Mono', monospace;
+    width:230px;
+    font-size:10px;
+}
+#inspector select { flex:2 }
+#inspector input  { flex:1 }
+#inspector input[type='number'] { text-align:right }
+#dragger { cursor:move }
+
+#selectors > * { stroke:black; stroke-width:1px; vector-effect:non-scaling-stroke }
+svg.dragging-nw, svg.dragging-se, svg.dragging-nw *, svg.dragging-se *, #selectors .nw, #selectors .se { cursor:nwse-resize !important }
+svg.dragging-ne, svg.dragging-sw, svg.dragging-ne *, svg.dragging-sw *, #selectors .ne, #selectors .sw { cursor:nesw-resize !important }
+svg.dragging-n,  svg.dragging-s,  svg.dragging-n *,  svg.dragging-s *,  #selectors .n,  #selectors .s  { cursor:ns-resize   !important }
+svg.dragging-w,  svg.dragging-e,  svg.dragging-w *,  svg.dragging-e *,  #selectors .w,  #selectors .e, #selectors .divider  { cursor:ew-resize !important }
+
+/* SVG Markers */
+#source > circle { opacity:0.3 }
+#source-conditional > circle,
+#source-conditional-error > circle { fill-opacity:0.9; stroke-width:0.5 }
+#target-actions > path,
+#target-actions-error > path { fill:none; stroke-width:0.6; stroke-linejoin:round }
+#targetless > circle { opacity:0.8 }
+#targetless-actions > circle,
+#targetless-error > circle,
+#targetless-actions-error > circle { fill:none; stroke-width:0.8 }

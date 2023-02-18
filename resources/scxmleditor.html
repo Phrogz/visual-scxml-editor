@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset='utf-8'>
+	<title>SCXML Editor</title>
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource}; script-src 'nonce-${nonce}'">
+	<link href="${baseEditorCSS}" rel="stylesheet">
+	<link href="${mutableCSS}" rel="stylesheet" title="mutable">
+	<link href="${themeCSS}" rel="stylesheet">
+</head><body>
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' width='100%' height='100%'>
+	<defs>
+		<marker id='source' markerWidth='4' markerHeight='4' refX='2' refY='2'>
+			<circle cx='2' cy='2' r='1.5'/>
+		</marker>
+		<marker id='source-conditional' markerWidth='8' markerHeight='8' refX='4' refY='4'>
+			<circle cx='4' cy='4' r='1.5'/>
+		</marker>
+		<marker id='source-conditional-error' markerWidth='8' markerHeight='8' refX='4' refY='4'>
+			<circle cx='4' cy='4' r='1.5'/>
+		</marker>
+		<marker id='source-error' markerWidth='4' markerHeight='4' refX='2' refY='2'>
+			<circle cx='2' cy='2' r='1.5'/>
+		</marker>
+
+		<marker id='target' orient='auto' markerWidth='4' markerHeight='4' refX='2.5' refY='2'>
+			<polygon points='0,0 0,4 4,2'/>
+		</marker>
+		<marker id='target-error' orient='auto' markerWidth='4' markerHeight='4' refX='2.5' refY='2'>
+			<polygon points='0,0 0,4 4,2'/>
+		</marker>
+		<marker id='target-actions' orient='auto' markerWidth='7' markerHeight='6' refX='5.5' refY='3'>
+			<path d='M1.5,1 A0.3,0.8,0,0,1,1.5,5'/>
+			<polygon points='3,1 3,5 7,3'/>
+		</marker>
+		<marker id='target-actions-error' orient='auto' markerWidth='7' markerHeight='6' refX='5.5' refY='3'>
+			<path d='M1.5,1 A0.3,0.8,0,0,1,1.5,5'/>
+			<polygon points='3,1 3,5 7,3'/>
+		</marker>
+
+		<marker id='targetless' markerWidth='7' markerHeight='7' refX='3.5' refY='3.5'>
+			<circle cx='3.5' cy='3.5' r='1.5'/>
+		</marker>
+		<marker id='targetless-actions' markerWidth='7' markerHeight='7' refX='3.5' refY='3.5'>
+			<circle cx='3.5' cy='3.5' r='2.8'/>
+		</marker>
+		<marker id='targetless-error' markerWidth='7' markerHeight='7' refX='3.5' refY='3.5'>
+			<circle cx='3.5' cy='3.5' r='2.8'/>
+		</marker>
+		<marker id='targetless-actions-error' markerWidth='7' markerHeight='7' refX='3.5' refY='3.5'>
+			<circle cx='3.5' cy='3.5' r='2.8'/>
+		</marker>
+
+		<filter id='stateshadow' height='130%'>
+			<feGaussianBlur in='SourceAlpha' stdDeviation='4'/>
+			<feOffset dx='4' dy='3' result='offsetblur'/>
+			<feComponentTransfer><feFuncA type='linear' slope='0.9'/></feComponentTransfer>
+		</filter>
+	</defs>
+</svg>
+
+<table id="inspector"><tbody id="stateProperties">
+	<tr><th>kind</th><td><select id="insKindState"><option>state</option><option>parallel</option><option>deep history</option><option>shallow history</option><option>final</option></select></td></tr>
+	<tr><th>id</th><td><input id="insId" type="text" value="myid"></td></tr>
+	<tr><th>parent</th><td><select id="insParent"></select></td></tr>
+	<tr><th colspan="2">enter script<textarea id="insEnterScript" rows="4"></textarea></th></tr>
+	<tr><th colspan="2">exit script<textarea id="insExitScript" rows="4"></textarea></th></tr>
+	<tr><th>color</th><td><input id="insColor" type="color"></td></tr>
+	<tr><th>size</th><td><input id="insWidth" type="number" min="20" step="10" placeholder="-">×<input id="insHeight" type="number" min="20" step="10" placeholder="-"></td></tr>
+</tbody><tbody id="transProperties">
+	<tr><th>kind</th><td><select id="insKindTrans"><option>internal</option><option>external</option></select></td></tr>
+	<tr><th>source</th><td><select id="insSource"></select></td></tr>
+	<tr><th>… anchor</th><td><select id="insSourceAnchorSide"><option value="">-</option><option>N</option><option>S</option><option>E</option><option>W</option></select><input id="insSourceAnchorOffset" type="number" step="5" min="0"></td></tr>
+	<tr></tr><th>event(s)</th><td><input id="insEvent"></td></tr>
+	<tr><th>… placement</th><td><select id="insLabelAlign"><option value="">(auto)</option><option>NE</option><option>SE</option><option>NW</option><option>SW</option><option>N</option><option>S</option><option>E</option><option>W</option><option value="C">center</option></select><input id="insLabelOffset" type="number" min="0" step="5"><input id="insLabelCrossOffset" type="number" step="5"></td></tr>
+	<tr><th>condition</th><td><input id="insCondition"></td></tr>
+	<tr><th>target</th><td><select id="insTarget"></select></td></tr>
+	<tr><th>… anchor</th><td><select id="insTargetAnchorSide"><option value="">-</option><option>N</option><option>S</option><option>E</option><option>W</option></select><input id="insTargetAnchorOffset" type="number" step="5" min="0"></td></tr>
+	<tr><th colspan="2">transition script<textarea id="insScript" rows="4"></textarea></th></tr>
+	<tr><th>radius</th><td><input id="insRadius" type="number" min="5" step="5" placeholder="-"></td></tr>
+</tbody></table>
+
+<script type="importmap">
+{
+	"imports": {
+		"scxmlDOM":    "${scxmlDOMJS}",
+		"scxmlEditor": "${scxmlEditorJS}",
+		"neatXML":     "${neatXMLJS}"
+	}
+}
+</script>
+<script type='module' src="${editorGlueJS}"></script>
+</body></html>

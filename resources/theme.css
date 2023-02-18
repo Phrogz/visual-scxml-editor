@@ -1,0 +1,62 @@
+svg { background:var(--vscode-editor-background) }
+
+#shadows { display:none }
+
+.state rect.body {
+    stroke:var(--vscode-editor-foreground);
+    fill:  var(--vscode-editor-selectionHighlightBackground);
+}
+.state.containmentError rect.body {
+    stroke:var(--vscode-editorError-foreground);
+}
+
+svg text {
+    fill:var(--vscode-editor-foreground);
+    opacity:0.65;
+}
+
+#selectors > * {
+    fill:  var(--vscode-button-background);
+    stroke: var(--vscode-editor-background);
+}
+#selectors > *:hover {
+    fill:  var(--vscode-button-hoverBackground);
+}
+
+.selected text { fill:var() }
+.state.selected rect.body {
+    fill: var(--vscode-editor-selectionBackground, var(--vscode-editor-wordHighlightStrongBackground));
+}
+
+.state .enter,
+.state .exit { stroke:var(--vscode-editor-foreground) }
+path.line { stroke:var(--vscode-editor-foreground) }
+
+body.vscode-dark #inspector { background:#222; border-color:rgba(255,255,255,0.5); color:#ccc }
+body.vscode-dark #inspector tr > * { border-top-color:#333 }
+body.vscode-dark #inspector #transProperties tr:first-child > * { border-top-color:#666 }
+body.vscode-dark #inspector th { color:#999 }
+
+/* SVG Markers */
+#source circle,
+#target-actions polygon,
+#target polygon,
+#targetless circle { fill:var(--vscode-editor-foreground) }
+#source-conditional > circle { fill:var(--vscode-editor-findMatchHighlightBackground); stroke:white }
+#source-conditional-error > circle { fill:var(--vscode-editor-findMatchHighlightBackground); stroke:var(--vscode-editorError-foreground, var(--vscode-debugExceptionWidget-border)) }
+#source-error > circle { fill:var(--vscode-editorError-foreground, var(--vscode-debugExceptionWidget-border)); opacity:1 }
+#target-actions-error > path { stroke:var(--vscode-editorError-foreground, var(--vscode-debugExceptionWidget-border)) }
+#target-error > polygon,
+#target-actions-error > polygon { fill:var(--vscode-editorError-foreground, var(--vscode-debugExceptionWidget-border)) }
+#targetless-actions > circle { stroke:var(--vscode-editor-foreground) }
+#targetless-error > circle,
+#targetless-actions-error > circle { stroke:var(--vscode-editorError-foreground, var(--vscode-debugExceptionWidget-border)) }
+
+
+body.vscode-dark #target-actions path { stroke:white }
+body.vscode-dark #targetless-actions circle { stroke:white }
+.transition.selected path.catcher { stroke:var(--vscode-editor-selectionBackground, var(--vscode-editor-wordHighlightStrongBackground)); }
+.transition.targetless.selected path.catcher { fill:var(--vscode-editor-selectionBackground, var(--vscode-editor-wordHighlightStrongBackground)); }
+
+body.vscode-dark .state.parallel .parallel-divider,
+body.vscode-dark .state.parallel-child .parallel-divider { stroke:white }
