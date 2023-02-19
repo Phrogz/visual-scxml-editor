@@ -31,9 +31,9 @@ class SCXMLEditorManager {
 		if (doc && doc.languageId === "xml") {
 			const scxmlURI = doc.uri;
 
-			let scxmlPanel = this.editorPanelByURI.get(scxmlURI);
-			if (scxmlPanel) {
-				scxmlPanel.panel.reveal();
+			let editorPanelForDoc = this.editorPanelByURI.get(scxmlURI);
+			if (editorPanelForDoc) {
+				editorPanelForDoc.panel.reveal();
 			} else {
 				const panel = vscode.window.createWebviewPanel(
 					'scxml', `SCXML ${path.basename(doc.fileName)}`,
@@ -46,8 +46,8 @@ class SCXMLEditorManager {
 				panel.onDidDispose(() => {
 					this.editorPanelByURI.delete(scxmlURI);
 				});
-				scxmlPanel = new EditorPanel(panel, extensionURI, editor);
-				this.editorPanelByURI.set(scxmlURI, scxmlPanel);
+				editorPanelForDoc = new EditorPanel(panel, extensionURI, editor);
+				this.editorPanelByURI.set(scxmlURI, editorPanelForDoc);
 			}
 		}
 	}

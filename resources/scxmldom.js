@@ -26,6 +26,7 @@ const SCXMLState = Object.setPrototypeOf(
 		// Add a new child script action
 		// inExit: true for onexit, false for onentry
 		// code: (optional) script code to add initially
+		// Returns the new script element.
 		addScript(inExit, code='') {
 			const doc = this.ownerDocument;
 			const containerName = inExit ? 'onexit' : 'onentry';
@@ -35,6 +36,23 @@ const SCXMLState = Object.setPrototypeOf(
 			}
 			const el = wrapNode(container.appendChild(doc.createElementNS(SVGNS, 'script')));
 			el.code = code;
+			return el;
+		},
+
+		// Add a new custom executable element
+		// inExit: true for onexit, false for onentry
+		// nsURI: namespace URI for the element
+		// tagName: name of the element
+		// attrs: (optional) attribute values
+		addExecutable(inExit, nsURI, tagName, attrs={}) {
+			const doc = this.ownerDocument;
+			const containerName = inExit ? 'onexit' : 'onentry';
+			let container = this.querySelector(`:scope > ${containerName}`);
+			if (!container) {
+				container = this.appendChild(doc.createElementNS(SVGNS, containerName));
+			}
+			const el = wrapNode(container.appendChild(doc.createElementNS(nsURI, tagName)));
+			if (attributes) Object.entries(attributes).forEach(([key,val]) => el.setAttribute(key, val));
 			return el;
 		},
 
@@ -111,6 +129,22 @@ const SCXMLState = Object.setPrototypeOf(
 			}
 		},
 
+		// Array of all enter executable content for this state
+		// Mutating this array will not affect the document; use state.addScript()/state.addExecutable() or script.delete()/executable.delete() for that
+		enterExecutables: {
+			get() {
+				return Array.from(this.querySelectorAll(':scope > onentry > *'));
+			}
+		},
+
+		// Array of all exit executable content for this state
+		// Mutating this array will not affect the document; use state.addScript()/state.addExecutable() or script.delete()/executable.delete() for that
+		exitExecutables: {
+			get() {
+				return Array.from(this.querySelectorAll(':scope > onexit > *'));
+			}
+		},
+
 		// Identifier for the state; setting to a conflicting value is allowed (see document.errorsByType.conflictingIds)
 		id: {
 			get() {
@@ -133,7 +167,7 @@ const SCXMLState = Object.setPrototypeOf(
 			}
 		},
 
-		// Returns true if this state is the initial state of the parent
+		// Returns true if this state is the initial state of its parent
 		// Setting to true will force this state to be the initial state for the parent
 		// Setting to false will remove an explicit initial state, causing the first document child to be the initial
 		isInitial: {
@@ -250,6 +284,16 @@ const SCXMLTransition = Object.setPrototypeOf(
 			return el;
 		},
 
+		// Add a custom executable element
+		// nsURI: the namespace URI for the element
+		// tagName: the name of the element
+		// attributes: (optional) map of attribute=value
+		addExecutable(nsURI, tagName, attributes={}) {
+			const el = wrapNode(this.appendChild(this.ownerDocument.createElementNS(nsURI, tagName)), SCXMLExecutable);
+			if (attributes) Object.entries(attributes).forEach(([key,val]) => el.setAttribute(key, val));
+			return el;
+		},
+
 		// Delete this transition
 		delete: SCXMLState.delete,
 
@@ -334,7 +378,7 @@ const SCXMLTransition = Object.setPrototypeOf(
 			}
 		},
 
-		// The event(s) triggering this event (single space-delimited string for multiple)
+		// The event(s) triggering this transition (single space-delimited string for multiple)
 		event: {
 			get() {
 				return this.getAttribute('event');
@@ -369,6 +413,14 @@ const SCXMLTransition = Object.setPrototypeOf(
 				return this.querySelectorAll(':scope > script');
 			}
 		},
+
+		// Array of all executable elements for this transition
+		// Mutating this array will not affect the document; use transition.addExecutable() or executable.delete() for that
+		executables: {
+			get() {
+				return this.querySelectorAll(':scope > *');
+			}
+		}
 	}),
 	Element.prototype
 );
@@ -400,6 +452,42 @@ const SCXMLScript = Object.setPrototypeOf(
 					this.delete();
 				}
 			}
+		},
+	}),
+	Element.prototype
+);
+
+// Prototype injected into custom executable nodes
+const SCXMLExecutable = Object.setPrototypeOf(
+	Object.defineProperties({
+		// Delete this element
+		delete() {
+			const container = this.parentNode;
+			this.remove();
+			// delete empty <onentry> or <onexit> containers
+			if (container.childElementCount===0 && (container.tagName==='onentry' || container.tagName==='onexit')) {
+				container.remove();
+			}
+		},
+
+		// Modify the value of one or more attributes based on simple attr=value map
+		update(attrMap={}) {
+			Object.entries(attrMap).forEach( ([attr,val]) => {
+				this.setAttribute(attr, val);
+			});
+		}
+	},
+	{
+		// Convenience for fetching attributes, assuming no namespaces
+		attrs: {
+			get() {
+				const attrs = {};
+				for (let i=0; i<this.attributes.length; ++i) {
+					const a = this.attributes[i];
+					attrs[a.localName] = a.value;
+				}
+				return attrs;
+			},
 		},
 	}),
 	Element.prototype
@@ -551,8 +639,8 @@ const nodeProtos = {
 	script:      SCXMLScript,
 };
 
-function wrapNode(el) {
-	const proto = nodeProtos[el.nodeName];
+function wrapNode(el, proto=null) {
+	proto ||= nodeProtos[el.nodeName];
 	if (proto) Object.setPrototypeOf(el, proto);
 	for (const c of el.children) wrapNode(c);
 	return el;

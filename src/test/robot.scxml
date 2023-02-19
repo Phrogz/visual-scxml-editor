@@ -1,64 +1,125 @@
-<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="ReadyToPickup" xmlns:gnb="http://http://dawsonschool.org/robotics/2972">
+<scxml initial="ReadyToPickup" version="1.0" xmlns="http://www.w3.org/2005/07/scxml" xmlns:gnb="http://dawsonschool.org/robotics/2972" xmlns:viz="http://phrogz.net/ns/visual-scxml-editor">
+	<viz:customActions>
+		<gnb:enableDriving>
+			<viz:attribute max="1" min="0" name="value" type="int"/>
+		</gnb:enableDriving>
+		<gnb:robotToggle>
+			<viz:attribute name="key" type="choice" values="armRaised,gripperOpen"/>
+			<viz:attribute max="1" min="0" name="value" type="int"/>
+		</gnb:robotToggle>
+		<gnb:doMagic>
+			<viz:attribute name="magic" type="choice" values="(none),alignToPiece,extendBoom,retractBoom,autoReverse,driveToGrid"/>
+		</gnb:doMagic>
+		<gnb:calibrate/>
+	</viz:customActions>
 	<datamodel>
-		<data id="grabbablePieceDetected" expr="false"/>
-		<data id="aprilTagsDetected" expr="false"/>
-		<data id="magicMode"/>
+		<data expr="false" id="grabbablePieceDetected"/>
+		<data expr="false" id="aprilTagsDetected"/>
+		<data expr="true" id="boomRetracted"/>
 	</datamodel>
-	<state id="ReadyToPickup">
-		<onentry><gnb:enableDriving value="1"/></onentry>
-		<transition event="gripper" target="PickupHeld">
-			<gnb:openGripper value="0"/>
-		</transition>
-		<transition event="magic.down" cond="grabbablePieceDetected" target="AutoAlign"/>
-	</state>
-	<state id="AutoAlign">
+	<state id="ReadyToPickup" viz:rgb="0c8330" viz:xywh="-70 -190 120 40">
 		<onentry>
-			<assign location="magicMode" expr="'alignToPiece'"/>
+			<gnb:enableDriving value="1"/>
+		</onentry>
+		<transition event="gripper" target="PieceHeld" viz:align="" viz:offset="5" viz:pts="S20 N20">
+			<gnb:robotToggle key="gripperOpen" value="0"/>
+		</transition>
+		<transition cond="grabbablePieceDetected" event="magic.down" target="AutoAlign"/>
+	</state>
+	<state id="AutoAlign" viz:rgb="621e1e" viz:xywh="130 -190 120 40">
+		<onentry>
+			<gnb:doMagic magic="alignToPiece"/>
 			<gnb:enableDriving value="0"/>
 		</onentry>
 		<transition event="magic.up" target="ReadyToPickup"/>
-		<transition cond="not grabbablePieceDetected" target="ReadyToPickup"/>
-		<onexit><assign location="magicMode" expr="''"/></onexit>
+		<transition cond="not grabbablePieceDetected" target="ReadyToPickup" viz:pts="S0 Y-100 S120"/>
+		<onexit>
+			<gnb:doMagic magic="(none)"/>
+		</onexit>
 	</state>
-	<state id="PickupHeld">
-		<onentry><gnb:enableDriving value="1"></onentry>
-		<transition event="gripper" target="ReadyToPickup">
-			<gnb:openGripper value="1"/>
+	<state id="PieceHeld" viz:rgb="0c8330" viz:xywh="-70 -60 120 40">
+		<onentry>
+			<gnb:enableDriving value="1"/>
+		</onentry>
+		<transition event="gripper" target="ReadyToPickup" viz:offset="5 0" viz:pts="N90 S90">
+			<gnb:robotToggle key="gripperOpen" value="1"/>
 		</transition>
 		<transition event="magic.down" target="ReadyToReturn">
-			<gnb:robot key="arm" value="0" />
+			<gnb:robotToggle key="armRaised" value="1"/>
 		</transition>
 	</state>
-	<state id="ReadyToReturn">
-		<onentry><gnb:enableDriving value="1"></onentry>
-		<transition event="magic.down" cond="aprilTagsDetected" target="AutoDriveToGrid"/>
-		<transition event="boom.extend" target="AtGridFull"/>
-		<transition event="gripper" target="AtGridEmpty">
-			<gnb:openGripper value="1"/>
-		</transition>
-	</state>
-	<state id="AutoDriveToGrid">
+	<state id="ReadyToReturn" viz:rgb="0c8330" viz:xywh="-70 40 120 40">
 		<onentry>
-			<assign location="magicMode" expr="'driveToGrid'"/>
+			<gnb:enableDriving value="1"/>
+		</onentry>
+		<transition cond="aprilTagsDetected" event="magic.down" target="AutoDriveToGrid" viz:pts="S0 N0"/>
+		<transition event="boom.extend" target="AtGridFull" viz:align="E" viz:offset="10" viz:pts="E40 X60 N5"/>
+		<transition event="gripper" target="AtGridEmpty" viz:align="E" viz:pts="E0 W0">
+			<gnb:robotToggle key="gripperOpen" value="1"/>
+		</transition>
+	</state>
+	<state id="AutoDriveToGrid" viz:rgb="621e1e" viz:xywh="-70 150 120 40">
+		<onentry>
+			<gnb:doMagic magic="driveToGrid"/>
 			<gnb:enableDriving value="0"/>
 		</onentry>
-		<transition event="magic.up" target="ReadyToReturn"/>
-		<transition cond="not aprilTagsDetected" target="ReadyToReturn"/>
+		<transition event="magic.up" target="ReadyToReturn" viz:pts="N50 S50"/>
+		<transition cond="not aprilTagsDetected" target="ReadyToReturn" viz:pts="N70 S70"/>
 		<transition event="magic.done" target="AutoExtendBoom"/>
-		<onexit><assign location="magicMode" expr="''"/></onexit>
+		<onexit>
+			<gnb:doMagic magic="(none)"/>
+		</onexit>
 	</state>
-	<state id="AutoExtendBoom">
+	<state id="AutoExtendBoom" viz:rgb="621e1e" viz:xywh="140 150 120 40">
 		<onentry>
-			<assign location="magicMode" expr="'extendBoom'"/>
+			<gnb:doMagic magic="extendBoom"/>
 			<gnb:enableDriving value="0"/>
 		</onentry>
 		<transition event="magic.done" target="AtGridFull"/>
 		<!-- TODO: what should we do if the driver
 				   releases magic button before we
 				   think boom is fully extended?-->
-		<onexit><assign location="magicMode" expr="''"/></onexit>
+		<onexit>
+			<gnb:doMagic magic="(none)"/>
+		</onexit>
 	</state>
-	<state id="AtGridFull">
-
+	<state id="AtGridFull" viz:rgb="0c8330" viz:xywh="340 150 120 40">
+		<onentry>
+			<gnb:enableDriving value="1"/>
+		</onentry>
+		<transition event="calibrate" viz:align="E" viz:offset="5" viz:pts="E20">
+			<gnb:calibrate/>
+		</transition>
+		<transition event="gripper" target="AtGridEmpty">
+			<gnb:robotToggle key="gripperOpen" value="1"/>
+		</transition>
+	</state>
+	<state id="AtGridEmpty" viz:rgb="0c8330" viz:xywh="340 40 120 40">
+		<transition event="calibrate" viz:align="E" viz:offset="5" viz:pts="E20">
+			<gnb:calibrate/>
+		</transition>
+		<transition event="magic.down" target="AtGridRetracting" viz:pts="N100 S100"/>
+		<transition event="boom.retract" target="AtGridRetracting" viz:pts="N30 S30"/>
+	</state>
+	<state id="AtGridRetracting" viz:rgb="621e1e" viz:xywh="340 -60 120 40">
+		<onentry>
+			<gnb:doMagic magic="retractBoom"/>
+			<gnb:enableDriving value="0"/>
+		</onentry>
+		<transition event="arm.lower" target="ReadyToPickup" viz:pts="W0 Y-100 S120">
+			<gnb:robotToggle key="armRaised" value="0"/>
+		</transition>
+		<transition condition="boomRetracted" event="magic.down" target="AtGridAutoBackup"/>
+	</state>
+	<state id="AtGridAutoBackup" viz:rgb="621e1e" viz:xywh="340 -190 120 40">
+		<onentry>
+			<gnb:doMagic magic="autoReverse"/>
+			<gnb:enableDriving value="0"/>
+		</onentry>
+		<transition event="arm.lower" target="ReadyToPickup" viz:pts="S0 Y-100 S120">
+			<gnb:robotToggle key="armRaised" value="0"/>
+		</transition>
+		<transition event="magic.up" target="ReadyToPickup" viz:pts="N100 Y-240 N60"/>
+		<transition event="magic.done" target="ReadyToPickup" viz:pts="N20 Y-240 N60"/>
 	</state>
 </scxml>

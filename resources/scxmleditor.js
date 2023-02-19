@@ -349,8 +349,8 @@ SSE.Editor.prototype.pointFromScreen = function(x, y) {
 
 SSE.Editor.prototype.snap = function(n) {
     if (this.gridActive) {
-        if (n.map) n=n.map(v=>Math.round(v/this.gridSize)*this.gridSize);
-        else       n=Math.round(n/this.gridSize)*this.gridSize;
+        if (n.map) n = n.map(v => Math.round(v/this.gridSize) * this.gridSize);
+        else       n = Math.round(n/this.gridSize) * this.gridSize;
     }
     return n;
 };
@@ -390,13 +390,16 @@ SSE.Editor.prototype.onDocChange = function(mutationList){
 
                         case 'script':
                             const parent = n.parentNode;
-                            switch (parent.nodeName) {
+                            switch (parent?.nodeName) {
                                 case 'transition':
                                     parent.checkScripts();
                                 break;
                                 case 'onentry':
                                 case 'onexit':
                                     parent.parentNode.checkScripts();
+                                break;
+                                case null:
+                                    console.error(`Trying to add script node, but there's no parentNode for ${n}`);
                                 break;
                             }
                         break;

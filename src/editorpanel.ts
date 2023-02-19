@@ -40,7 +40,6 @@ export class EditorPanel {
 		this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 		this.panel.onDidChangeViewState(() => this._update(), null, this.disposables);
 
-
 		wv.onDidReceiveMessage(message => {
 			const doc = editor.document;
 			switch (message.command) {
@@ -107,6 +106,7 @@ export class EditorPanel {
 			}
 		});
 
+		// TODO: is this needed? Maybe not?
 		this._update();
 	}
 

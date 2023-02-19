@@ -2,12 +2,9 @@
 /* eslint-disable curly */
 'use strict';
 
-console.log('glue up');
-
 import { loadFromString as loadSCXML } from 'scxmlDOM';
 import SCXMLEditor from 'scxmlEditor';
 import neatXML from 'neatXML';
-console.log({loadSCXML, SCXMLEditor, neatXML});
 
 const vscode = acquireVsCodeApi();
 const editor = new SCXMLEditor(document.querySelector('svg'));
@@ -86,8 +83,8 @@ editor.onSelectionChanged = (sel) => {
 				insCondition.value = sel.condition;
 
 				setOptions(insTarget, targetIds, sel.targetId);
-				insTargetAnchorSide.value = sel.targetAnchorSide;
-				insTargetAnchorOffset.value = sel.targetAnchorOffset;
+				insTargetAnchorSide.value = sel.targetAnchorSide || '';
+				insTargetAnchorOffset.value = sel.targetAnchorOffset || '';
 
 				insRadius.value = sel.radius;
 				insLabelAlign.value = sel.align;
