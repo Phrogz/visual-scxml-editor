@@ -1,0 +1,64 @@
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="ReadyToPickup" xmlns:gnb="http://http://dawsonschool.org/robotics/2972">
+	<datamodel>
+		<data id="grabbablePieceDetected" expr="false"/>
+		<data id="aprilTagsDetected" expr="false"/>
+		<data id="magicMode"/>
+	</datamodel>
+	<state id="ReadyToPickup">
+		<onentry><gnb:enableDriving value="1"/></onentry>
+		<transition event="gripper" target="PickupHeld">
+			<gnb:openGripper value="0"/>
+		</transition>
+		<transition event="magic.down" cond="grabbablePieceDetected" target="AutoAlign"/>
+	</state>
+	<state id="AutoAlign">
+		<onentry>
+			<assign location="magicMode" expr="'alignToPiece'"/>
+			<gnb:enableDriving value="0"/>
+		</onentry>
+		<transition event="magic.up" target="ReadyToPickup"/>
+		<transition cond="not grabbablePieceDetected" target="ReadyToPickup"/>
+		<onexit><assign location="magicMode" expr="''"/></onexit>
+	</state>
+	<state id="PickupHeld">
+		<onentry><gnb:enableDriving value="1"></onentry>
+		<transition event="gripper" target="ReadyToPickup">
+			<gnb:openGripper value="1"/>
+		</transition>
+		<transition event="magic.down" target="ReadyToReturn">
+			<gnb:robot key="arm" value="0" />
+		</transition>
+	</state>
+	<state id="ReadyToReturn">
+		<onentry><gnb:enableDriving value="1"></onentry>
+		<transition event="magic.down" cond="aprilTagsDetected" target="AutoDriveToGrid"/>
+		<transition event="boom.extend" target="AtGridFull"/>
+		<transition event="gripper" target="AtGridEmpty">
+			<gnb:openGripper value="1"/>
+		</transition>
+	</state>
+	<state id="AutoDriveToGrid">
+		<onentry>
+			<assign location="magicMode" expr="'driveToGrid'"/>
+			<gnb:enableDriving value="0"/>
+		</onentry>
+		<transition event="magic.up" target="ReadyToReturn"/>
+		<transition cond="not aprilTagsDetected" target="ReadyToReturn"/>
+		<transition event="magic.done" target="AutoExtendBoom"/>
+		<onexit><assign location="magicMode" expr="''"/></onexit>
+	</state>
+	<state id="AutoExtendBoom">
+		<onentry>
+			<assign location="magicMode" expr="'extendBoom'"/>
+			<gnb:enableDriving value="0"/>
+		</onentry>
+		<transition event="magic.done" target="AtGridFull"/>
+		<!-- TODO: what should we do if the driver
+				   releases magic button before we
+				   think boom is fully extended?-->
+		<onexit><assign location="magicMode" expr="''"/></onexit>
+	</state>
+	<state id="AtGridFull">
+
+	</state>
+</scxml>
