@@ -271,6 +271,7 @@ function updateInspectorForSelection(sel) {
 			td.innerHTML = '';
 			schema.attrs.forEach(attr => {
 				const label = addEl('label', td, {_text:`${attr.name} `});
+				const val = executable.getAttribute(attr.name);
 				switch (attr.type) {
 					case 'int':
 						var inp = addEl('input', label, {
@@ -278,15 +279,19 @@ function updateInspectorForSelection(sel) {
 							name:  attr.name,
 							min:   attr.min,
 							max:   attr.max,
-							value: executable.getAttribute(attr.name)
+							value: val
 						});
 					break;
 					case 'choice':
 						var inp = addEl('select', label, {name:attr.name});
 						attr.values.split(/,\s*/).forEach(v => {
 							const opt = inp.appendChild(new Option(v));
-							opt.selected = executable.getAttribute(attr.name)===v;
+							opt.selected = val===v;
 						});
+					break;
+					case 'string':
+						var inp = addEl('input', label, {type:'text', name:attr.name, value:val || ""});
+						inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
 					break;
 				}
 				inp.addEventListener('change', _ => executable.setAttribute(attr.name, inp.value));
@@ -311,6 +316,9 @@ function changeAction(oldExec, actionNS, actionName) {
 			case 'choice':
 				const legal = attr.values?.split(/,\s*/);
 				if (!legal.includes(value)) value = legal[0] || '';
+			break;
+			case 'string':
+				value ||= '';
 			break;
 		}
 		return [attr.name, value];

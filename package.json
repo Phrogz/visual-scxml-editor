@@ -2,9 +2,13 @@
   "name": "visual-scxml-editor",
   "displayName": "Visual SCXML Editor",
   "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Phrogz/visual-scxml-editor.git"
+  },
   "version": "0.1.0",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Other"
@@ -31,7 +35,7 @@
     "@types/glob": "^8.0.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "^16.18.12",
-    "@types/vscode": "^1.75.0",
+    "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
     "@vscode/test-electron": "^2.2.2",

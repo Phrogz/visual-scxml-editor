@@ -11,6 +11,10 @@
 			<viz:attribute name="magic" type="choice" values="(none),alignToPiece,extendBoom,retractBoom,autoReverse,driveToGrid"/>
 		</gnb:doMagic>
 		<gnb:calibrate/>
+		<assign>
+			<viz:attribute name="location" type="string" />
+			<viz:attribute name="expr" type="string" />
+		</assign>
 	</viz:actions>
 	<datamodel>
 		<data expr="false" id="grabbablePieceDetected"/>
