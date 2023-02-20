@@ -51,8 +51,8 @@ const SCXMLState = Object.setPrototypeOf(
 			if (!container) {
 				container = this.appendChild(doc.createElementNS(SVGNS, containerName));
 			}
-			const el = wrapNode(container.appendChild(doc.createElementNS(nsURI, tagName)));
-			if (attributes) Object.entries(attributes).forEach(([key,val]) => el.setAttribute(key, val));
+			const el = wrapNode(container.appendChild(doc.createElementNS(nsURI, tagName)), SCXMLExecutable);
+			if (attrs) Object.entries(attrs).forEach(([key,val]) => el.setAttribute(key, val));
 			return el;
 		},
 
@@ -288,9 +288,9 @@ const SCXMLTransition = Object.setPrototypeOf(
 		// nsURI: the namespace URI for the element
 		// tagName: the name of the element
 		// attributes: (optional) map of attribute=value
-		addExecutable(nsURI, tagName, attributes={}) {
+		addExecutable(nsURI, tagName, attrs={}) {
 			const el = wrapNode(this.appendChild(this.ownerDocument.createElementNS(nsURI, tagName)), SCXMLExecutable);
-			if (attributes) Object.entries(attributes).forEach(([key,val]) => el.setAttribute(key, val));
+			if (attrs) Object.entries(attrs).forEach(([key,val]) => el.setAttribute(key, val));
 			return el;
 		},
 
@@ -475,7 +475,9 @@ const SCXMLExecutable = Object.setPrototypeOf(
 			Object.entries(attrMap).forEach( ([attr,val]) => {
 				this.setAttribute(attr, val);
 			});
-		}
+		},
+
+		isExecutable: true,
 	},
 	{
 		// Convenience for fetching attributes, assuming no namespaces

@@ -36,6 +36,7 @@ body.vscode-dark #inspector { background:#222; border-color:rgba(255,255,255,0.5
 body.vscode-dark #inspector tr > * { border-top-color:#333 }
 body.vscode-dark #inspector #transProperties tr:first-child > * { border-top-color:#666 }
 body.vscode-dark #inspector th { color:#999 }
+body.vscode-dark #inspector table { background:#444 }
 
 /* SVG Markers */
 #source circle,

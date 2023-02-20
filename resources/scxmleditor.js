@@ -5,7 +5,7 @@
 const SSE = {};
 const xmlNS = "http://www.w3.org/2000/xmlns/";
 const svgNS = 'http://www.w3.org/2000/svg';
-const visualNS  = 'http://phrogz.net/ns/visual-scxml-editor';
+const visualNS  = 'http://phrogz.net/visual-scxml';
 
 SSE.Editor = function(svg, scxmlDoc) {
     this.svg = svg;
@@ -81,6 +81,10 @@ Object.defineProperties(SSE.Editor.prototype, {
 });
 
 SSE.Editor.prototype.useSCXML = function(scxmlDoc) {
+    // Set the visual namespace on the document root so that new documents don't get it added to each state/transition touched
+    const existingNSPrefix = Array.from(scxmlDoc.root.attributes).find(a => a.value===visualNS && a.namespaceURI===xmlNS);
+    if (!existingNSPrefix) scxmlDoc.root.setAttributeNS(xmlNS, 'xmlns:viz', visualNS);
+
     // Used to prevent notification back to document for changes occuring from this load
     this.justLoaded = true;
     const firstLoad = !this.scxmlDoc;
@@ -93,9 +97,6 @@ SSE.Editor.prototype.useSCXML = function(scxmlDoc) {
         previousSelection.push(o);
     }
 
-    // Set the visual namespace on the document root so that new documents don't get it added to each state/transition touched
-    scxmlDoc.root.setAttributeNS(xmlNS, 'xmlns:viz', visualNS);
-
     // TODO: check for valid document before clearing house
     if (this.scxmlDoc) this.removeDocument();
     this.scxmlDoc = scxmlDoc;
@@ -105,7 +106,7 @@ SSE.Editor.prototype.useSCXML = function(scxmlDoc) {
     Object.setPrototypeOf(SSE.State, scxmlDoc.StateProto);
     Object.setPrototypeOf(SSE.Transition, scxmlDoc.TransitionProto);
 
-    // Turn off the grid when setting the initial positions of items
+    // Turn off the snapping grid when setting the initial positions of items
     this.gridActive = false;
     scxmlDoc.states.forEach(this.addState.bind(this));
     scxmlDoc.transitions.forEach(this.addTransition.bind(this));
@@ -415,7 +416,7 @@ SSE.Editor.prototype.onDocChange = function(mutationList){
                         break;
 
                         default:
-                            console.log(`SCXML Editor is ignoring added ${n.nodeName} node:`, n);
+                            console.warn(`Visual SCXML Editor is ignoring added ${n.nodeName} node:`, n);
                     }
                 });
 
@@ -1127,14 +1128,14 @@ SSE.Transition = Object.defineProperties({
     radius: {
         get() {
             // This (intentionally) prevents completely square corners by ignoring values of 0
-            return this.getAttributeNS(visualNS, 'radius')*1 || this._sse.editor.maxRadius || null;
+            return this.getAttributeNS(visualNS, 'r')*1 || this._sse.editor.maxRadius || null;
         },
         set(r) {
             // This (intentionally) prevents completely square corners by ignoring values of 0
             if (r) {
-                this.setAttributeNS(visualNS, 'radius', r*1);
+                this.setAttributeNS(visualNS, 'r', r*1);
             } else {
-                this.removeAttributeNS(visualNS, 'radius');
+                this.removeAttributeNS(visualNS, 'r');
             }
         }
     },

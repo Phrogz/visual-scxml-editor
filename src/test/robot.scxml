@@ -1,5 +1,5 @@
-<scxml initial="ReadyToPickup" version="1.0" xmlns="http://www.w3.org/2005/07/scxml" xmlns:gnb="http://dawsonschool.org/robotics/2972" xmlns:viz="http://phrogz.net/ns/visual-scxml-editor">
-	<viz:customActions>
+<scxml initial="ReadyToPickup" version="1.0" xmlns="http://www.w3.org/2005/07/scxml" xmlns:gnb="http://dawsonschool.org/robotics/2972" xmlns:viz="http://phrogz.net/visual-scxml">
+	<viz:actions>
 		<gnb:enableDriving>
 			<viz:attribute max="1" min="0" name="value" type="int"/>
 		</gnb:enableDriving>
@@ -11,7 +11,7 @@
 			<viz:attribute name="magic" type="choice" values="(none),alignToPiece,extendBoom,retractBoom,autoReverse,driveToGrid"/>
 		</gnb:doMagic>
 		<gnb:calibrate/>
-	</viz:customActions>
+	</viz:actions>
 	<datamodel>
 		<data expr="false" id="grabbablePieceDetected"/>
 		<data expr="false" id="aprilTagsDetected"/>

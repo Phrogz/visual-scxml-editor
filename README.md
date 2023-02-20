@@ -1,6 +1,7 @@
 # Visual SCXML Editor
 
-An extension for Visual Studio Code that visualizes SCXML state charts, and provides the ability to visually adjust the state chart.
+An extension for Visual Studio Code that visualizes SCXML state charts,
+and provides the ability to visually adjust the state chart.
 
 
 ## Features
@@ -10,6 +11,7 @@ An extension for Visual Studio Code that visualizes SCXML state charts, and prov
 * Default visual style matches the current VS Code theme
   * Customization of state colors allows for additional information to be conveyed
 * Visual changes are stored in a custom namespace that does not affect SCXML operation
+* Inspector palette supports authoring of custom actions (requires custom schema addition to SCXML)
 * Visually differentiates states with entry/exit actions
 * Visually differentiates transitions with actions
 * Visually differentiates transitions with conditions
@@ -26,17 +28,17 @@ An extension for Visual Studio Code that visualizes SCXML state charts, and prov
 * `Space` — enable panning
 
 
-## TODO (aka Known Issues, Planned or Missing Features)
+## TODO (Known Issues, Planned Features)
 
 ### High Priority
 
-* Selection keeps getting dropped when editing some attributes
-* Add graphical editing of transition waypoints
-* Create transition graphically via context menu
-* Create state graphically via context menu
-* Transition with only first point does not draw to target state; should
-* First selection of transition drops selection, second sticks
 * Author custom actions
+* Bug: Selection keeps getting dropped when editing some attributes
+* Bug: First selection often drops selection, second sticks
+* Create state graphically via context menu
+* Create transition graphically via context menu
+* Add graphical editing of transition waypoints
+* Bug: Transition with only first point set does not draw to target state; should
 
 
 ### Medium Priority
@@ -54,6 +56,8 @@ An extension for Visual Studio Code that visualizes SCXML state charts, and prov
 * Optionally add condition to an event label ("event\nif (…)")
 * Moving a transition (with waypoints?) to the root level (via text) causes runtime error
 * Space uses mouse move to pan, without dragging
+* Allow explicit transition routing to omit explicit first and/or last attachment point,
+  e.g. `viz:pts="- X10 -"`
 
 
 ### Low Priority
@@ -66,7 +70,9 @@ An extension for Visual Studio Code that visualizes SCXML state charts, and prov
 * Move XML errors into separate docked webview (so we can erase and re-set them)
 * Custom transition colors
 * Export diagram as SVG or PNG
-
+* Visual editing of custom actions with child elements
+* Visual editing of custom actions derived via XSD
+* Removing last action of onentry/onexit via inspector does not remove empty wrapper
 
 
 ## Release Notes

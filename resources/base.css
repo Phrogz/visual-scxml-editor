@@ -65,3 +65,16 @@ svg {
 #inspector select { flex:2 }
 #inspector input  { flex:1 }
 #inspector input[type='number'] { text-align:right }
+
+#inspector td[colspan] { display:table-cell; padding-right:0 }
+#inspector td button { width:auto; margin-left:auto }
+
+/* nested table for actions */
+#inspector table { display:table }
+#inspector table tr { display:table-row }
+#inspector table td { display:table-cell }
+#inspector table td:last-child { padding-right:2px }
+#inspector table td > * { display:inline }
+#inspector table td > label { white-space:nowrap }
+#inspector table select { display:inline; width:auto }
+button.deleteAction { font-weight:bold; color:#c00 }
