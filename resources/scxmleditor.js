@@ -3,6 +3,7 @@
 'use strict';
 
 const SSE = {};
+const xmlNS = "http://www.w3.org/2000/xmlns/";
 const svgNS = 'http://www.w3.org/2000/svg';
 const visualNS  = 'http://phrogz.net/ns/visual-scxml-editor';
 
@@ -91,6 +92,9 @@ SSE.Editor.prototype.useSCXML = function(scxmlDoc) {
         // TODO: use heuristics beyond absolute ID to try to identify selection when IDs change.
         previousSelection.push(o);
     }
+
+    // Set the visual namespace on the document root so that new documents don't get it added to each state/transition touched
+    scxmlDoc.root.setAttributeNS(xmlNS, 'xmlns:viz', visualNS);
 
     // TODO: check for valid document before clearing house
     if (this.scxmlDoc) this.removeDocument();

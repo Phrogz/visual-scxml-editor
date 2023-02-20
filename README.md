@@ -30,7 +30,6 @@ An extension for Visual Studio Code that visualizes SCXML state charts, and prov
 
 ### High Priority
 
-* Editor namespace should get added to root, not states
 * Selection keeps getting dropped when editing some attributes
 * Add graphical editing of transition waypoints
 * Create transition graphically via context menu
