@@ -1,21 +1,3 @@
-html,body {
-    margin:0; padding:0;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    height: 100%
-}
-svg {
-    display:block;
-    position:absolute;
-    top:0; left:0;
-    width:100%; height:100%;
-    background:#fff;
-}
-
 #shadows rect {
     opacity:0.3;
     filter:url(#stateshadow);
@@ -160,62 +142,13 @@ path.line {
     fill:yellow; fill-opacity:0.5;
 }
 
-#inspector {
-    display:none;
-    position:absolute; top:10px; right:10px;
-    width:240px;
-    background:#eee;
-    border:1px solid rgba(0,0,0,0.5);
-    border-radius: 5px;
-    border-spacing: 0;
-    box-sizing: border-box;
-}
-#inspector * {
-    box-sizing: border-box;
-}
-#inspector tr > * {
-    margin:0;
-    padding:1px 4px;
-    font-family:'Trebuchet MS', Calibri;
-    border-top:1px solid #ddd;
-}
-#inspector #stateProperties tr:first-child > * {
-    border-top:0;
-}
-#inspector #transProperties tr:first-child > * {
-    border-top:2 px solid #aaa
-}
-#inspector th {
-    text-align:left;
-    font-weight:bold;
-    color:#333;
-    width:1px;
-    white-space:nowrap;
-}
-#inspector td {
-    display:flex;
-}
-#inspector td > *, #inspector textarea {
-    display:block; width:100%;
-}
-#inspector textarea {
-    white-space:nowrap;
-    overflow-x:hidden;
-    overflow-y:auto;
-    font-family: Consolas, 'Andale Mono', monospace;
-    width:230px;
-    font-size:10px;
-}
-#inspector select { flex:2 }
-#inspector input  { flex:1 }
-#inspector input[type='number'] { text-align:right }
-#dragger { cursor:move }
-
 #selectors > * { stroke:black; stroke-width:1px; vector-effect:non-scaling-stroke }
 svg.dragging-nw, svg.dragging-se, svg.dragging-nw *, svg.dragging-se *, #selectors .nw, #selectors .se { cursor:nwse-resize !important }
 svg.dragging-ne, svg.dragging-sw, svg.dragging-ne *, svg.dragging-sw *, #selectors .ne, #selectors .sw { cursor:nesw-resize !important }
 svg.dragging-n,  svg.dragging-s,  svg.dragging-n *,  svg.dragging-s *,  #selectors .n,  #selectors .s  { cursor:ns-resize   !important }
 svg.dragging-w,  svg.dragging-e,  svg.dragging-w *,  svg.dragging-e *,  #selectors .w,  #selectors .e, #selectors .divider  { cursor:ew-resize !important }
+
+#dragger { cursor:move }
 
 /* SVG Markers */
 #source > circle { opacity:0.3 }

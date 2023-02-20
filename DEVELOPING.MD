@@ -1,18 +1,43 @@
 This document captures the design architecture of this extension: what files do, how data flows
 between modules.
 
-1. `extension.ts` creates an `SCXMLEditorManager` which creates a `WebviewPanel` for each editor
+# High-Level Overview
+
+1. `extension.ts` creates an `SCXMLEditorManager`, which creates a `WebviewPanel` for each editor
    document where the `showEditor` command is invoked. This WebviewPanel is where all visualization
    takes place.
 2. The `WebviewPanel` and editor are passed along to create a new `EditorPanel` (from
-   `editorpanel.ts`).
+   [`editorpanel.ts`](src/editorpanel.ts)).
 3. The `EditorPanel` receives commands from the Webview to rewrite the editor's text to match the
-   visual changes, or to show selections in the editor.
-4. The `EditorPanel` is also responsible for building the Webview using the files in `resources`.
-   The main file for the webview is `scxmleditor.html`, which includes most other files in that
-   directory.
+   visual changes, or to show selections in the editor. The `EditorPanel` is also responsible for
+   building the Webview from [`scxmleditor.html`](resources/scxmleditor.html), which in turn pulls
+   in other files in the [`resources`](./resources) directory.
+   * The HTML page uses a big [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) diagram to
+     show the states, transitions, and selection/manipulation handles. The HTML sets up the SVG
+     shell, including the shapes of the "markers" that are applied to the ends of transitions.
+     The rest of the SVG is created dynamically by [`scxmleditor.js`](resources/scxmleditor.js).
+   * Visually, the following CSS files are applied to the document:
+     * **[`base.css`](resources/base.css)** layout of the page elements, including the Inspector
+     * **[`scxmleditor.css`](resources/scxmleditor.css)** base style for all diagram pieces
+     * **[`theme.css`](resources/theme.css)** colors the diagram based on the current VS Code theme
+     * **[`mutable.css`](resources/theme.css)** holds styles to be modified by script at runtime
+   * Programmatically, [`editorglue.js`](resources/editorglue.js) is the only script loaded directly
+     by the HTML; that library then imports other modules. Responsibilities by file:
+     * **[`scxmldom.js`](resources/scxmldom.js)** creates an in-memory representation of the SCXML
+       document as an [`XMLDocument`](https://developer.mozilla.org/en-US/docs/Web/API/XMLDocument),
+       except that the document and DOM elements in the tree are given additional functionality
+       specific to SCXML.
+     * **[`scxmleditor.js`](resources/scxmleditor.js)** implements the editor that manages the SVG
+       diagram: placing and sizing and coloring states, routing of transitions, placement
+       of labels, showing selection handles, handling mouse interactions, resizing elements.
+       Changes to the diagram mutate the SCXMLDom document.
+     * **[`editorglue.js`](resources/editorglue.js)**
+       * creates the SCXMLDom and SCXMLEditor and hooks them together
+       * populates the Inspector when states/transitions are selected, and feeds changes to the SCXMLDoc
+       * passes selection information back to the `EditorPanel`, to show selection in the text editor
+     * **[`neatxml.js`](resources/neatxml.js)** provides stable, custom serialization of the in-memory
+       XML document to produce updated code for the editor when the SCXMLDoc changes
 
-...TODO: keep going...
 
 # SCXML DOM
 
@@ -116,5 +141,3 @@ elements in the tree are given additional functionality specific to SCXML:
   * Methods
     * `.delete()` — remove this script block; if this element was the sole child of an `<onentry>`
       or `<onexit>` element, that now-empty element is also removed
-
-## DOM Watcher

@@ -27,13 +27,14 @@ export class EditorPanel {
 
 		const wv = this.panel.webview;
 		this.resourceMap = new Map([
-			['neatXMLJS',     this.webviewURI('neatxml.js')],
-			['scxmlDOMJS',    this.webviewURI('scxmldom.js')],
-			['scxmlEditorJS', this.webviewURI('scxmleditor.js')],
-			['editorGlueJS',  this.webviewURI('editorglue.js')],
-			['baseEditorCSS', this.webviewURI('baseeditorstyles.css')],
-			['mutableCSS',    this.webviewURI('mutable.css')],
-			['themeCSS',      this.webviewURI('theme.css')],
+			['neatXMLJS',      this.webviewURI('neatxml.js')],
+			['scxmlDOMJS',     this.webviewURI('scxmldom.js')],
+			['scxmlEditorJS',  this.webviewURI('scxmleditor.js')],
+			['editorGlueJS',   this.webviewURI('editorglue.js')],
+			['baseCSS',        this.webviewURI('base.css')],
+			['scxmlEditorCSS', this.webviewURI('scxmleditor.css')],
+			['mutableCSS',     this.webviewURI('mutable.css')],
+			['themeCSS',       this.webviewURI('theme.css')],
 		]);
 
 		this.panel.iconPath = vscode.Uri.file(this.resourcePath('icon.svg').toString());
