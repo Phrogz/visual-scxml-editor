@@ -768,8 +768,8 @@ SSE.State = Object.defineProperties({
 
     checkScripts() {
         if (!this._sse) return;
-        this._sse.main.classList.toggle('enter', this.enterScripts.length);
-        this._sse.main.classList.toggle('exit',  this.exitScripts.length);
+        this._sse.main.classList.toggle('enter', this.enterExecutables.length);
+        this._sse.main.classList.toggle('exit',  this.exitExecutables.length);
     },
 
     checkChildren() {

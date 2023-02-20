@@ -5,12 +5,15 @@ An extension for Visual Studio Code that visualizes SCXML state charts, and prov
 
 ## Features
 
-* Editing the XML for the state chart updates the graphics, and vice-versa.
-* Default visual style matches the current VS Code theme.
-  * Customization of state colors allows for additional information to be conveyed.
-* Visual changes are stored in a custom namespace that does not affect SCXML operation.
-* Support for `state`, `parallel`, `history`, and `final` nodes.
-* Powerful and attractive routing of transitions via waypoints.
+* Editing the XML for the state chart updates the graphics, and vice-versa
+* Selecting states and transitions highlights them in the text editor
+* Default visual style matches the current VS Code theme
+  * Customization of state colors allows for additional information to be conveyed
+* Visual changes are stored in a custom namespace that does not affect SCXML operation
+* Visually differentiates states with entry/exit actions
+* Visually differentiates transitions with actions
+* Visually differentiates transitions with conditions
+* Powerful and attractive routing of transitions via waypoints
 
 
 ## Instructions
@@ -27,7 +30,6 @@ An extension for Visual Studio Code that visualizes SCXML state charts, and prov
 
 ### High Priority
 
-* Show entry/exit actions on states for custom actions
 * Editor namespace should get added to root, not states
 * Selection keeps getting dropped when editing some attributes
 * Add graphical editing of transition waypoints
