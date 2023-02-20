@@ -231,7 +231,7 @@ function updateInspectorForSelection(sel) {
 	}
 
 	function showActions(table, executables) {
-		const tbody = table.tBodies[0] || table.appendChild(document.createElement('tbody'));
+		const tbody = table.tBodies[0] || addEl('tbody', table);
 		executables.forEach(ex => {
 			const schema = actionSchema?.find(a => a.name===ex.localName && a.ns===ex.namespaceURI);
 			const tr = addEl('tr', tbody);
@@ -240,25 +240,24 @@ function updateInspectorForSelection(sel) {
 				// we know how to edit this action
 				const sel = addEl('select', td);
 				populateType(sel, ex);
-				sel.addEventListener('input', _ => setupAction(sel.value, sel.options[sel.selectedIndex].text, ex.parentNode, ex), false);
+				sel.addEventListener('input', _ => changeAction(ex, sel.value, sel.options[sel.selectedIndex].text));
 
 				td = addEl('td', tr);
 				populateAttributes(td, schema, ex);
 			} else {
 				// show a read-only, delete-only version
 				td.innerText = ex.localName;
-				td = tr.appendChild(document.createElement('td'));
-				td.innerText = Array.from(ex.attributes)
-				                    .map(a => [a.localName, a.value].join('='))
-									.join(' ');
+				td = addEl('td', tr, {_text: Array.from(ex.attributes)
+				                                  .map(a => [a.localName, a.value].join('='))
+				                                  .join(' ')});
 			}
-			td = tr.appendChild(document.createElement('td'));
-			const del = td.appendChild(document.createElement('button'));
-			del.className = 'deleteAction';
-			del.innerText = '×';
-			del.title = 'remove action';
-			// TODO: the following should use ex.delete() to clean up empty onentry/onexit, but some executable elements are not getting wrapped properly
-			del.addEventListener('click', _ => ex.remove(), false);
+			td = addEl('td', tr, {'class':'button'});
+			const del = addEl('button', td, {
+				'class': 'deleteAction',
+				_text:   '×',
+				title:   'remove action'
+			});
+			del.addEventListener('click', _ => ex.delete());
 		});
 
 		function populateType(sel, el=null) {
@@ -290,20 +289,19 @@ function updateInspectorForSelection(sel) {
 						});
 					break;
 				}
-				inp.addEventListener('change', _ => executable.setAttribute(attr.name, inp.value), false);
+				inp.addEventListener('change', _ => executable.setAttribute(attr.name, inp.value));
 			});
 		}
 	}
 }
 
-function setupAction(actionNS, actionName, wrapper, oldExec) {
+function changeAction(oldExec, actionNS, actionName) {
 	const schema = actionSchema?.find(a => a.name===actionName && a.ns===actionNS);
 	if (!schema) return console.error(`Cannot find custom action schema for ${actionName} in namespace ${actionNS}`);
 
-	const previousValues = oldExec ? Object.fromEntries(oldExec.getAttributeNames().map(n => [n, oldExec.getAttribute(n)])) : {};
-	const newExec = wrapper.ownerDocument.createElementNS(actionNS, actionName);
-	schema.attrs.forEach(attr => {
-		let value = previousValues[attr.name];
+	const oldValues = oldExec ? Object.fromEntries(oldExec.getAttributeNames().map(n => [n, oldExec.getAttribute(n)])) : {};
+	const newValues = Object.fromEntries(schema.attrs.map(attr => {
+		let value = oldValues[attr.name];
 		switch (attr.type) {
 			case 'int':
 				value ||= attr.defaultValue;
@@ -315,10 +313,9 @@ function setupAction(actionNS, actionName, wrapper, oldExec) {
 				if (!legal.includes(value)) value = legal[0] || '';
 			break;
 		}
-		newExec.setAttribute(attr.name, value);
-	});
-	if (oldExec) oldExec.replaceWith(newExec);
-	else wrapper.appendChild(newExec);
+		return [attr.name, value];
+	}));
+	oldExec.mutateInto(actionNS, actionName, newValues);
 }
 
 function notifyDocumentOfSelection(sel) {
@@ -352,7 +349,7 @@ function addEl(name, parent, opts={}) {
 function addNewAction(location) {
 	const firstAction = actionSchema?.[0];
 	if (!firstAction) return;
-	const attrs = Object.fromEntries(firstAction.attrs.map(attr => [attr.name, attr.defaultValue]))
+	const attrs = Object.fromEntries(firstAction.attrs.map(attr => [attr.name, attr.defaultValue]));
 	visualEditor.selection.forEach(o => {
 		switch (location) {
 			case 'entry':

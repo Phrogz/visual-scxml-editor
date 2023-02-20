@@ -72,7 +72,6 @@ and provides the ability to visually adjust the state chart.
 * Export diagram as SVG or PNG
 * Visual editing of custom actions with child elements
 * Visual editing of custom actions derived via XSD
-* Removing last action of onentry/onexit via inspector does not remove empty wrapper
 
 
 ## Release Notes

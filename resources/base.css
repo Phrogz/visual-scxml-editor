@@ -67,6 +67,7 @@ svg {
 #inspector input[type='number'] { text-align:right }
 
 #inspector td[colspan] { display:table-cell; padding-right:0 }
+#inspector td.button { text-align:right }
 #inspector td button { width:auto; margin-left:auto }
 
 /* nested table for actions */

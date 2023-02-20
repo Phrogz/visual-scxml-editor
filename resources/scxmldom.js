@@ -51,7 +51,7 @@ const SCXMLState = Object.setPrototypeOf(
 			if (!container) {
 				container = this.appendChild(doc.createElementNS(SVGNS, containerName));
 			}
-			const el = wrapNode(container.appendChild(doc.createElementNS(nsURI, tagName)), SCXMLExecutable);
+			const el = wrapNode(container.appendChild(doc.createElementNS(nsURI, tagName)));
 			if (attrs) Object.entries(attrs).forEach(([key,val]) => el.setAttribute(key, val));
 			return el;
 		},
@@ -289,7 +289,7 @@ const SCXMLTransition = Object.setPrototypeOf(
 		// tagName: the name of the element
 		// attributes: (optional) map of attribute=value
 		addExecutable(nsURI, tagName, attrs={}) {
-			const el = wrapNode(this.appendChild(this.ownerDocument.createElementNS(nsURI, tagName)), SCXMLExecutable);
+			const el = wrapNode(this.appendChild(this.ownerDocument.createElementNS(nsURI, tagName)));
 			if (attrs) Object.entries(attrs).forEach(([key,val]) => el.setAttribute(key, val));
 			return el;
 		},
@@ -457,8 +457,8 @@ const SCXMLScript = Object.setPrototypeOf(
 	Element.prototype
 );
 
-// Prototype injected into custom executable nodes
-const SCXMLExecutable = Object.setPrototypeOf(
+// Prototype injected into unrecognized nodes
+const SCXMLCustom = Object.setPrototypeOf(
 	Object.defineProperties({
 		// Delete this element
 		delete() {
@@ -477,7 +477,15 @@ const SCXMLExecutable = Object.setPrototypeOf(
 			});
 		},
 
-		isExecutable: true,
+		// Replace this element with a new one, maintaining attribute values where possible
+		mutateInto(newNS, newName, newAttrs) {
+			const doc = this.ownerDocument;
+			const el = wrapNode(doc.createElementNS(newNS, newName));
+			for (const k of Object.keys(newAttrs)){
+				el.setAttribute(k, newAttrs[k]);
+			}
+			this.replaceWith(el);
+		}
 	},
 	{
 		// Convenience for fetching attributes, assuming no namespaces
@@ -641,8 +649,8 @@ const nodeProtos = {
 	script:      SCXMLScript,
 };
 
-function wrapNode(el, proto=null) {
-	proto ||= nodeProtos[el.nodeName];
+function wrapNode(el) {
+	const proto = nodeProtos[el.nodeName] || SCXMLCustom;
 	if (proto) Object.setPrototypeOf(el, proto);
 	for (const c of el.children) wrapNode(c);
 	return el;
