@@ -15,24 +15,24 @@ between modules.
    * The HTML page uses a big [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) diagram to
      show the states, transitions, and selection/manipulation handles. The HTML sets up the SVG
      shell, including the shapes of the "markers" that are applied to the ends of transitions.
-     The rest of the SVG is created dynamically by [`scxmleditor.js`](resources/scxmleditor.js).
+     The rest of the SVG is created dynamically by [`visualeditor.js`](resources/visualeditor.js).
    * Visually, the following CSS files are applied to the document:
      * **[`base.css`](resources/base.css)** layout of the page elements, including the Inspector
      * **[`scxmleditor.css`](resources/scxmleditor.css)** base style for all diagram pieces
      * **[`theme.css`](resources/theme.css)** colors the diagram based on the current VS Code theme
      * **[`mutable.css`](resources/theme.css)** holds styles to be modified by script at runtime
-   * Programmatically, [`editorglue.js`](resources/editorglue.js) is the only script loaded directly
+   * Programmatically, [`scxmleditor.js`](resources/scxmleditor.js) is the only script loaded directly
      by the HTML; that library then imports other modules. Responsibilities by file:
      * **[`scxmldom.js`](resources/scxmldom.js)** creates an in-memory representation of the SCXML
        document as an [`XMLDocument`](https://developer.mozilla.org/en-US/docs/Web/API/XMLDocument),
        except that the document and DOM elements in the tree are given additional functionality
        specific to SCXML.
-     * **[`scxmleditor.js`](resources/scxmleditor.js)** implements the editor that manages the SVG
+     * **[`visualeditor.js`](resources/visualeditor.js)** implements the editor that manages the SVG
        diagram: placing and sizing and coloring states, routing of transitions, placement
        of labels, showing selection handles, handling mouse interactions, resizing elements.
        Changes to the diagram mutate the SCXMLDom document.
-     * **[`editorglue.js`](resources/editorglue.js)**
-       * creates the SCXMLDom and SCXMLEditor and hooks them together
+     * **[`scxmleditor.js`](resources/scxmleditor.js)**
+       * creates the SCXMLDom and VisualEditor and hooks them together
        * populates the Inspector when states/transitions are selected, and feeds changes to the SCXMLDoc
        * passes selection information back to the `EditorPanel`, to show selection in the text editor
      * **[`neatxml.js`](resources/neatxml.js)** provides stable, custom serialization of the in-memory

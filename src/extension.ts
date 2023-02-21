@@ -17,9 +17,9 @@ class SCXMLEditorManager {
 
 	constructor() {
 		vscode.workspace.onDidChangeTextDocument(evt => {
-			let scxmlPanel = this.editorPanelByURI.get(evt.document.uri);
-			if (scxmlPanel) {
-				scxmlPanel.panel.webview.postMessage({command:'document', document:evt.document.getText()});
+			let editorPanel = this.editorPanelByURI.get(evt.document.uri);
+			if (editorPanel) {
+				editorPanel.panel.webview.postMessage({command:'updateFromText', document:evt.document.getText()});
 			}
 		});
 	}

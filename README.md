@@ -39,6 +39,9 @@ and provides the ability to visually adjust the state chart.
 * Create transition graphically via context menu
 * Add graphical editing of transition waypoints
 * Bug: Transition with only first point set does not draw to target state; should
+* Improve mouse-based navigation:
+  * Middle-mouse drag to pan
+  * Shift mouse-wheel for lateral scrolling
 
 
 ### Medium Priority
@@ -56,8 +59,10 @@ and provides the ability to visually adjust the state chart.
 * Optionally add condition to an event label ("event\nif (…)")
 * Moving a transition (with waypoints?) to the root level (via text) causes runtime error
 * Space uses mouse move to pan, without dragging
-* Allow explicit transition routing to omit explicit first and/or last attachment point,
-  e.g. `viz:pts="- X10 -"`
+* Allow explicit transition routing to omit explicit first and/or last attachment point, e.g.
+  `viz:pts="- X10 -"`
+* Switching tabs away from the text editor and back breaks the ability of the Webview to show
+  selection in text editor
 
 
 ### Low Priority
@@ -72,6 +77,7 @@ and provides the ability to visually adjust the state chart.
 * Export diagram as SVG or PNG
 * Visual editing of custom actions with child elements
 * Visual editing of custom actions derived via XSD
+* Closing the text editor should close the webview
 
 
 ## Release Notes
