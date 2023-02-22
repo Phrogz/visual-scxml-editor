@@ -6,7 +6,7 @@
     "type": "git",
     "url": "https://github.com/Phrogz/visual-scxml-editor.git"
   },
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.74.0"
   },

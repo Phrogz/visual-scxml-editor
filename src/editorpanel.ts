@@ -29,8 +29,8 @@ export class EditorPanel {
 		this.resourceMap = new Map([
 			['neatXMLJS',      this.webviewURI('neatxml.js')],
 			['scxmlDOMJS',     this.webviewURI('scxmldom.js')],
+			['visualEditorJS', this.webviewURI('visualeditor.js')],
 			['scxmlEditorJS',  this.webviewURI('scxmleditor.js')],
-			['editorGlueJS',   this.webviewURI('editorglue.js')],
 			['baseCSS',        this.webviewURI('base.css')],
 			['scxmlEditorCSS', this.webviewURI('scxmleditor.css')],
 			['mutableCSS',     this.webviewURI('mutable.css')],
@@ -38,8 +38,8 @@ export class EditorPanel {
 		]);
 
 		this.panel.iconPath = vscode.Uri.file(this.resourcePath('icon.svg').toString());
-		this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
-		this.panel.onDidChangeViewState(() => this._update(), null, this.disposables);
+		this.panel.onDidDispose(this.dispose.bind(this), null, this.disposables);
+		this.panel.onDidChangeViewState(this._update.bind(this), null, this.disposables);
 
 		wv.onDidReceiveMessage(message => {
 			const doc = editor.document;
@@ -107,33 +107,27 @@ export class EditorPanel {
 			}
 		});
 
-		// TODO: is this needed? Maybe not?
-		this._update();
-	}
+		const editorHTMLPath = this.resourcePath('scxmleditor.html');
+		let html = fs.readFileSync(editorHTMLPath, 'utf8');
 
-	public dispose()
-	{
-		this.disposables.forEach(disposable => disposable && disposable.dispose());
-		this.disposables = [];
-		this.disposed = true;
+		const nonce = generateNonce();
+		html = html.replace('${nonce}', nonce);
+		html = html.replace(/<script /g, `<script nonce="${nonce}" `);
+		html = html.replace('${cspSource}', this.panel.webview.cspSource);
+
+		// Replace ${resource} placeholders with proper paths
+		this.panel.webview.html = html.replace(/\$\{([^}]+)\}/g, (_, p) => this.resourceMap.get(p) || '');
 	}
 
 	private async _update(): Promise<void> {
-		// TODO: prevent this from getting called twice when first opened
-		if (!this.disposed && this.panel.visible) {
-			const editorHTMLPath = this.resourcePath('scxmleditor.html');
-			let html = fs.readFileSync(editorHTMLPath, 'utf8');
+		// Redocking the panel requires the webview to reload (why?)
+		this.panel.webview.postMessage({command:'updateFromText', document:this.editor.document.getText()});
+	}
 
-			const nonce = generateNonce();
-			html = html.replace('${nonce}', nonce);
-			html = html.replace(/<script /g, `<script nonce="${nonce}" `);
-			html = html.replace('${cspSource}', this.panel.webview.cspSource);
-
-			// Replace ${resource} placeholders with proper paths
-			this.panel.webview.html = html.replace(/\$\{([^}]+)\}/g, (_, p) => this.resourceMap.get(p) || '');
-
-			this.panel.webview.postMessage({command:'document', document:this.editor.document.getText()});
-		}
+	public dispose() {
+		this.disposables.forEach(disposable => disposable && disposable.dispose());
+		this.disposables = [];
+		this.disposed = true;
 	}
 
 	private resourceURI(file: string) {
