@@ -1,9 +1,11 @@
 This document captures the design architecture of this extension: what files do, how data flows
 between modules.
 
+![diagram showing the conceptual containment described below](conceptual-containment.png)
+
 # High-Level Overview
 
-1. `extension.ts` creates an `SCXMLEditorManager`, which creates a `WebviewPanel` for each editor
+1. `extension.ts` creates an `SCXMLEditorManager`, which creates an `WebviewPanel` for each editor
    document where the `showEditor` command is invoked. This WebviewPanel is where all visualization
    takes place.
 2. The `WebviewPanel` and editor are passed along to create a new `EditorPanel` (from
@@ -23,6 +25,10 @@ between modules.
      * **[`mutable.css`](resources/theme.css)** holds styles to be modified by script at runtime
    * Programmatically, [`scxmleditor.js`](resources/scxmleditor.js) is the only script loaded directly
      by the HTML; that library then imports other modules. Responsibilities by file:
+     * **[`scxmleditor.js`](resources/scxmleditor.js)** is the glue that pulls everything together:
+       * creates the SCXMLDocument and VisualEditor and hooks them together
+       * populates the Inspector when states/transitions are selected, and feeds changes to the SCXMLDoc
+       * passes selection information back to the `EditorPanel`, to show selection in the text editor
      * **[`scxmldom.js`](resources/scxmldom.js)** creates an in-memory representation of the SCXML
        document as an [`XMLDocument`](https://developer.mozilla.org/en-US/docs/Web/API/XMLDocument),
        except that the document and DOM elements in the tree are given additional functionality
@@ -30,14 +36,11 @@ between modules.
      * **[`visualeditor.js`](resources/visualeditor.js)** implements the editor that manages the SVG
        diagram: placing and sizing and coloring states, routing of transitions, placement
        of labels, showing selection handles, handling mouse interactions, resizing elements.
-       Changes to the diagram mutate the SCXMLDom document.
-     * **[`scxmleditor.js`](resources/scxmleditor.js)**
-       * creates the SCXMLDom and VisualEditor and hooks them together
-       * populates the Inspector when states/transitions are selected, and feeds changes to the SCXMLDoc
-       * passes selection information back to the `EditorPanel`, to show selection in the text editor
+       Changes to the diagram mutate the SCXMLDocument document.
      * **[`neatxml.js`](resources/neatxml.js)** provides stable, custom serialization of the in-memory
        XML document to produce updated code for the editor when the SCXMLDoc changes
 
+![diagrams summarizing event and method calls for common interactions](sequence-diagrams.png)
 
 # SCXML DOM
 
