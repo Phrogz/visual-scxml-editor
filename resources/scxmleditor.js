@@ -44,38 +44,37 @@ insAddTransitionExecutable.addEventListener('click', _ => addNewAction('transiti
 
 let actionSchema;
 
-function loadXML(xmlString) {
-	const scxmlDocOrErrors = loadSCXML(xmlString);
-	if (Array.isArray(scxmlDocOrErrors)) {
-		vscode.postMessage({ command:'SCXMLParseErrors', errors:scxmlDocOrErrors });
-	} else {
-		if (visualEditor.scxmlDoc) visualEditor.scxmlDoc.removeEventListener('changed', handleDocumentChanged, false);
-		visualEditor.useSCXML(scxmlDocOrErrors);
-		visualEditor.scxmlDoc.addEventListener('changed', handleDocumentChanged, false);
-		actionSchema = readActionSchema(scxmlDocOrErrors);
-		return true;
-	}
-}
-
 // Wait a short time before updating the document once only, so that quick changes (e.g. dragging) do not keep dirtying the document until done
+const serializationOptions = {strip:true, indent:'\t', sort:true, cdata:true, tightcdata:true};
 let handleChangeTimer, changeDelayMS = 250;
-function handleDocumentChanged() {
+function onSCXMLDocChanged() {
 	// This does not error if the timer has never been set
 	clearTimeout(handleChangeTimer);
-	handleChangeTimer = setTimeout(() => {
-		vscode.postMessage({ command:'replaceDocument', xml:serialize() });
-	}, changeDelayMS);
+	handleChangeTimer = setTimeout(sendXMLToTextEditor, changeDelayMS);
 }
 
-function serialize() {
-	return visualEditor.scxmlDoc && neatXML(visualEditor.scxmlDoc, {strip:true, indent:'\t', sort:true, cdata:true, tightcdata:true});
+function sendXMLToTextEditor() {
+	if (visualEditor.scxmlDoc) {
+		const xml = neatXML(visualEditor.scxmlDoc, serializationOptions);
+		vscode.postMessage({command:'replaceDocument', xml});
+	}
 }
 
 window.addEventListener('message', event => {
 	const message = event.data;
 	switch (message.command) {
 		case 'updateFromText':
-			loadXML(message.document);
+			const xmlString = message.document;
+			const scxmlDocOrErrors = loadSCXML(xmlString);
+			if (Array.isArray(scxmlDocOrErrors)) {
+				vscode.postMessage({ command:'SCXMLParseErrors', errors:scxmlDocOrErrors });
+			} else {
+				if (visualEditor.scxmlDoc) visualEditor.scxmlDoc.removeEventListener('changed', onSCXMLDocChanged, false);
+				visualEditor.useSCXML(scxmlDocOrErrors);
+				visualEditor.scxmlDoc.addEventListener('changed', onSCXMLDocChanged, false);
+				actionSchema = readActionSchema(scxmlDocOrErrors);
+				return true;
+			}
 		break;
 	}
 });
@@ -93,8 +92,6 @@ function watchInput(input, propertyName) {
 				o[propertyName] = (input.value==='(none)' || input.value==='(auto)') ? '' : input.value;
 			}
 		});
-		// TODO: is this needed, or already covered by mutation observer?
-		if (visualEditor.scxmlDoc) visualEditor.scxmlDoc.dispatchEvent(new CustomEvent('changed'));
 	}, false);
 	// Prevent typing 'e' from getting eaten by the editor's body keydown handler
 	input.addEventListener('keydown', evt => evt.stopPropagation(), false);
@@ -374,5 +371,3 @@ function addNewAction(location) {
 		}
 	});
 }
-
-window.ed = visualEditor;

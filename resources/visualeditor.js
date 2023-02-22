@@ -14,6 +14,7 @@ SSE.Editor = function(svg, scxmlDoc) {
 
     this.gridSize   = 10;
     this.gridActive = true;
+
     document.body.addEventListener('mousedown', this.select.bind(this), false);
     document.body.addEventListener('keydown',   this.onKeydown.bind(this), false);
     document.body.addEventListener('keyup',     this.onKeyup.bind(this), false);
@@ -114,7 +115,11 @@ SSE.Editor.prototype.useSCXML = function(scxmlDoc) {
 
     if (firstLoad) {
         this.zoomToExtents();
-        setTimeout(this.zoomToExtents.bind(this), 1);
+
+        // TODO: this hack 'fixes' the zoom; something changes slightly after the initial zoom
+        // However, it also causes a visual adjustment right after load. Gross. Why does initial zoom
+        // not work exactly the same as later zooms?
+        // setTimeout(this.zoomToExtents.bind(this), 1);
     }
 
     // Restore the selection as best as possible
@@ -201,6 +206,11 @@ SSE.Editor.prototype.makeDraggable = function(el, obj) {
 };
 
 SSE.Editor.prototype.select = function(evt, item){
+    if (evt.type==='mousedown' && evt.which===2) {
+        // middle mouse button down
+        return this.startPanning(evt);
+    }
+
     const oldSelection = this.selection.concat();
     if (!evt.shiftKey) {
         this.selection.forEach(i => i.deselect());
@@ -253,13 +263,14 @@ SSE.Editor.prototype.onKeyup = function(evt) {
 };
 
 SSE.Editor.prototype.onMousewheel = function(evt) {
-    evt.preventDefault();
     if (evt.ctrlKey) {
         // TODO: detect trackpad and divide by only ~20
         const delta = evt.deltaY/300;
         const multiplier = 1/(delta>0 ? (1+delta) : (1/(1-delta)));
         const mouseLoc = this.pointFromScreen(evt.clientX, evt.clientY);
         this.zoomBy(multiplier, mouseLoc.x, mouseLoc.y);
+    } else if (evt.shiftKey) {
+        this.panBy(evt.deltaY*this.zoomFactor, evt.deltaX*this.zoomFactor);
     } else {
         this.panBy(evt.deltaX*this.zoomFactor, evt.deltaY*this.zoomFactor);
     }
