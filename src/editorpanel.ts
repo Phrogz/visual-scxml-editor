@@ -1,21 +1,39 @@
+/* eslint-disable curly */
 'use strict';
 
 import * as fs from 'fs';
 import { Disposable, TextEditor, WebviewPanel} from 'vscode';
 import * as vscode from 'vscode';
+import { SCXMLEditorManager } from './extension';
+
+interface SelectionTypes {
+	anyStateSelected: Boolean,
+	anyTransitionSelected: Boolean,
+	anyParentStateSelected: Boolean,
+	anyParallelStateSelected: Boolean
+}
 
 export class EditorPanel {
 	public panel: WebviewPanel;
+	public selectedTypes: SelectionTypes;
+	public readonly editor: TextEditor;
 	private readonly extensionURI: vscode.Uri;
-	private readonly editor: TextEditor;
 	private readonly resourceMap: Map<string, string> = new Map();
 	private disposables: Disposable[] = [];
 	private disposed: boolean = false;
+	private overlord: SCXMLEditorManager;
 
-	public constructor(panel: WebviewPanel, extensionURI: vscode.Uri, editor: TextEditor) {
+	public constructor(extensionURI: vscode.Uri, editor: TextEditor, panel: WebviewPanel, overlord: SCXMLEditorManager) {
 		this.panel = panel;
 		this.extensionURI = extensionURI;
 		this.editor = editor;
+		this.overlord = overlord;
+		this.selectedTypes = {
+			anyStateSelected: false,
+			anyTransitionSelected: false,
+			anyParentStateSelected: false,
+			anyParallelStateSelected: false
+		};
 
 		const selectionDecorator = vscode.window.createTextEditorDecorationType({
 			border:'2px dashed',
@@ -42,6 +60,7 @@ export class EditorPanel {
 		this.panel.onDidChangeViewState(this._update.bind(this), null, this.disposables);
 
 		wv.onDidReceiveMessage(message => {
+			console.log(`EditorPanel received message ${message.command}`);
 			const doc = editor.document;
 			switch (message.command) {
 				case 'SCXMLParseErrors':
@@ -58,11 +77,17 @@ export class EditorPanel {
 				break;
 
 				case 'selectedItems':
+					this.selectedTypes.anyStateSelected = false;
+					this.selectedTypes.anyTransitionSelected = false;
+					this.selectedTypes.anyParentStateSelected = false;
+					this.selectedTypes.anyParallelStateSelected = false;
+
 					const scxml = doc.getText();
 					const selections: vscode.DecorationOptions[] = [];
 					message.selection.forEach((item: any) => {
 						// TODO: use information from serialization to find where a given node is placed, instead of regex
 						if (item.name==='transition') {
+							this.selectedTypes.anyTransitionSelected = true;
 							const parentMatcher = new RegExp(`^(\\s*)<${item.parentName}[^\n>]+?id=["']${item.parentId}["'][^>]+>`, 'm');
 							const match = parentMatcher.exec(scxml);
 							if (match) {
@@ -85,6 +110,9 @@ export class EditorPanel {
 								}
 							}
 						} else {
+							this.selectedTypes.anyStateSelected = true;
+							if (item.hasChildren) this.selectedTypes.anyParentStateSelected = true;
+							if (item.name==='parallel') this.selectedTypes.anyParallelStateSelected = true;
 							const matcher = new RegExp(`<${item.name}[^\\n>]+?id=["']${item.id}["'][^>]+>`, 'm');
 							const match = matcher.exec(scxml);
 							if (match) {
@@ -103,6 +131,8 @@ export class EditorPanel {
 						// Construct a union of all selection ranges and scroll to it
 						editor.revealRange(selections.reduce<vscode.Range>((sum,r) => sum.union(r.range), selections[0].range), vscode.TextEditorRevealType.InCenter);
 					}
+
+					this.overlord.updateSelection(this);
 				break;
 			}
 		});
@@ -120,6 +150,12 @@ export class EditorPanel {
 	}
 
 	private async _update(): Promise<void> {
+		if (this.panel.active && this.panel.visible) {
+			this.overlord.activeEditorPanel = this;
+		} else if (this.overlord.activeEditorPanel === this) {
+			this.overlord.activeEditorPanel = null;
+		}
+
 		// Redocking the panel requires the webview to reload (why?)
 		this.panel.webview.postMessage({command:'updateFromText', document:this.editor.document.getText()});
 	}

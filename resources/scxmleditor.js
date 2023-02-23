@@ -62,6 +62,7 @@ function sendXMLToTextEditor() {
 
 window.addEventListener('message', event => {
 	const message = event.data;
+	console.info(`SCXMLEditor received message '${message.command}'`);
 	switch (message.command) {
 		case 'updateFromText':
 			const xmlString = message.document;
@@ -75,6 +76,21 @@ window.addEventListener('message', event => {
 				actionSchema = readActionSchema(scxmlDocOrErrors);
 				return true;
 			}
+		break;
+		case 'createState':
+			if (visualEditor.scxmlDoc) {
+				const parentElements = visualEditor.selection?.filter(el => el.canHaveChildStates);
+				if (!parentElements.length) parentElements.push(visualEditor.scxmlDoc.root);
+				const newElements = parentElements.map(parent => parent.addChild());
+				visualEditor.setSelection(newElements);
+			} else {
+				// TODO: show this to user?
+				console.error("Visual editor does not have a valid SCXML Doc to create a state in");
+			}
+		break;
+		case 'fitChildren':
+			const parents = visualEditor.selection.filter(el => el.isState && el.isParent);
+			for (const el of parents) el.expandToFitChildren();
 		break;
 	}
 });
@@ -278,6 +294,7 @@ function updateInspectorForSelection(sel) {
 							max:   attr.max,
 							value: val
 						});
+						inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
 					break;
 					case 'choice':
 						var inp = addEl('select', label, {name:attr.name});
@@ -331,7 +348,8 @@ function notifyDocumentOfSelection(sel) {
 			id            : node.id,
 			parentName    : node.parentNode.tagName,
 			parentId      : node.parentNode.id,
-			indexInParent : node.parentNode.transitions.indexOf(node)
+			indexInParent : node.parentNode.transitions.indexOf(node),
+			hasChildren   : node.isState && node.isParent
 		}))
 	});
 }

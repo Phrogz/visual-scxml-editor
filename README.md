@@ -11,7 +11,7 @@ and provides the ability to visually adjust the state chart.
 * Default visual style matches the current VS Code theme
   * Customization of state colors allows for additional information to be conveyed
 * Visual changes are stored in a custom namespace that does not affect SCXML operation
-* Inspector palette supports authoring of custom actions (requires custom schema addition to SCXML)
+* Inspector palette supports authoring of custom actions (requires custom elements in SCXML)
 * Visually differentiates states with entry/exit actions
 * Visually differentiates transitions with actions
 * Visually differentiates transitions with conditions
@@ -32,6 +32,27 @@ and provides the ability to visually adjust the state chart.
 * `Ctrl-MouseWheel` — zoom in/out
 * `MouseWheel` — pan up/down
 * `Shift-MouseWheel` — pan left/right
+* `Delete` — delete the selected state(s) and transition(s) in a
+  least-destructive manner:
+  * Unselected sub-states are not deleted, but re-parented up a level.
+  * Transitions targeting delete states are not themselves deleted, but instead
+    have their `target` attribute changed to not target that state.
+
+### Commands
+
+* `SCXML Editor: Open to Side` — Opens a visual editor tied to the current SCXML document.
+* `SCXML Editor: Add State` — Creates a new state in the state machine.
+  If any state(s) are selected states are added as children of them.
+  Also available via context menu in the visual editor.
+* `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the
+  visual editor will have their placement adjusted to ensure all children fit within them.
+
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.fitChildren",
+        "title": "Expand State to Fit Children"
+
 
 
 ## TODO (Known Issues, Planned Features)
@@ -42,12 +63,10 @@ and provides the ability to visually adjust the state chart.
 * Bug: Selection keeps getting dropped when editing some attributes
   (e.g. label `placement` alignment for a transition)
 * Bug: First selection often drops selection, second sticks
-* Create state graphically via context menu
+* Create via context menu should place at cursor, not drag parent
 * Create transition graphically via context menu
 * Add graphical editing of transition waypoints
 * Bug: Transition with only first point set does not draw to target state
-* Improve mouse-based navigation:
-  * Middle-mouse drag to pan
 * Ctrl-Z in visual editor should ask text editor to undo
 
 ### Medium Priority
