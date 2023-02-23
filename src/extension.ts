@@ -8,6 +8,14 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.showEditor', () => {
 		manager.showEditor(context.extensionUri);
 	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.createState', (e) => {
+		console.dir(e);
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.createTransition', (e,a,b) => {
+		console.log(vscode.window);
+	}));
 }
 
 export function deactivate() {}
@@ -36,7 +44,7 @@ class SCXMLEditorManager {
 				editorPanelForDoc.panel.reveal();
 			} else {
 				const panel = vscode.window.createWebviewPanel(
-					'scxml', `SCXML ${path.basename(doc.fileName)}`,
+					scxmlURI.toString(), `SCXML ${path.basename(doc.fileName)}`,
 					vscode.ViewColumn.Beside,
 					{
 						enableScripts: true,

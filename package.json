@@ -20,8 +20,30 @@
         "category": "SCXML Editor",
         "command": "visual-scxml-editor.showEditor",
         "title": "Open to the Side"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.createState",
+        "title": "Create new State"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.createTransition",
+        "title": "Create new Transition"
       }
-    ]
+    ],
+    "menus": {
+      "webview/context": [
+        {
+          "command": "visual-scxml-editor.createState",
+          "group": "scxml-creation"
+        },
+        {
+          "command": "visual-scxml-editor.createTransition",
+          "group": "scxml-creation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

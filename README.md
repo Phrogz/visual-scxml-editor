@@ -49,6 +49,9 @@ and provides the ability to visually adjust the state chart.
 * Improve mouse-based navigation:
   * Middle-mouse drag to pan
 * Ctrl-Z in visual editor should ask text editor to undo
+* Resize handles for children of parallel
+  * Command to auto-size the parallel children to fit height
+    * Resizing or moving parallel parent auto sets top/bottom of children
 
 ### Medium Priority
 
