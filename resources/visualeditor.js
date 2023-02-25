@@ -240,15 +240,24 @@ class VisualEditor {
 		this.onSelectionChanged?.(this.selection);
 	}
 
-	deleteSelection() {
+	toggleEventDisplay() {
+		this.showEvents = !this.showEvents;
+	}
+
+	deleteNonDestructive() {
 		for (const o of this.selection) o.delete(true);
+		this.selection = [];
+	}
+
+	deleteDestructive() {
+		for (const o of this.selection) o.delete(true, true);
 		this.selection = [];
 	}
 
 	onKeydown(evt) {
 		switch (evt.code) {
 			case 'KeyE':
-				this.showEvents = !this.showEvents;
+				this.toggleEventDisplay();
 				evt.preventDefault();
 			break;
 
@@ -256,6 +265,8 @@ class VisualEditor {
 				if (evt.altKey) {
 					if (evt.metaKey || evt.ctrlKey) this.zoomToExtents();
 					else if (evt.shiftKey) this.zoomTo100();
+				} else if (evt.ctrlKey && !evt.shiftKey) {
+					this.onUndo?.();
 				}
 			break;
 
@@ -264,7 +275,7 @@ class VisualEditor {
 			break;
 
 			case 'Delete':
-				this.deleteSelection();
+				this.deleteNonDestructive();
 			break;
 		}
 	}
@@ -579,10 +590,10 @@ class VisualState extends SCXMLState {
 		}
 	}
 
-	delete(leaveInSelection=false) {
+	delete(leaveInSelection=false, destructive=false) {
 		if (!leaveInSelection) this._vse.editor.removeFromSelection(this);
 		this.deleteGraphics();
-		super.delete({deleteSubStates:false, deleteTargetingTransitions:false});
+		super.delete({deleteSubStates:destructive, deleteTargetingTransitions:destructive});
 	}
 
 	deselect() {
@@ -919,7 +930,6 @@ class VisualState extends SCXMLState {
 		}
 		if (this.isHistory) {
 			prefix += this.isDeep ? '★ ' : '✪ ';
-			postfix += ' ';
 		}
 		this._vse.label.textContent = `${prefix}${this.id}${postfix}`;
 	}
@@ -1046,7 +1056,7 @@ class VisualState extends SCXMLState {
 		})[0] === this;
 	}
 }
-Object.assign(VisualState.prototype,{
+Object.assign(VisualState.prototype, {
 	cornerRadius: 10
 });
 

@@ -14,15 +14,16 @@ interface SelectionTypes {
 
 export function activate(context: vscode.ExtensionContext) {
 	let manager = new SCXMLEditorManager();
+
 	context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.showEditor', () => {
 		manager.showEditor(context.extensionUri);
 	}));
-	context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.createState', () => {
-		manager.sendToActiveEditor('createState');
-	}));
-	context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.fitChildren', () => {
-		manager.sendToActiveEditor('fitChildren');
-	}));
+
+	for (const cmd of 'createState fitChildren undo zoomToExtents zoomTo100 toggleEventDisplay deleteNonDestructive deleteDestructive'.split(' ')) {
+		context.subscriptions.push(vscode.commands.registerCommand(`visual-scxml-editor.${cmd}`, () => {
+			manager.sendToActiveEditor(cmd);
+		}));
+	}
 }
 
 export function deactivate() {}
@@ -54,13 +55,11 @@ export class SCXMLEditorManager {
 
 	public set activeEditorPanel(newValue: EditorPanel | null) {
 		this._editorPanelWithActiveWebView = newValue;
+		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.anyVisualEditorIsActive', !!newValue);
 
-		// FIXME: the intention of the following is to enable commands only when a viewer panel OR appropriate text editor has focus
-		// However, because this only gets set when webviews change state, and not text editors, it messes up
-		// Instead, we'll only enable those commands when a webview is active
-		// vscode.commands.executeCommand('setContext', 'visual-scxml-editor.anyEditorIsActive', !!this.activeEditorPanel);
-		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.anyEditorIsActive', !!this._editorPanelWithActiveWebView);
-
+		// FIXME: if a webview is focused, then an editor is focused, then the editor loses focus, this will be incorrectly left as true
+		// Need to track when editor views gain and lose focus
+		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.anyEditorIsActive', !!this.activeEditorPanel);
 		this.updateSelection(newValue);
 	}
 
@@ -75,6 +74,7 @@ export class SCXMLEditorManager {
 			if (editorPanelForDoc) {
 				editorPanelForDoc.panel.reveal();
 			} else {
+				// TODO: why doesn't the editor instance create this itself?
 				const webviewPanel = vscode.window.createWebviewPanel(
 					'scxml', `SCXML ${path.basename(doc.fileName)}`,
 					vscode.ViewColumn.Beside,

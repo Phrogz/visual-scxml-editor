@@ -1,30 +1,58 @@
 # Visual SCXML Editor
 
 An extension for Visual Studio Code that visualizes SCXML state charts,
-and provides the ability to visually adjust the state chart.
+and provides the ability to visually adjust the state chart,
+in a manner that allows the SCXML to still be used in production.
 
+![](docs/example.png)
 
 ## Features
 
-* Editing the XML for the state chart updates the graphics, and vice-versa
-* Selecting states and transitions highlights them in the text editor
-* Default visual style matches the current VS Code theme
-  * Customization of state colors allows for additional information to be conveyed
+* Side-by-side editing allows you to edit either the XML code or the graphics and have
+  the other reflect the changes
+* Selecting states and transitions highlights them in the text editor, making then easy to find
+  for hand-editing or detailed inspection
 * Visual changes are stored in a custom namespace that does not affect SCXML operation
-* Inspector palette supports authoring of custom actions (requires custom elements in SCXML)
-* Visually differentiates states with entry/exit actions
+* Visualization goes beyond just states and transition flow:
+  * See which states have actions performed on entry or exit
+  * See which transitions execute actions
+  * See which transitions have conditions guarding them in addition to the event,
+    or have no condition or event at all.
+  * See transitions that just execute an action, but don't leave the state.
 * Visually differentiates transitions with actions
 * Visually differentiates transitions with conditions
-* Powerful and attractive routing of transitions via waypoints
+* Default visual style matches the current VS Code theme
+  * Customization of state colors allows for additional information to be conveyed
+* Inspector palette supports authoring of custom actions (requires custom elements in SCXML)
+* Route of transitions around states via waypoints;
+  rounded corners make it clear when transitions turn versus cross another.
 
 
 ## Instructions
 
-### Controls
+1. Open an SCXML file, ensure VS Code knows the language is set to XML,
+   and then invoke the command `SCXML Editor: Open to the Side`
+   * Your states will (currently) be displayed in a jumbled mess. Sorry about that.
+2. Drag states to impose order and clarity.
 
-* `E` — toggle the display of transition event labels
+_Better instructions to come when there's more useful
+
+
+### Commands
+
+* `SCXML Editor: Open to Side` — Opens a visual editor tied to the current SCXML document;
+  only available if the language for the active text editor is set to XML.
+* `SCXML Editor: Add State` — Creates new state(s) in the state machine.
+  If any state(s) are selected the new states are added as children of them.
+  Also available via context menu in the visual editor.
+* `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the
+  visual editor will have their placement adjusted to ensure all children fit within them.
+
+### Keyboard Controls in the Visual Editor
+
 * `Ctrl-Alt-Z`/`Cmd-Alt-Z` — zoom to fit entire diagram
 * `Alt-Shift-Z` — zoom to "100%" size
+* `e` — toggle the display of transition event labels
 * `Space` — enable pan via left mouse drag
 * `Middle-MouseWheel Drag` — pan around the document
 * `TrackpadScroll` — pan around the document
@@ -37,22 +65,6 @@ and provides the ability to visually adjust the state chart.
   * Unselected sub-states are not deleted, but re-parented up a level.
   * Transitions targeting delete states are not themselves deleted, but instead
     have their `target` attribute changed to not target that state.
-
-### Commands
-
-* `SCXML Editor: Open to Side` — Opens a visual editor tied to the current SCXML document.
-* `SCXML Editor: Add State` — Creates a new state in the state machine.
-  If any state(s) are selected states are added as children of them.
-  Also available via context menu in the visual editor.
-* `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the
-  visual editor will have their placement adjusted to ensure all children fit within them.
-
-      },
-      {
-        "category": "SCXML Editor",
-        "command": "visual-scxml-editor.fitChildren",
-        "title": "Expand State to Fit Children"
-
 
 
 ## TODO (Known Issues, Planned Features)
@@ -67,7 +79,9 @@ and provides the ability to visually adjust the state chart.
 * Create transition graphically via context menu
 * Add graphical editing of transition waypoints
 * Bug: Transition with only first point set does not draw to target state
-* Ctrl-Z in visual editor should ask text editor to undo
+* Ctrl-Z/Cmd-Z in visual editor should ask text editor to undo
+* Ctrl-S/Cmd-S in visual editor should save text editor
+* Move keybindings in visual editor to commands that can be invoked
 
 ### Medium Priority
 
@@ -90,6 +104,12 @@ and provides the ability to visually adjust the state chart.
   selection in text editor
 * Changes to inspector action parameters defocuses Inspector after editor updates;
   this does not occur for non-action inputs, e.g. state size.
+* Fix the context `visual-scxml-editor.anyEditorIsActive` to be active iff an editor is active,
+  and switch commands that could be invoked from the text editor (like `Add State`) to use this context.
+* Add command to create new text editor with SCXML shell + visual editor
+* Rename state without Inspector
+* Attempting to resize `<parallel>` with no children throws error
+* Marker at the end of transitions with actions do not properly show up on light themes
 
 ### Low Priority
 
@@ -108,6 +128,6 @@ and provides the ability to visually adjust the state chart.
 
 ## Release Notes
 
-### 0.1.0
+### 0.3.0
 
 Under-development version

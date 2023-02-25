@@ -1,0 +1,64 @@
+<scxml version="1" xmlns="http://www.w3.org/2005/07/scxml" xmlns:viz="http://phrogz.net/visual-scxml">
+	<state id="InitialState" viz:xywh="10 -30 140 40">
+		<!-- this transition has neither event nor condition guarding it! -->
+		<transition target="AnotherState" viz:pts="S0 N0"/>
+		<transition event="my.event" target="AnotherState"/>
+		<transition cond="expr" event="event if(cond)" target="AnotherState" viz:offset="20" viz:pts="S200 N200"/>
+	</state>
+	<state id="AnotherState" viz:xywh="10 80 140 40">
+		<transition event="go" target="ChildState1" viz:align="E" viz:pts="E20 W20"/>
+		<transition event="ping">
+			<log/>
+		</transition>
+		<transition cond="maybe" event="maybe" viz:pts="S120">
+			<log/>
+		</transition>
+	</state>
+	<state id="ParentState" viz:xywh="200 -30 250 150">
+		<state id="ChildState1" viz:xywh="220 10 110 40">
+			<transition event="a" target="ChildState2"/>
+		</state>
+		<state id="ChildState2" viz:xywh="350 70 90 40">
+			<transition event="b" target="ChildState1"/>
+		</state>
+		<state id="OutOfBoundsChild" viz:xywh="360 0 160 40"/>
+		<transition event="move.on" target="ParallelParent"/>
+	</state>
+	<parallel id="ParallelParent" viz:xywh="10 170 570 300">
+		<state id="StateActions" viz:xywh="10 200 160 270">
+			<state id="NoActions" viz:xywh="30 240 120 40"/>
+			<state id="EntryActions" viz:xywh="30 300 120 40">
+				<onentry>
+					<log/>
+				</onentry>
+			</state>
+			<state id="ExitActions" viz:xywh="30 360 120 40">
+				<onexit>
+					<log/>
+				</onexit>
+			</state>
+			<state id="EntryAndExit" viz:xywh="30 420 120 40">
+				<onentry>
+					<log/>
+				</onentry>
+				<onexit>
+					<log/>
+				</onexit>
+			</state>
+		</state>
+		<state id="TransitionActions" viz:xywh="170 200 210 270">
+			<state id="Foo" viz:xywh="190 260 170 40">
+				<transition event="no action" target="Bar" viz:pts="S40 N40"/>
+				<transition event="with action" target="Bar" viz:pts="S120 N120">
+				<log/>
+				</transition>
+			</state>
+			<state id="Bar" viz:xywh="190 380 160 40"/>
+		</state>
+		<state id="HistoryStates" viz:xywh="380 200 200 270">
+			<history id="DeepHistory" type="deep" viz:xywh="400 260 160 40"/>
+			<history id="ShallowHistory" viz:xywh="400 380 160 40"/>
+		</state>
+		<transition event="label.offset.along.path" target="InitialState" viz:align="C" viz:offset="1300" viz:pts="S260 Y510 X620 Y130 X500 Y70 X550 Y-60 N120" viz:r="20"/>
+	</parallel>
+</scxml>

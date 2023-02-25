@@ -4,6 +4,7 @@
 import * as fs from 'fs';
 import { Disposable, TextEditor, WebviewPanel} from 'vscode';
 import * as vscode from 'vscode';
+import { window, Tab, ViewColumn } from 'vscode';
 import { SCXMLEditorManager } from './extension';
 
 interface SelectionTypes {
@@ -35,8 +36,8 @@ export class EditorPanel {
 			anyParallelStateSelected: false
 		};
 
-		const selectionDecorator = vscode.window.createTextEditorDecorationType({
-			border:'2px dashed',
+		const selectionDecorator = window.createTextEditorDecorationType({
+			border: '2px dashed',
 			borderRadius: '6px',
 			fontWeight: 'bold',
 			// This theme color should match the color used in scxmleditor.html CSS for #selectors fill
@@ -73,7 +74,35 @@ export class EditorPanel {
 
 				case 'replaceDocument':
 					const fullRange = doc.validateRange(new vscode.Range(0, 0, doc.lineCount, 0));
-					editor.edit(edit => edit.replace(fullRange, message.xml));
+					var {editorTabCol} = this.findTabs();
+					if (editorTabCol) {
+						window.showTextDocument(this.editor.document, {preserveFocus:true, viewColumn:editorTabCol}).then(() => {
+							editor.edit(edit => edit.replace(fullRange, message.xml));
+						});
+					}
+				break;
+
+				case 'undo':
+					var {editorTabCol, webTabCol} = this.findTabs();
+					if (editorTabCol) {
+						const opts = {preserveFocus:false, preview:false, viewColumn:editorTabCol};
+						window.showTextDocument(this.editor.document, opts).then(() => {
+							vscode.commands.executeCommand('undo').then(() => {
+								if (webTabCol) this.panel.reveal(webTabCol, false);
+								else console.warn('SCXML Editor could not restore focus to the visual editor because its tab could not be found');
+							});
+						});
+					} else {
+						console.warn('SCXML Editor could not perform "undo" because the editor tab could not be found');
+					}
+				break;
+
+				case 'zoomToExtents':
+				case 'zoomTo100':
+				case 'toggleEventDisplay':
+				case 'deleteNonDestructive':
+				case 'deleteDestructive':
+					this.panel.webview.postMessage(message.command);
 				break;
 
 				case 'selectedItems':
@@ -176,6 +205,27 @@ export class EditorPanel {
 
 	private resourcePath(file: string) {
 		return this.resourceURI(file).fsPath;
+	}
+
+	// Locate the tab columns for the editor and webview, so they can be focused
+	// without opening a new copy in another column
+	private findTabs() {
+		let editorTabCol:  ViewColumn|null = null,
+		    webTabCol: ViewColumn|null = null;
+		for (const tab of window.tabGroups.all.flatMap(group => group.tabs)) {
+			if (tab.input instanceof vscode.TabInputText) {
+				if (tab.input.uri.fsPath===this.editor.document.uri.fsPath) {
+					editorTabCol = tab.group.viewColumn;
+				}
+			} else if (tab.input instanceof vscode.TabInputWebview) {
+				// TODO: input.viewType does not exactly match the viewType
+				// supplied during creation of the webview; why?
+				if (/scxml$/.test(tab.input.viewType)) {
+					webTabCol = tab.group.viewColumn;
+				}
+			}
+		}
+		return {editorTabCol, webTabCol};
 	}
 }
 

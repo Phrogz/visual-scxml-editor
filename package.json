@@ -6,7 +6,7 @@
     "type": "git",
     "url": "https://github.com/Phrogz/visual-scxml-editor.git"
   },
-  "version": "0.2.0",
+  "version": "0.3.0",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -30,30 +30,114 @@
         "category": "SCXML Editor",
         "command": "visual-scxml-editor.fitChildren",
         "title": "Expand State to Fit Children"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.undo",
+        "title": "Undo"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.zoomToExtents",
+        "title": "Zoom to Fit"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.zoomTo100",
+        "title": "Zoom to 100%"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.toggleEventDisplay",
+        "title": "Show/Hide Events"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.deleteNonDestructive",
+        "title": "Delete Selection (Preserve Children + Incoming Transitions)"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.deleteDestructive",
+        "title": "Delete Selection (Remove Children + Incoming Transitions)"
       }
     ],
     "menus": {
       "webview/context": [
         {
+          "command": "visual-scxml-editor.deleteNonDestructive",
+          "group": "scxmlstatemanipulation",
+          "when":"visual-scxml-editor.anyStateSelected || visual-scxml-editor.anyTransitionSelected"
+        },
+        {
           "command": "visual-scxml-editor.createState",
           "group": "scxmlstatemanipulation"
         },
         {
           "command": "visual-scxml-editor.fitChildren",
-          "group": "scxmlstatemanipulation"
+          "group": "scxmlstatemanipulation",
+          "when":  "visual-scxml-editor.anyParentSelected == true"
+        },
+        {
+          "command": "visual-scxml-editor.zoomToExtents",
+          "group": "scxmldisplay"
+        },
+        {
+          "command": "visual-scxml-editor.zoomTo100",
+          "group": "scxmldisplay"
+        },
+        {
+          "command": "visual-scxml-editor.toggleEventDisplay",
+          "group": "scxmldisplay"
         }
       ],
       "commandPalette": [
         {
+          "command": "visual-scxml-editor.showEditor",
+          "when": "editorLangId == xml"
+        },
+        {
           "command": "visual-scxml-editor.createState",
-          "when": "visual-scxml-editor.anyEditorIsActive == true"
+          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
         },
         {
           "command": "visual-scxml-editor.fitChildren",
           "when": "visual-scxml-editor.anyParentStateSelected == true"
+        },
+        {
+          "command": "visual-scxml-editor.zoomToExtents",
+          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+        },
+        {
+          "command": "visual-scxml-editor.zoomTo100",
+          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+        },
+        {
+          "command": "visual-scxml-editor.toggleEventDisplay",
+          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+        },
+        {
+          "command": "visual-scxml-editor.deleteNonDestructive",
+          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+        },
+        {
+          "command": "visual-scxml-editor.deleteDestructive",
+          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+        },
+        {
+          "command": "visual-scxml-editor.undo",
+          "when": "false"
         }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "visual-scxml-editor.undo",
+        "key": "ctrl+z",
+        "mac": "cmd+z",
+        "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

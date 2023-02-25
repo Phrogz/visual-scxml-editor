@@ -14,6 +14,7 @@ visualEditor.onSelectionChanged = (sel) => {
 	notifyDocumentOfSelection(sel);
 	updateInspectorForSelection(sel);
 };
+visualEditor.onUndo = () => vscode.postMessage({command:'undo'});
 
 // Inspector inputs
 watchInput(insParent, 'parentId');
@@ -91,6 +92,13 @@ window.addEventListener('message', event => {
 		case 'fitChildren':
 			const parents = visualEditor.selection.filter(el => el.isState && el.isParent);
 			for (const el of parents) el.expandToFitChildren();
+		break;
+		case 'zoomToExtents':
+		case 'zoomTo100':
+		case 'toggleEventDisplay':
+		case 'deleteNonDestructive':
+		case 'deleteDestructive':
+			visualEditor[message.command]();
 		break;
 	}
 });
