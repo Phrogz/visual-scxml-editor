@@ -265,8 +265,6 @@ class VisualEditor {
 				if (evt.altKey) {
 					if (evt.metaKey || evt.ctrlKey) this.zoomToExtents();
 					else if (evt.shiftKey) this.zoomTo100();
-				} else if (evt.ctrlKey && !evt.shiftKey) {
-					this.onUndo?.();
 				}
 			break;
 

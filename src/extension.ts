@@ -1,9 +1,8 @@
 'use strict';
 
 import * as vscode from 'vscode';
-import * as path from 'path';
 
-import { EditorPanel } from './editorpanel';
+import { EditorGlue } from './editorglue';
 
 interface SelectionTypes {
 	anyStateSelected: Boolean,
@@ -12,96 +11,95 @@ interface SelectionTypes {
 	anyParallelStateSelected: Boolean
 }
 
+let manager: SCXMLEditorManager;
+
 export function activate(context: vscode.ExtensionContext) {
-	let manager = new SCXMLEditorManager();
-
-	context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.showEditor', () => {
-		manager.showEditor(context.extensionUri);
-	}));
-
-	for (const cmd of 'createState fitChildren undo zoomToExtents zoomTo100 toggleEventDisplay deleteNonDestructive deleteDestructive'.split(' ')) {
-		context.subscriptions.push(vscode.commands.registerCommand(`visual-scxml-editor.${cmd}`, () => {
-			manager.sendToActiveEditor(cmd);
-		}));
-	}
+	console.info('SCXML Editor activated');
+	manager = new SCXMLEditorManager(context);
 }
 
 export function deactivate() {}
 
 export class SCXMLEditorManager {
-	private editorPanelByURI: Map<vscode.Uri, EditorPanel> = new Map();
-	private _editorPanelWithActiveWebView: EditorPanel | null = null;
+	public glueByURI: Map<vscode.Uri, EditorGlue> = new Map();
+	private _glueWithActiveWebView: EditorGlue | null = null;
+	public context: vscode.ExtensionContext;
 
-	constructor() {
+	constructor(context: vscode.ExtensionContext) {
+		this.context = context;
 		vscode.workspace.onDidChangeTextDocument((evt: vscode.TextDocumentChangeEvent) => {
-			let editorPanel = this.editorPanelByURI.get(evt.document.uri);
-			if (editorPanel) {
-				editorPanel.panel.webview.postMessage({command:'updateFromText', document:evt.document.getText()});
-			}
+			const glue = this.glueByURI.get(evt.document.uri);
+			glue?.panel.webview.postMessage({command:'updateFromText', document:evt.document.getText()});
 		});
+
+		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.showEditor', () => {
+			console.info(`SCXML Editor showing editor for ${vscode.window.activeTextEditor?.document.uri.fsPath}`);
+			this.showEditor();
+		}));
+
+		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.undo', () => {
+			console.info(`SCXML Editor going to undo`);
+			this.activeGlue?.undo();
+		}));
+
+		for (const cmd of 'createState fitChildren zoomToExtents zoomTo100 toggleEventDisplay deleteNonDestructive deleteDestructive'.split(' ')) {
+			context.subscriptions.push(vscode.commands.registerCommand(`visual-scxml-editor.${cmd}`, () => {
+				console.info(`SCXML Editor handling command ${cmd}`);
+				this.sendToActiveEditor(cmd);
+			}));
+		}
+
 	}
 
 	// If any webview was last active, use that
-	// Otherwise, see if the active text editor is associated with a panel
-	public get activeEditorPanel() {
-		if (this._editorPanelWithActiveWebView) {
-			return this._editorPanelWithActiveWebView;
+	// Otherwise, see if the active text editor is associated with existing glue
+	public get activeGlue() {
+		if (this._glueWithActiveWebView) {
+			return this._glueWithActiveWebView;
 		} else if (vscode.window.activeTextEditor) {
-			return this.editorPanelByURI.get(vscode.window.activeTextEditor.document.uri) || null;
+			return this.glueByURI.get(vscode.window.activeTextEditor.document.uri) || null;
 		} else {
 			return null;
 		}
 	}
 
-	public set activeEditorPanel(newValue: EditorPanel | null) {
-		this._editorPanelWithActiveWebView = newValue;
-		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.anyVisualEditorIsActive', !!newValue);
+	public set activeGlue(newValue: EditorGlue | null) {
+		this._glueWithActiveWebView = newValue;
+		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.visualEditorActive', !!newValue);
 
 		// FIXME: if a webview is focused, then an editor is focused, then the editor loses focus, this will be incorrectly left as true
 		// Need to track when editor views gain and lose focus
-		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.anyEditorIsActive', !!this.activeEditorPanel);
+		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.editorActive', !!this.activeGlue);
 		this.updateSelection(newValue);
 	}
 
-	public showEditor(extensionURI: vscode.Uri) {
+	public showEditor() {
 		const editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor;
 		const doc = editor?.document;
 
 		if (doc && doc.languageId === "xml") {
 			const scxmlURI = doc.uri;
 
-			let editorPanelForDoc = this.editorPanelByURI.get(scxmlURI);
-			if (editorPanelForDoc) {
-				editorPanelForDoc.panel.reveal();
+			let glueForDoc = this.glueByURI.get(scxmlURI);
+			if (glueForDoc) {
+				glueForDoc.panel.reveal();
 			} else {
-				// TODO: why doesn't the editor instance create this itself?
-				const webviewPanel = vscode.window.createWebviewPanel(
-					'scxml', `SCXML ${path.basename(doc.fileName)}`,
-					vscode.ViewColumn.Beside,
-					{
-						enableScripts: true,
-						localResourceRoots: [vscode.Uri.joinPath(extensionURI, 'resources')]
-                    }
-				);
-				webviewPanel.onDidDispose(() => {
-					this.editorPanelByURI.delete(scxmlURI);
-				});
-				editorPanelForDoc = new EditorPanel(extensionURI, editor, webviewPanel, this);
-				this.editorPanelByURI.set(scxmlURI, editorPanelForDoc);
+				const glueForDoc = new EditorGlue(this, editor);
+				this.glueByURI.set(scxmlURI, glueForDoc);
 			}
 		}
 	}
 
 	public sendToActiveEditor(command: String) {
-		if (this.activeEditorPanel) {
-			this.activeEditorPanel.panel.webview.postMessage({command});
+		if (this.activeGlue) {
+			this.activeGlue.panel.webview.postMessage({command});
 		} else {
 			console.info(`Visual SCXML Editor not sending command '${command} to anyone because there is no active editor panel'`);
 		}
 	}
 
-	public updateSelection(editor: EditorPanel | null) {
-		const selectedTypes: SelectionTypes = editor ? editor.selectedTypes : {
+	public updateSelection(glue: EditorGlue | null) {
+		const selectedTypes: SelectionTypes = glue ? glue.selectedTypes : {
 			anyStateSelected: false,
 			anyTransitionSelected: false,
 			anyParentStateSelected: false,

@@ -7,13 +7,13 @@
         <mxCell id="xWMJlJ-HVOOThu5YcHs8-1" value="SCXMLEditorManager" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#ffd966;strokeColor=#d6b656;arcSize=4;" vertex="1" parent="1">
           <mxGeometry x="140" y="70" width="400" height="390" as="geometry" />
         </mxCell>
-        <mxCell id="xWMJlJ-HVOOThu5YcHs8-2" value="EditorPanel" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fae39e;strokeColor=#d6b656;arcSize=4;" vertex="1" parent="1">
+        <mxCell id="xWMJlJ-HVOOThu5YcHs8-2" value="EditorGlue" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fae39e;strokeColor=#d6b656;arcSize=4;" vertex="1" parent="1">
           <mxGeometry x="161.5" y="100" width="360" height="270" as="geometry" />
         </mxCell>
         <mxCell id="xWMJlJ-HVOOThu5YcHs8-3" value="WebviewPanel" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;arcSize=8;" vertex="1" parent="1">
           <mxGeometry x="171" y="130" width="339" height="231" as="geometry" />
         </mxCell>
-        <mxCell id="xWMJlJ-HVOOThu5YcHs8-7" value="EditorPanel&lt;br&gt;&lt;br&gt;&lt;i&gt;(one panel instance per TextDocument URI)&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;perimeterSpacing=0;fillColor=#fae39e;strokeColor=#d6b656;arcSize=16;" vertex="1" parent="1">
+        <mxCell id="xWMJlJ-HVOOThu5YcHs8-7" value="EditorGlue&lt;br&gt;&lt;br&gt;&lt;i&gt;(one instance per TextDocument URI)&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;perimeterSpacing=0;fillColor=#fae39e;strokeColor=#d6b656;arcSize=16;" vertex="1" parent="1">
           <mxGeometry x="160" y="390" width="360" height="60" as="geometry" />
         </mxCell>
         <mxCell id="xWMJlJ-HVOOThu5YcHs8-10" value="Webview" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#e8f1fc;strokeColor=#6c8ebf;arcSize=11;" vertex="1" parent="1">
@@ -68,7 +68,7 @@
         <mxCell id="hSlpLGsXXN3QlrVzkON8-5" value="extension.ts" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" vertex="1" parent="1">
           <mxGeometry x="190" y="40" width="100" height="680" as="geometry" />
         </mxCell>
-        <mxCell id="hSlpLGsXXN3QlrVzkON8-6" value="Editor Panel&lt;br&gt;editorpanel.ts" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" vertex="1" parent="1">
+        <mxCell id="hSlpLGsXXN3QlrVzkON8-6" value="EditorGlue&lt;br&gt;editorglue.ts" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" vertex="1" parent="1">
           <mxGeometry x="430" y="40" width="100" height="680" as="geometry" />
         </mxCell>
         <mxCell id="PvcLJJ66TOuCmjAcNrpJ-1" value="scxmleditor.js" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" vertex="1" parent="1">
@@ -107,7 +107,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="HHO5TY2uW8LFPpskwidt-9" value="(new)&lt;br&gt;&lt;i&gt;one panel per text editor&lt;/i&gt;" style="html=1;verticalAlign=middle;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;labelBackgroundColor=none;labelBorderColor=none;fontSize=9;align=left;" edge="1" parent="1">
+        <mxCell id="HHO5TY2uW8LFPpskwidt-9" value="(new)&lt;br&gt;&lt;i&gt;one glue per text editor&lt;/i&gt;" style="html=1;verticalAlign=middle;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;labelBackgroundColor=none;labelBorderColor=none;fontSize=9;align=left;" edge="1" parent="1">
           <mxGeometry x="-0.8333" width="80" relative="1" as="geometry">
             <mxPoint x="360" y="160" as="sourcePoint" />
             <mxPoint x="480" y="160" as="targetPoint" />

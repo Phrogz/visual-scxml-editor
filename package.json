@@ -76,7 +76,7 @@
         {
           "command": "visual-scxml-editor.fitChildren",
           "group": "scxmlstatemanipulation",
-          "when":  "visual-scxml-editor.anyParentSelected == true"
+          "when":  "visual-scxml-editor.anyParentSelected"
         },
         {
           "command": "visual-scxml-editor.zoomToExtents",
@@ -98,31 +98,31 @@
         },
         {
           "command": "visual-scxml-editor.createState",
-          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+          "when": "visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.fitChildren",
-          "when": "visual-scxml-editor.anyParentStateSelected == true"
+          "when": "visual-scxml-editor.anyParentStateSelected && visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.zoomToExtents",
-          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+          "when": "visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.zoomTo100",
-          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+          "when": "visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.toggleEventDisplay",
-          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+          "when": "visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.deleteNonDestructive",
-          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+          "when": "visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.deleteDestructive",
-          "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+          "when": "visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.undo",
@@ -135,7 +135,7 @@
         "command": "visual-scxml-editor.undo",
         "key": "ctrl+z",
         "mac": "cmd+z",
-        "when": "visual-scxml-editor.anyVisualEditorIsActive == true"
+        "when": "visual-scxml-editor.visualEditorActive"
       }
     ]
   },

@@ -79,7 +79,6 @@ _Better instructions to come when there's more useful
 * Create transition graphically via context menu
 * Add graphical editing of transition waypoints
 * Bug: Transition with only first point set does not draw to target state
-* Ctrl-Z/Cmd-Z in visual editor should ask text editor to undo
 * Ctrl-S/Cmd-S in visual editor should save text editor
 * Move keybindings in visual editor to commands that can be invoked
 
@@ -104,7 +103,7 @@ _Better instructions to come when there's more useful
   selection in text editor
 * Changes to inspector action parameters defocuses Inspector after editor updates;
   this does not occur for non-action inputs, e.g. state size.
-* Fix the context `visual-scxml-editor.anyEditorIsActive` to be active iff an editor is active,
+* Fix the context `visual-scxml-editor.editorActive` to be active iff an editor is active,
   and switch commands that could be invoked from the text editor (like `Add State`) to use this context.
 * Add command to create new text editor with SCXML shell + visual editor
 * Rename state without Inspector
