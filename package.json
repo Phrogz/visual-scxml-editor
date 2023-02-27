@@ -81,7 +81,7 @@
         {
           "command": "visual-scxml-editor.fitChildren",
           "group": "scxmlstatemanipulation",
-          "when":  "visual-scxml-editor.anyParentSelected"
+          "when":  "visual-scxml-editor.parentStateSelected"
         },
         {
           "command": "visual-scxml-editor.zoomToExtents",
