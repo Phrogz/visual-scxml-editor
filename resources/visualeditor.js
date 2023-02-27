@@ -73,6 +73,7 @@ class VisualEditor {
 	}
 
 	useSCXML(scxmlDoc) {
+		console.info('visualeditor.js has to useSCXML() a new document');
 		// Set the visual namespace on the document root so that new documents don't get it added to each state/transition touched
 		const existingNSPrefix = Array.from(scxmlDoc.root.attributes).find(a => a.value===visualNS && a.namespaceURI===xmlNS);
 		if (!existingNSPrefix) scxmlDoc.root.setAttributeNS(xmlNS, 'xmlns:viz', visualNS);
@@ -83,13 +84,10 @@ class VisualEditor {
 
 		while (this.selectors.firstChildNode) this.selectors.removeChild(this.selectors.firstChildNode);
 
-		const previousSelection = [];
-		for (const o of this.selection) {
-			// TODO: use heuristics beyond absolute ID to try to identify selection when IDs change.
-			previousSelection.push(o);
-		}
+		const previousSelection = this.selection.concat();
+		console.log(`…there were ${previousSelection.length} things selected`);
 
-		// TODO: check for valid document before clearing house
+		// TODO: check that the new document is valid document before clearing house?
 		if (this.scxmlDoc) this.removeDocument();
 		this.scxmlDoc = Object.setPrototypeOf(scxmlDoc, VisualDoc.prototype);
 		this.observer = new MutationObserver(this.onDocChange.bind(this));
@@ -117,8 +115,11 @@ class VisualEditor {
 			if (o.isState) {
 				const state = this.scxmlDoc.getStateById(o.id);
 				if (state) {
+					console.info(`…reselecting ${state.id}`);
 					this.selection.push(state);
 					state.select();
+				} else {
+					console.info(`…COULD NOT RESELECT EQUIVALENT OF ${o.id}`);
 				}
 			} else if (o.isTransition) {
 				const state = this.scxmlDoc.getStateById(o.sourceId);
@@ -126,8 +127,11 @@ class VisualEditor {
 					let candidateTransitions = state.transitions ? state.transitions.filter(t => t.targetId===o.targetId) : [];
 					if (candidateTransitions.length>1) candidateTransitions = candidateTransitions.filter(t => t.event===o.evt);
 					if (candidateTransitions[0]) {
+						console.info(`…reselecting ${state.id}`);
 						this.selection.push(candidateTransitions[0]);
 						candidateTransitions[0].select();
+					} else {
+						console.info(`…COULD NOT RESELECT EQUIVALENT OF ${o.outerHTML}`);
 					}
 				}
 			}
@@ -244,12 +248,12 @@ class VisualEditor {
 		this.showEvents = !this.showEvents;
 	}
 
-	deleteNonDestructive() {
+	deleteSelectionOnly() {
 		for (const o of this.selection) o.delete(true);
 		this.selection = [];
 	}
 
-	deleteDestructive() {
+	deleteSelectionAndMore() {
 		for (const o of this.selection) o.delete(true, true);
 		this.selection = [];
 	}

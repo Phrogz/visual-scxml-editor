@@ -87,8 +87,8 @@ export class EditorGlue {
 				case 'zoomToExtents':
 				case 'zoomTo100':
 				case 'toggleEventDisplay':
-				case 'deleteNonDestructive':
-				case 'deleteDestructive':
+				case 'deleteSelectionOnly':
+				case 'deleteSelectionAndMore':
 					this.panel.webview.postMessage(message.command);
 				break;
 
@@ -116,6 +116,8 @@ export class EditorGlue {
 		} else if (this.manager.activeGlue === this) {
 			this.manager.activeGlue = null;
 		}
+
+		console.info(`EditorGlue reacting to webview.onDidChangeViewState by forcing it to reload from XML`);
 
 		// Redocking the panel requires the webview to reload (why?)
 		this.panel.webview.postMessage({command:'updateFromText', document:this.editor.document.getText()});
@@ -146,6 +148,7 @@ export class EditorGlue {
 	}
 
 	public showSelection(selectedItems: any[]) {
+		this.selectedTypes.anySelected = false;
 		this.selectedTypes.stateSelected = false;
 		this.selectedTypes.transitionSelected = false;
 		this.selectedTypes.parentStateSelected = false;
@@ -157,6 +160,8 @@ export class EditorGlue {
 		const scxml = editor.document.getText();
 		const decoratedRanges: vscode.DecorationOptions[] = [];
 		for (const item of selectedItems) {
+			this.selectedTypes.anySelected = true;
+
 			// TODO: use information from serialization to find where a given node is placed, instead of regex
 			if (item.name==='transition') {
 				this.selectedTypes.transitionSelected = true;
@@ -205,7 +210,7 @@ export class EditorGlue {
 			editor.revealRange(decoratedRanges.reduce<vscode.Range>((sum,r) => sum.union(r.range), decoratedRanges[0].range), vscode.TextEditorRevealType.InCenter);
 		}
 
-		this.manager.updateSelection(this);
+		this.manager.updateSelectionScopes(this);
 	}
 
 	public dispose() {

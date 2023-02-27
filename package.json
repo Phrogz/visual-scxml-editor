@@ -53,26 +53,26 @@
       },
       {
         "category": "SCXML Editor",
-        "command": "visual-scxml-editor.deleteNonDestructive",
+        "command": "visual-scxml-editor.deleteSelectionOnly",
         "title": "Delete Selection Only"
       },
       {
         "category": "SCXML Editor",
-        "command": "visual-scxml-editor.deleteDestructive",
+        "command": "visual-scxml-editor.deleteSelectionAndMore",
         "title": "Delete Selection and References"
       }
     ],
     "menus": {
       "webview/context": [
         {
-          "command": "visual-scxml-editor.deleteNonDestructive",
+          "command": "visual-scxml-editor.deleteSelectionOnly",
           "group": "scxmlstatemanipulation",
-          "when":"visual-scxml-editor.stateSelected || visual-scxml-editor.transitionSelected"
+          "when":"visual-scxml-editor.visual-scxml-editor.anySelected"
         },
         {
-          "command": "visual-scxml-editor.deleteDestructive",
+          "command": "visual-scxml-editor.deleteSelectionAndMore",
           "group": "scxmlstatemanipulation",
-          "when":"visual-scxml-editor.stateSelected || visual-scxml-editor.transitionSelected"
+          "when":"visual-scxml-editor.anySelected"
         },
         {
           "command": "visual-scxml-editor.createState",
@@ -122,12 +122,12 @@
           "when": "visual-scxml-editor.visualEditorActive"
         },
         {
-          "command": "visual-scxml-editor.deleteNonDestructive",
-          "when": "visual-scxml-editor.visualEditorActive"
+          "command": "visual-scxml-editor.deleteSelectionOnly",
+          "when": "visual-scxml-editor.visualEditorActive && visual-scxml-editor.anySelected"
         },
         {
-          "command": "visual-scxml-editor.deleteDestructive",
-          "when": "visual-scxml-editor.visualEditorActive"
+          "command": "visual-scxml-editor.deleteSelectionAndMore",
+          "when": "visual-scxml-editor.visualEditorActive && visual-scxml-editor.anySelected"
         },
         {
           "command": "visual-scxml-editor.undo",
@@ -156,17 +156,17 @@
       {
         "command": "visual-scxml-editor.toggleEventDisplay",
         "key": "e",
-        "when": "visual-scxml-editor.visualEditorActive"
+        "when": "visual-scxml-editor.visualEditorActive && !inputFocus"
       },
       {
-        "command": "visual-scxml-editor.deleteNonDestructive",
+        "command": "visual-scxml-editor.deleteSelectionOnly",
         "key": "delete",
-        "when": "visual-scxml-editor.visualEditorActive"
+        "when": "visual-scxml-editor.visualEditorActive && !inputFocus"
       },
       {
-        "command": "visual-scxml-editor.deleteDestructive",
+        "command": "visual-scxml-editor.deleteSelectionAndMore",
         "key": "shift+delete",
-        "when": "visual-scxml-editor.visualEditorActive"
+        "when": "visual-scxml-editor.visualEditorActive && !inputFocus"
       }
     ]
   },

@@ -11,6 +11,7 @@ const vscode = acquireVsCodeApi();
 const visualEditor = new VisualEditor(document.querySelector('svg'));
 inspector.addEventListener('mousedown', evt => evt.stopPropagation(), false);
 visualEditor.onSelectionChanged = (sel) => {
+	console.info('scxmleditor.js is notified that the visual selection changed');
 	notifyDocumentOfSelection(sel);
 	updateInspectorForSelection(sel);
 };
@@ -63,7 +64,7 @@ function sendXMLToTextEditor() {
 
 window.addEventListener('message', event => {
 	const message = event.data;
-	console.info(`SCXMLEditor received message '${message.command}'`);
+	console.info(`scxmleditor.js received message '${message.command}'`);
 	switch (message.command) {
 		case 'updateFromText':
 			const xmlString = message.document;
@@ -89,15 +90,17 @@ window.addEventListener('message', event => {
 				console.error("Visual editor does not have a valid SCXML Doc to create a state in");
 			}
 		break;
+
 		case 'fitChildren':
 			const parents = visualEditor.selection.filter(el => el.isState && el.isParent);
 			for (const el of parents) el.expandToFitChildren();
 		break;
+
 		case 'zoomToExtents':
 		case 'zoomTo100':
 		case 'toggleEventDisplay':
-		case 'deleteNonDestructive':
-		case 'deleteDestructive':
+		case 'deleteSelectionOnly':
+		case 'deleteSelectionAndMore':
 			visualEditor[message.command]();
 		break;
 	}

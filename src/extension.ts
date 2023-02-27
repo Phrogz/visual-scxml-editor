@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import { EditorGlue } from './editorglue';
 
 export interface SelectionTypes {
+	anySelected: Boolean,
 	stateSelected: Boolean,
 	transitionSelected: Boolean,
 	parentStateSelected: Boolean,
@@ -42,7 +43,7 @@ export class SCXMLEditorManager {
 			this.activeGlue?.undo();
 		}));
 
-		for (const cmd of 'createState fitChildren zoomToExtents zoomTo100 toggleEventDisplay deleteNonDestructive deleteDestructive'.split(' ')) {
+		for (const cmd of 'createState fitChildren zoomToExtents zoomTo100 toggleEventDisplay deleteSelectionOnly deleteSelectionAndMore'.split(' ')) {
 			context.subscriptions.push(vscode.commands.registerCommand(`visual-scxml-editor.${cmd}`, () => {
 				console.info(`SCXML Editor handling command ${cmd}`);
 				this.sendToActiveEditor(cmd);
@@ -70,7 +71,7 @@ export class SCXMLEditorManager {
 		// FIXME: if a webview is focused, then an editor is focused, then the editor loses focus, this will be incorrectly left as true
 		// Need to track when editor views gain and lose focus
 		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.editorActive', !!this.activeGlue);
-		this.updateSelection(newValue);
+		this.updateSelectionScopes(newValue);
 	}
 
 	public showEditor() {
@@ -98,8 +99,9 @@ export class SCXMLEditorManager {
 		}
 	}
 
-	public updateSelection(glue: EditorGlue | null) {
+	public updateSelectionScopes(glue: EditorGlue | null) {
 		const selectedTypes: SelectionTypes = glue ? glue.selectedTypes : {
+			anySelected: false,
 			stateSelected: false,
 			transitionSelected: false,
 			parentStateSelected: false,
