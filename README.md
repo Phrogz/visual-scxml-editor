@@ -79,15 +79,11 @@ _Better instructions to come when there's more useful
 
 ### High Priority
 
-* Bug: Selection keeps getting dropped when editing some attributes
-  (e.g. label `placement` alignment for a transition)
-* Bug: First selection often drops selection, second sticks
-* Create via context menu should place at cursor, not drag parent
+* Create state via context menu should place at cursor, not drag parent
 * Create transition graphically via context menu
 * Add graphical editing of transition waypoints
-* Bug: Transition with only first point set does not draw to target state
 * Ctrl-S/Cmd-S in visual editor should save text editor
-* Move keybindings in visual editor to commands that can be invoked
+* Bug: Transition with only first point set does not draw to target state
 
 ### Medium Priority
 

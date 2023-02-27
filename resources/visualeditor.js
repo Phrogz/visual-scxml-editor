@@ -115,7 +115,6 @@ class VisualEditor {
 			if (o.isState) {
 				const state = this.scxmlDoc.getStateById(o.id);
 				if (state) {
-					console.info(`…reselecting ${state.id}`);
 					this.selection.push(state);
 					state.select();
 				} else {
@@ -125,14 +124,25 @@ class VisualEditor {
 				const state = this.scxmlDoc.getStateById(o.sourceId);
 				if (state) {
 					let candidateTransitions = state.transitions ? state.transitions.filter(t => t.targetId===o.targetId) : [];
-					if (candidateTransitions.length>1) candidateTransitions = candidateTransitions.filter(t => t.event===o.evt);
+					if (candidateTransitions.length>1) candidateTransitions = candidateTransitions.filter(t => t.event===o.event);
+					if (candidateTransitions.length>1) candidateTransitions = candidateTransitions.filter(t => t.condition===o.condition);
+					if (candidateTransitions.length>1) candidateTransitions = candidateTransitions.filter(t => t.executables.length===o.executables.length);
 					if (candidateTransitions[0]) {
-						console.info(`…reselecting ${state.id}`);
 						this.selection.push(candidateTransitions[0]);
 						candidateTransitions[0].select();
 					} else {
-						console.info(`…COULD NOT RESELECT EQUIVALENT OF ${o.outerHTML}`);
+						// Let's try something different; how about just by index in the parent?
+						const oldIndex = o.parentElement.transitions.indexOf(o);
+						const newTran = state.transitions[oldIndex];
+						if (newTran) {
+							this.selection.push(newTran);
+							newTran.select();
+						} else {
+							console.info(`…COULD NOT RESELECT EQUIVALENT OF ${o.outerHTML}`);
+						}
 					}
+				} else {
+					console.info(`…COULD NOT FIND PARENT STATE OF ${o.outerHTML} sourceId: ${o.sourceId}`);
 				}
 			}
 		}
