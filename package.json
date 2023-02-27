@@ -54,12 +54,12 @@
       {
         "category": "SCXML Editor",
         "command": "visual-scxml-editor.deleteNonDestructive",
-        "title": "Delete Selection (Preserve Children + Incoming Transitions)"
+        "title": "Delete Selection Only"
       },
       {
         "category": "SCXML Editor",
         "command": "visual-scxml-editor.deleteDestructive",
-        "title": "Delete Selection (Remove Children + Incoming Transitions)"
+        "title": "Delete Selection and References"
       }
     ],
     "menus": {
@@ -67,7 +67,12 @@
         {
           "command": "visual-scxml-editor.deleteNonDestructive",
           "group": "scxmlstatemanipulation",
-          "when":"visual-scxml-editor.anyStateSelected || visual-scxml-editor.anyTransitionSelected"
+          "when":"visual-scxml-editor.stateSelected || visual-scxml-editor.transitionSelected"
+        },
+        {
+          "command": "visual-scxml-editor.deleteDestructive",
+          "group": "scxmlstatemanipulation",
+          "when":"visual-scxml-editor.stateSelected || visual-scxml-editor.transitionSelected"
         },
         {
           "command": "visual-scxml-editor.createState",
@@ -102,7 +107,7 @@
         },
         {
           "command": "visual-scxml-editor.fitChildren",
-          "when": "visual-scxml-editor.anyParentStateSelected && visual-scxml-editor.visualEditorActive"
+          "when": "visual-scxml-editor.parentStateSelected && visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.zoomToExtents",
@@ -135,6 +140,32 @@
         "command": "visual-scxml-editor.undo",
         "key": "ctrl+z",
         "mac": "cmd+z",
+        "when": "visual-scxml-editor.visualEditorActive"
+      },
+      {
+        "command": "visual-scxml-editor.zoomToExtents",
+        "key": "ctrl+alt+z",
+        "mac": "cmd+alt+z",
+        "when": "visual-scxml-editor.editorActive"
+      },
+      {
+        "command": "visual-scxml-editor.zoomTo100",
+        "key": "shift+alt+z",
+        "when": "visual-scxml-editor.editorActive"
+      },
+      {
+        "command": "visual-scxml-editor.toggleEventDisplay",
+        "key": "e",
+        "when": "visual-scxml-editor.visualEditorActive"
+      },
+      {
+        "command": "visual-scxml-editor.deleteNonDestructive",
+        "key": "delete",
+        "when": "visual-scxml-editor.visualEditorActive"
+      },
+      {
+        "command": "visual-scxml-editor.deleteDestructive",
+        "key": "shift+delete",
         "when": "visual-scxml-editor.visualEditorActive"
       }
     ]

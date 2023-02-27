@@ -6,14 +6,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { Disposable, TextEditor, WebviewPanel} from 'vscode';
 import { window, ViewColumn } from 'vscode';
-import { SCXMLEditorManager } from './extension';
-
-interface SelectionTypes {
-	anyStateSelected: Boolean,
-	anyTransitionSelected: Boolean,
-	anyParentStateSelected: Boolean,
-	anyParallelStateSelected: Boolean
-}
+import { SCXMLEditorManager, SelectionTypes } from './extension';
 
 export class EditorGlue {
 	public panel: WebviewPanel;
@@ -29,10 +22,10 @@ export class EditorGlue {
 		this.editor = editor;
 		this.manager = manager;
 		this.selectedTypes = {
-			anyStateSelected: false,
-			anyTransitionSelected: false,
-			anyParentStateSelected: false,
-			anyParallelStateSelected: false
+			stateSelected: false,
+			transitionSelected: false,
+			parentStateSelected: false,
+			parallelSelected: false
 		};
 
 		this.selectionDecorator = window.createTextEditorDecorationType({
@@ -153,10 +146,10 @@ export class EditorGlue {
 	}
 
 	public showSelection(selectedItems: any[]) {
-		this.selectedTypes.anyStateSelected = false;
-		this.selectedTypes.anyTransitionSelected = false;
-		this.selectedTypes.anyParentStateSelected = false;
-		this.selectedTypes.anyParallelStateSelected = false;
+		this.selectedTypes.stateSelected = false;
+		this.selectedTypes.transitionSelected = false;
+		this.selectedTypes.parentStateSelected = false;
+		this.selectedTypes.parallelSelected = false;
 
 		const editor = this.editor;
 		const doc = editor.document;
@@ -166,7 +159,7 @@ export class EditorGlue {
 		for (const item of selectedItems) {
 			// TODO: use information from serialization to find where a given node is placed, instead of regex
 			if (item.name==='transition') {
-				this.selectedTypes.anyTransitionSelected = true;
+				this.selectedTypes.transitionSelected = true;
 				const parentMatcher = new RegExp(`^(\\s*)<${item.parentName}[^\n>]+?id=["']${item.parentId}["'][^>]+>`, 'm');
 				const match = parentMatcher.exec(scxml);
 				if (match) {
@@ -189,9 +182,9 @@ export class EditorGlue {
 					}
 				}
 			} else {
-				this.selectedTypes.anyStateSelected = true;
-				if (item.hasChildren) this.selectedTypes.anyParentStateSelected = true;
-				if (item.name==='parallel') this.selectedTypes.anyParallelStateSelected = true;
+				this.selectedTypes.stateSelected = true;
+				if (item.hasChildren) this.selectedTypes.parentStateSelected = true;
+				if (item.name==='parallel') this.selectedTypes.parallelSelected = true;
 				const matcher = new RegExp(`<${item.name}[^\\n>]+?id=["']${item.id}["'][^>]+>`, 'm');
 				const match = matcher.exec(scxml);
 				if (match) {

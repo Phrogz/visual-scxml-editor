@@ -4,11 +4,11 @@ import * as vscode from 'vscode';
 
 import { EditorGlue } from './editorglue';
 
-interface SelectionTypes {
-	anyStateSelected: Boolean,
-	anyTransitionSelected: Boolean,
-	anyParentStateSelected: Boolean,
-	anyParallelStateSelected: Boolean
+export interface SelectionTypes {
+	stateSelected: Boolean,
+	transitionSelected: Boolean,
+	parentStateSelected: Boolean,
+	parallelSelected: Boolean
 }
 
 let manager: SCXMLEditorManager;
@@ -100,10 +100,10 @@ export class SCXMLEditorManager {
 
 	public updateSelection(glue: EditorGlue | null) {
 		const selectedTypes: SelectionTypes = glue ? glue.selectedTypes : {
-			anyStateSelected: false,
-			anyTransitionSelected: false,
-			anyParentStateSelected: false,
-			anyParallelStateSelected: false
+			stateSelected: false,
+			transitionSelected: false,
+			parentStateSelected: false,
+			parallelSelected: false
 		};
 		for (const [scope, active] of Object.entries(selectedTypes)) {
 			vscode.commands.executeCommand('setContext', `visual-scxml-editor.${scope}`, active);

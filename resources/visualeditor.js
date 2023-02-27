@@ -255,25 +255,10 @@ class VisualEditor {
 	}
 
 	onKeydown(evt) {
+		// Most keyboard shortcuts are assigned in package.json
 		switch (evt.code) {
-			case 'KeyE':
-				this.toggleEventDisplay();
-				evt.preventDefault();
-			break;
-
-			case 'KeyZ':
-				if (evt.altKey) {
-					if (evt.metaKey || evt.ctrlKey) this.zoomToExtents();
-					else if (evt.shiftKey) this.zoomTo100();
-				}
-			break;
-
 			case 'Space':
 				this.enableDragPan();
-			break;
-
-			case 'Delete':
-				this.deleteNonDestructive();
 			break;
 		}
 	}

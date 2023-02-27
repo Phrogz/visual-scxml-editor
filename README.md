@@ -16,7 +16,7 @@ in a manner that allows the SCXML to still be used in production.
 * Visualization goes beyond just states and transition flow:
   * See which states have actions performed on entry or exit
   * See which transitions execute actions
-  * See which transitions have conditions guarding them in addition to the event,
+  * See which transitions have conditions guarding them,
     or have no condition or event at all.
   * See transitions that just execute an action, but don't leave the state.
 * Visually differentiates transitions with actions
@@ -47,12 +47,20 @@ _Better instructions to come when there's more useful
   Also available via context menu in the visual editor.
 * `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the
   visual editor will have their placement adjusted to ensure all children fit within them.
+* `SCXML Editor: Zoom to Fit` — Fit the entire state machine in the visual editor.
+* `SCXML Editor: Zoom to 100%` — Adjust the zoom to the base size.
+* `SCXML Editor: Show/Hide Events` — Toggle the display of transition events.
+* `SCXML Editor: Delete Selection Only` — Delete selected state(s) and transition(s)
+  in a least-destructive manner:
+  * Unselected child-states are not deleted, but are instead re-parented up a level.
+  * Transitions targeting any state(s) to be deleted are not themselves deleted,
+    but instead have their `target` attribute changed to not target that state.
+* `SCXML Editor: Delete Selection and References` — Delete selected state(s) and transition(s) in the most destructive manner:
+  * Descendant states are also deleted.
+  * Transitions targeting state(s) to be deleted are also deleted.
 
 ### Keyboard Controls in the Visual Editor
 
-* `Ctrl-Alt-Z`/`Cmd-Alt-Z` — zoom to fit entire diagram
-* `Alt-Shift-Z` — zoom to "100%" size
-* `e` — toggle the display of transition event labels
 * `Space` — enable pan via left mouse drag
 * `Middle-MouseWheel Drag` — pan around the document
 * `TrackpadScroll` — pan around the document
@@ -60,18 +68,17 @@ _Better instructions to come when there's more useful
 * `Ctrl-MouseWheel` — zoom in/out
 * `MouseWheel` — pan up/down
 * `Shift-MouseWheel` — pan left/right
-* `Delete` — delete the selected state(s) and transition(s) in a
-  least-destructive manner:
-  * Unselected sub-states are not deleted, but re-parented up a level.
-  * Transitions targeting delete states are not themselves deleted, but instead
-    have their `target` attribute changed to not target that state.
+* `Delete` — Delete Selection Only
+* `Shift+Delete` — Delete Selection and References
+* `Ctrl+Alt+Z`/`Cmd+Alt+Z` — Zoom to Fit
+* `Alt+Shift+Z` — Zoom to 100%
+* `e` — Show/Hide Events
 
 
 ## TODO (Known Issues, Planned Features)
 
 ### High Priority
 
-* Document visualization meaning
 * Bug: Selection keeps getting dropped when editing some attributes
   (e.g. label `placement` alignment for a transition)
 * Bug: First selection often drops selection, second sticks
