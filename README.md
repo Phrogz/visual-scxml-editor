@@ -194,6 +194,10 @@ Supported attribute types:
 * Closing the text editor should close the webview
 
 
+## Contributing
+
+Want to help fix bugs or add features? Great! See the [Architecture](docs/architecture.md) documentation.
+
 ## Release Notes
 
 ### 0.3.0

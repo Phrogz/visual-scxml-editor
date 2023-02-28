@@ -1,18 +1,26 @@
 {
   "name": "visual-scxml-editor",
   "displayName": "Visual SCXML Editor",
-  "description": "",
+  "description": "Visualize, graphically lay out, and edit SCXML statecharts in parallel with the XML",
+  "version": "0.3.0",
+  "publisher": "Phrogz",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Phrogz/visual-scxml-editor.git"
   },
-  "version": "0.3.0",
+  "homepage": "https://github.com/Phrogz/visual-scxml-editor/README.md",
+  "bugs": {
+    "url": "https://github.com/Phrogz/visual-scxml-editor/issues",
+    "email": "gavin@phrogz.net"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },
   "categories": [
-    "Other"
+    "Visualization", "Other"
   ],
+  "keywords": ["SCXML", "statechart", "statemachine"],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
