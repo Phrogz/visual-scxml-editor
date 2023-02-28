@@ -46,6 +46,11 @@
       },
       {
         "category": "SCXML Editor",
+        "command": "visual-scxml-editor.save",
+        "title": "Save"
+      },
+      {
+        "category": "SCXML Editor",
         "command": "visual-scxml-editor.zoomToExtents",
         "title": "Zoom to Fit"
       },
@@ -138,6 +143,10 @@
           "when": "visual-scxml-editor.visualEditorActive && visual-scxml-editor.anySelected"
         },
         {
+          "command": "visual-scxml-editor.save",
+          "when": "false"
+        },
+        {
           "command": "visual-scxml-editor.undo",
           "when": "false"
         }
@@ -148,6 +157,12 @@
         "command": "visual-scxml-editor.undo",
         "key": "ctrl+z",
         "mac": "cmd+z",
+        "when": "visual-scxml-editor.visualEditorActive"
+      },
+      {
+        "command": "visual-scxml-editor.save",
+        "key": "ctrl+s",
+        "mac": "cmd+s",
         "when": "visual-scxml-editor.visualEditorActive"
       },
       {

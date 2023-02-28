@@ -39,8 +39,11 @@ export class SCXMLEditorManager {
 		}));
 
 		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.undo', () => {
-			console.info(`SCXML Editor going to undo`);
 			this.activeGlue?.undo();
+		}));
+
+		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.save', () => {
+			this.activeGlue?.save();
 		}));
 
 		for (const cmd of 'createState fitChildren zoomToExtents zoomTo100 toggleEventDisplay deleteSelectionOnly deleteSelectionAndMore'.split(' ')) {

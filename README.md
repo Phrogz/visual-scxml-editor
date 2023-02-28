@@ -145,7 +145,6 @@ Supported attribute types:
 * Create state via context menu should place at cursor, not drag parent
 * Create transition graphically via context menu
 * Add graphical editing of transition waypoints
-* Ctrl-S/Cmd-S in visual editor should save text editor
 * Bug: Transition with only first point set does not draw to target state
 
 
@@ -199,6 +198,10 @@ Supported attribute types:
 Want to help fix bugs or add features? Great! See the [Architecture](docs/architecture.md) documentation.
 
 ## Release Notes
+
+### 0.4.0
+
+* Ctrl+S/Cmd+S with the visual editor focused will save the text editor
 
 ### 0.3.0
 

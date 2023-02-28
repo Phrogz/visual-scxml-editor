@@ -85,6 +85,10 @@ export class EditorGlue {
 					this.undo();
 				break;
 
+				case 'save':
+					this.save();
+				break;
+
 				case 'zoomToExtents':
 				case 'zoomTo100':
 				case 'toggleEventDisplay':
@@ -124,18 +128,26 @@ export class EditorGlue {
 		this.panel.webview.postMessage({command:'updateFromText', document:this.editor.document.getText()});
 	}
 
-	public undo() {
+	public sendCommandToTextEditor(command: string) {
 		const column = this.findEditorTabCol();
 		if (column) {
 			const opts = {preserveFocus:false, preview:false, viewColumn:column};
 			window.showTextDocument(this.editor.document, opts).then(() => {
-				vscode.commands.executeCommand('undo').then(() => {
+				vscode.commands.executeCommand(command).then(() => {
 					this.panel.reveal();
 				});
 			});
 		} else {
-			console.warn('SCXML Editor could not perform "undo" because the editor tab could not be found');
+			console.warn(`SCXML Editor could not perform "${command}" because the editor tab could not be found`);
 		}
+	}
+
+	public undo() {
+		this.sendCommandToTextEditor('undo');
+	}
+
+	public save() {
+		this.sendCommandToTextEditor('workbench.action.files.save');
 	}
 
 	public replaceDocument(newXML: string) {
