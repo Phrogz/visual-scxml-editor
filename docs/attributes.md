@@ -1,6 +1,6 @@
 This file documents the custom attributes added for visualization.
-All attributes are in the namespace `http://phrogz.net/ns/visual-scxml-editor`,
-usually denote with the namespace prefix `viz`.
+All attributes are in the namespace `http://phrogz.net/visual-scxml`,
+usually denoted with the namespace prefix `viz`.
 
 The names and values are intentionally somewhat terse to limit the amount of text added to what
 should be a human-readable and human-editable XML file.
