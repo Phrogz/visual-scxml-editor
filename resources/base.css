@@ -65,6 +65,8 @@ svg {
 #inspector select { flex:2 }
 #inspector input  { flex:1 }
 #inspector input[type='number'] { text-align:right }
+#inspector tr:first-child > * { padding-top:5px }
+#inspector tr:last-child > * { padding-bottom:5px }
 
 #inspector td[colspan] { display:table-cell; padding-right:0 }
 #inspector td.button { text-align:right }

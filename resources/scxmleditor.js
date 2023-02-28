@@ -6,6 +6,7 @@ import { loadFromString as loadSCXML } from 'scxmlDOM';
 import VisualEditor from 'visualEditor';
 import neatXML from 'neatXML';
 
+const NS = 'http://www.w3.org/2005/07/scxml';
 const visualNS  = 'http://phrogz.net/visual-scxml';
 const vscode = acquireVsCodeApi();
 const visualEditor = new VisualEditor(document.querySelector('svg'));
@@ -144,6 +145,14 @@ function readActionSchema(scxmlDoc) {
 						if (defaultValue < a.max) defaultValue = a.max;
 						if (defaultValue > a.min) defaultValue = a.min;
 					break;
+					case 'float':
+						defaultValue = 0;
+						if (defaultValue < a.max) defaultValue = a.max;
+						if (defaultValue > a.min) defaultValue = a.min;
+					break;
+					case 'boolean':
+						defaultValue = false;
+					break;
 					case 'choice':
 						defaultValue = a.values?.split(/,\s*/)[0];
 					break;
@@ -151,7 +160,11 @@ function readActionSchema(scxmlDoc) {
 				a.defaultValue = defaultValue;
 			});
 			return action;
-		});
+		}).concat([
+			{ns:NS, name:'assign', attrs:[{name:'location', type:'string'},{name:'expr', type:'string'}]},
+			{ns:NS, name:'raise', attrs:[{name:'event', type:'string'}]},
+			{ns:NS, name:'log', attrs:[{name:'label', type:'string'}, {name:'expr', type:'string'}]},
+		]);
 	}
 }
 
@@ -272,7 +285,7 @@ function updateInspectorForSelection(sel) {
 				// show a read-only, delete-only version
 				td.innerText = ex.localName;
 				td = addEl('td', tr, {_text: Array.from(ex.attributes)
-				                                  .map(a => [a.localName, a.value].join('='))
+				                                  .map(a => [a.localName, `"${a.value}"`].join('='))
 				                                  .join(' ')});
 			}
 			td = addEl('td', tr, {'class':'button'});
@@ -307,6 +320,25 @@ function updateInspectorForSelection(sel) {
 						});
 						inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
 					break;
+					case 'float':
+						var inp = addEl('input', label, {
+							type:  'number',
+							name:  attr.name,
+							min:   attr.min,
+							max:   attr.max,
+							step:  attr.step || 'any',
+							value: val
+						});
+						inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
+					break;
+					case 'boolean':
+						var inp = addEl('input', label, {
+							type:  'checkbox',
+							name:  attr.name,
+							value: 'true',
+							checked: val==='true'
+						});
+					break;
 					case 'choice':
 						var inp = addEl('select', label, {name:attr.name});
 						attr.values.split(/,\s*/).forEach(v => {
@@ -319,7 +351,7 @@ function updateInspectorForSelection(sel) {
 						inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
 					break;
 				}
-				inp.addEventListener('change', _ => executable.setAttribute(attr.name, inp.value));
+				inp.addEventListener('change', _ => executable.setAttribute(attr.name, inp.type==='checkbox' ? inp.checked : inp.value));
 			});
 		}
 	}
@@ -368,14 +400,17 @@ function notifyDocumentOfSelection(sel) {
 function addEl(name, parent, opts={}) {
     const el = parent.appendChild(document.createElement(name));
     for (const k of Object.keys(opts)){
-        switch(k){
-            case '_text':
-                el.appendChild(document.createTextNode(opts[k]));
-            break;
+		const val = opts[k];
+		if (val!==undefined) {
+			switch(k){
+				case '_text':
+					el.appendChild(document.createTextNode(val));
+				break;
 
-            default:
-                el.setAttribute(k, opts[k]);
-        }
+				default:
+					el.setAttribute(k, val);
+			}
+		}
     }
     return el;
 }

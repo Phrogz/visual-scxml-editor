@@ -40,30 +40,32 @@ _Better instructions to come when there's more useful
 
 ### Commands
 
-* `SCXML Editor: Open to Side` — Opens a visual editor tied to the current SCXML document;
-  only available if the language for the active text editor is set to XML.
-* `SCXML Editor: Add State` — Creates new state(s) in the state machine.
-  If any state(s) are selected the new states are added as children of them.
-  Also available via context menu in the visual editor.
-* `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the
-  visual editor will have their placement adjusted to ensure all children fit within them.
+* `SCXML Editor: Open to Side` — Opens a visual editor tied to the current SCXML document; only
+  available if the language for the active text editor is set to XML.
+* `SCXML Editor: Add State` — Creates new state(s) in the state machine. If any state(s) are
+  selected the new states are added as children of them. Also available via context menu in the
+  visual editor.
+* `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the visual editor will
+  have their placement adjusted to ensure all children fit within them.
 * `SCXML Editor: Zoom to Fit` — Fit the entire state machine in the visual editor.
 * `SCXML Editor: Zoom to 100%` — Adjust the zoom to the base size.
 * `SCXML Editor: Show/Hide Events` — Toggle the display of transition events.
-* `SCXML Editor: Delete Selection Only` — Delete selected state(s) and transition(s)
-  in a least-destructive manner:
+* `SCXML Editor: Delete Selection Only` — Delete selected state(s) and transition(s) in a
+  least-destructive manner:
   * Unselected child-states are not deleted, but are instead re-parented up a level.
-  * Transitions targeting any state(s) to be deleted are not themselves deleted,
-    but instead have their `target` attribute changed to not target that state.
-* `SCXML Editor: Delete Selection and References` — Delete selected state(s) and transition(s) in the most destructive manner:
+  * Transitions targeting any state(s) to be deleted are not themselves deleted, but instead have
+    their `target` attribute changed to not target that state.
+* `SCXML Editor: Delete Selection and References` — Delete selected state(s) and transition(s) in
+  the most destructive manner:
   * Descendant states are also deleted.
   * Transitions targeting state(s) to be deleted are also deleted.
+
 
 ### Keyboard Controls in the Visual Editor
 
 * `Space` — enable pan via left mouse drag
 * `Middle-MouseWheel Drag` — pan around the document
-* `TrackpadScroll` — pan around the document
+* `Trackpad Scroll` — pan around the document
 * `Trackpad Pinch` — zoom in/out
 * `Ctrl-MouseWheel` — zoom in/out
 * `MouseWheel` — pan up/down
@@ -73,6 +75,67 @@ _Better instructions to come when there's more useful
 * `Ctrl+Alt+Z`/`Cmd+Alt+Z` — Zoom to Fit
 * `Alt+Shift+Z` — Zoom to 100%
 * `e` — Show/Hide Events
+
+
+### Authoring Custom Executable Actions
+
+In addition to the [`<send>` element](https://www.w3.org/TR/scxml/#send) allowing the state machine to
+communicate with the owning program—given interpreter support—the SCXML specification also allows for
+[custom action elements](https://www.w3.org/TR/scxml/#extensibility) in custom namespaces where other
+executable content would be present.
+
+When these custom actions are present onentry, onexit, or within a transition, the Inspector palette
+will show the actions and their attributes, and allow them to be deleted. It does not support editing
+them or creating new custom actions from the palette, however, unless you provide information about the
+schema.
+
+To describe the custom actions that can be edited and created, add an element named `actions` in the
+visualization namespace at the root of the SCXML document. Each child of this element should be an
+element you'd like to be able to edit—in the proper namespace—with child elements describing the allowed
+attributes.
+
+For example:
+
+```xml
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0"
+       xmlns:gnb="http://dawsonschool.org/robotics/2972"
+       xmlns:viz="http://phrogz.net/visual-scxml">
+	<viz:actions>
+    <!-- e.g. <gnb:enableDriving value="0" /> -->
+		<gnb:enableDriving>
+			<viz:attribute max="1" min="0" name="value" type="int" />
+		</gnb:enableDriving>
+
+    <!-- e.g. <gnb:robotToggle key="armRaised" value="1" /> -->
+		<gnb:robotToggle>
+			<viz:attribute name="key" type="choice" values="armRaised,gripperOpen" />
+			<viz:attribute max="1" min="0" name="value" type="int" />
+		</gnb:robotToggle>
+
+    <!-- e.g. <gnb:doMagic magic="retractBoom" /> -->
+		<gnb:doMagic>
+			<viz:attribute name="magic" type="choice" values="(none),alignToPiece,extendBoom,retractBoom,autoReverse,driveToGrid" />
+		</gnb:doMagic>
+
+    <!-- e.g. <gnb:speak message="Hi mom!" /> -->
+		<gnb:speak>
+			<viz:attribute name="message" type="string" />
+		</gnb:speak>
+
+  </viz:actions>
+```
+
+Supported attribute types:
+
+* `string` — arbitrary text input
+* `choice` — text from a list of values
+  * `values` must be a comma-delimited list of options to provide
+* `int` – integer
+  * `min` and `max` values constrain the range
+* `float` – floating point number
+  * `min` and `max` values constrain the range
+  * `step` optionally defines the increment/decrement amounts and controls precision
+* `boolean` – values of "true" or "false" only
 
 
 ## TODO (Known Issues, Planned Features)
