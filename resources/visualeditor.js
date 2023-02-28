@@ -101,14 +101,8 @@ class VisualEditor {
 		for (const t of scxmlDoc.transitions) this.addTransition(t);
 		this.gridActive = true;
 
-		if (firstLoad) {
-			this.zoomToExtents();
-
-			// TODO: this hack 'fixes' the zoom; something changes slightly after the initial zoom
-			// However, it also causes a visual adjustment right after load. Gross. Why does initial zoom
-			// not work exactly the same as later zooms?
-			// setTimeout(this.zoomToExtents.bind(this), 1);
-		}
+		if (!existingNSPrefix) this.layoutDiagram();
+		else if (firstLoad) this.zoomToExtents();
 
 		// Restore the selection as best as possible
 		for (const o of previousSelection) {
@@ -254,10 +248,6 @@ class VisualEditor {
 		this.onSelectionChanged?.(this.selection);
 	}
 
-	toggleEventDisplay() {
-		this.showEvents = !this.showEvents;
-	}
-
 	deleteSelectionOnly() {
 		for (const o of this.selection) o.delete(true);
 		this.selection = [];
@@ -266,6 +256,10 @@ class VisualEditor {
 	deleteSelectionAndMore() {
 		for (const o of this.selection) o.delete(true, true);
 		this.selection = [];
+	}
+
+	toggleEventDisplay() {
+		this.showEvents = !this.showEvents;
 	}
 
 	onKeydown(evt) {
@@ -381,6 +375,92 @@ class VisualEditor {
 		// Tell all the child states and transitions
 		this.scxmlDoc.states.forEach(state => state.onZoomChanged());
 		this.scxmlDoc.transitions.forEach(tran => tran.onZoomChanged());
+	}
+
+	layoutDiagram() {
+		// local map for optimization, to prevent attribute churn during setup
+		const boundMap = new Map();
+
+		const scxml = this.scxmlDoc.root;
+
+		// Clear out transition routing and attachments
+		for (const t of this.scxmlDoc.transitions) {
+			t.labelOffsets = null;
+			t.align = null;
+			t.pts = null;
+		}
+
+		layoutChildrenUnder(scxml, true, 0);
+
+		// Apply the map to the elements
+		for (const [el,b] of boundMap) {
+			if (el !== scxml) {
+				el.x1y1x2y2 = [b.x1, b.y1, b.x2, b.y2];
+			}
+		}
+
+		setTimeout(this.zoomToExtents.bind(this), 1);
+
+		function layoutChildrenUnder(parent, layoutHorizontal, lv) {
+			// initialize each state when first seen
+			const bounds = {
+				x1:0,
+				y1:0,
+				x2:VisualState.defaultLeafWidth,
+				y2:VisualState.defaultLeafHeight,
+			};
+			boundMap.set(parent, bounds);
+
+			if (parent.isParallel) layoutHorizontal = true;
+
+			const kids = parent.states;
+			for (const kid of kids) layoutChildrenUnder(kid, !layoutHorizontal, lv+1);
+			if (kids.length) {
+				let prevBounds;
+				for (const kid of kids) {
+					const kidBounds = boundMap.get(kid);
+					if (prevBounds) {
+						if (layoutHorizontal) {
+							offset(kid, prevBounds.x2 + (parent.isParallel ? 0 : VisualState.defaultSpacingHoriz) - kidBounds.x1);
+						} else {
+							offset(kid, 0, prevBounds.y2 + VisualState.defaultSpacingVert - kidBounds.y1);
+						}
+					}
+					prevBounds = kidBounds;
+				}
+
+				const minX = Math.min.apply(null, kids.map(k => boundMap.get(k).x1));
+				const maxX = Math.max.apply(null, kids.map(k => boundMap.get(k).x2));
+				const minY = Math.min.apply(null, kids.map(k => boundMap.get(k).y1));
+				const maxY = Math.max.apply(null, kids.map(k => boundMap.get(k).y2));
+				if (parent.isParallel) {
+					// Ensure the children have the same height
+					for (const kid of kids) {
+						const kidBounds = boundMap.get(kid);
+						offset(kid, 0, minY - kidBounds.y1);
+						kidBounds.y2 = maxY;
+					}
+					bounds.x1 = minX;
+					bounds.x2 = maxX;
+					bounds.y1 = minY - VisualState.headerHeight;
+					bounds.y2 = maxY;
+				} else {
+					bounds.x1 = minX - VisualState.defaultPaddingHoriz;
+					bounds.x2 = maxX + VisualState.defaultPaddingHoriz;
+					bounds.y1 = minY - VisualState.headerHeight;
+					bounds.y2 = maxY + VisualState.defaultPaddingVert;
+				}
+			}
+
+			function offset(el, x=0, y=0) {
+				const b = boundMap.get(el);
+				b.x1 += x;
+				b.x2 += x;
+				b.y1 += y;
+				b.y2 += y;
+				for (const kid of el.states) offset(kid, x, y);
+			}
+		}
 	}
 
 	pointFromScreen(x, y) {
@@ -531,15 +611,19 @@ class VisualRoot extends SCXMLState {
 // ****************************************************************************
 
 class VisualState extends SCXMLState {
-	static minWidth             = 30;
-	static minHeight            = 20;
-	static minParentWidth       = 50;
-	static minParentHeight      = 50;
-	static headerHeight         = 30;
-	static defaultLeafWidth     = 120;
-	static defaultLeafHeight    = 40;
-	static defaultParentWidth   = 220;
-	static defaultParentHeight  = 100;
+	static minWidth            = 30;
+	static minHeight           = 20;
+	static minParentWidth      = 50;
+	static minParentHeight     = 50;
+	static headerHeight        = 30;
+	static defaultLeafWidth    = 120;
+	static defaultLeafHeight   = 40;
+	static defaultParentWidth  = 220;
+	static defaultParentHeight = 100;
+	static defaultSpacingHoriz = 80;
+	static defaultSpacingVert  = 40;
+	static defaultPaddingHoriz = 20;
+	static defaultPaddingVert  = 20;
 
 	initialize(editor) {
 		// Create a single extra object on the element that holds information related to visualization for it
@@ -992,15 +1076,7 @@ class VisualState extends SCXMLState {
 		const xywh=this.getAttributeNS(visualNS, 'xywh');
 		if (xywh) return xywh.split(/\s+/).map(Number);
 
-		// Make up ~reasonable xywh
-		const childIndex = this.parent.states.indexOf(this);
-		const [parentX,parentY] = (this.parent.xy || [0,0]);
-		const x = parentX + (childIndex+1)*this._vse.editor.gridSize;
-		const y = parentY + 20 + childIndex*this._vse.editor.gridSize;
-		if (this.isParallel) return [x, y, this.states.length*VisualState.defaultParentWidth, VisualState.defaultParentHeight+VisualState.headerHeight];
-		if (this.isParallelChild) return [parentX + childIndex*VisualState.defaultParentWidth, parentY+VisualState.headerHeight, VisualState.defaultParentWidth, VisualState.defaultParentHeight];
-		if (this.isParent) return [x, y, VisualState.defaultParentWidth, VisualState.defaultParentHeight];
-		return [x, y, VisualState.defaultLeafWidth, VisualState.defaultLeafHeight];
+		return [0, 0, VisualState.defaultLeafWidth, VisualState.defaultLeafHeight];
 	}
 	set xywh(xywh) {
 		xywh[2] = Math.max(xywh[2], VisualState.minWidth);
@@ -1012,6 +1088,9 @@ class VisualState extends SCXMLState {
 	get x1y1x2y2() {
 		const xywh = this.xywh;
 		return [xywh[0], xywh[1], xywh[0]+xywh[2], xywh[1]+xywh[3]];
+	}
+	set x1y1x2y2([x1, y1, x2, y2]) {
+		this.xywh = [x1, y1, x2-x1, y2-y1];
 	}
 
 	get r()  { return this.rgb[0]; }
@@ -1336,7 +1415,8 @@ class VisualTransition extends SCXMLTransition {
 		return this.getAttributeNS(visualNS, 'align');
 	}
 	set align(align) {
-		this.setAttributeNS(visualNS, 'align', align);
+		if (align) this.setAttributeNS(visualNS, 'align', align);
+		else       this.removeAttributeNS(visualNS, 'align');
 	}
 
 	// Returns ~ {side:'N', offset:80, x:120, y:210}

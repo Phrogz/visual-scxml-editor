@@ -2,7 +2,7 @@
   "name": "visual-scxml-editor",
   "displayName": "Visual SCXML Editor",
   "description": "Visualize, graphically lay out, and edit SCXML statecharts in parallel with the XML",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "Phrogz",
   "license": "MIT",
   "repository": {
@@ -39,6 +39,11 @@
         "category": "SCXML Editor",
         "command": "visual-scxml-editor.fitChildren",
         "title": "Expand State to Fit Children"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.layoutDiagram",
+        "title": "Layout Entire Diagram"
       },
       {
         "category": "SCXML Editor",
@@ -98,6 +103,10 @@
           "group": "scxmlstatemanipulation"
         },
         {
+          "command": "visual-scxml-editor.layoutDiagram",
+          "group": "scxmlstatemanipulation"
+        },
+        {
           "command": "visual-scxml-editor.fitChildren",
           "group": "scxmlstatemanipulation",
           "when":  "visual-scxml-editor.parentStateSelected"
@@ -132,6 +141,10 @@
         {
           "command": "visual-scxml-editor.fitChildren",
           "when": "visual-scxml-editor.parentStateSelected && visual-scxml-editor.visualEditorActive"
+        },
+        {
+          "command": "visual-scxml-editor.layoutDiagram",
+          "when": "visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.zoomToExtents",

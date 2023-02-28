@@ -97,6 +97,7 @@ window.addEventListener('message', event => {
 			for (const el of parents) el.expandToFitChildren();
 		break;
 
+		case 'layoutDiagram':
 		case 'zoomToExtents':
 		case 'zoomTo100':
 		case 'zoomToSelected':
@@ -201,8 +202,6 @@ function updateInspectorForSelection(sel) {
 				}
 				insKindState.value = commonKind;
 				insColor.value = getCommonValue(states, 'rgbhex') || '#000000';
-				insEnterScript.value = getCommonValue(states, 'enterScriptCode') || '';
-				insExitScript.value = getCommonValue(states, 'exitScriptCode') || '';
 				insWidth.value = getCommonValue(states, 'w');
 				insHeight.value = getCommonValue(states, 'h');
 			} else {

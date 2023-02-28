@@ -30,23 +30,26 @@ in a manner that allows the SCXML to still be used in production.
 
 ## Instructions
 
-1. Open an SCXML file, ensure VS Code knows the language is set to XML,
+1. Open an SCXML file, _ensure that the language for the file is set to XML_,
    and then invoke the command `SCXML Editor: Open to the Side`
-   * Your states will (currently) be displayed in a jumbled mess. Sorry about that.
+   * If this is your first time working on this file, the `Layout Entire Diagram`
+     command will be run for you to roughly make an initial sensible layout.
 2. Drag states to impose order and clarity.
 3. Select states or transitions and edit some aspects of them in the Inspector palette
    that appears.
 
 
-### Other Commands
+### Available Commands
 
 * `SCXML Editor: Open to Side` — Opens a visual editor tied to the current SCXML document; only
   available if the language for the active text editor is set to XML.
+* `SCXML Editor: Layout Entire Diagram` — Moves all states to hopefully-useful initial places.
+  Also resets any existing transition routing to the defaults.
+* `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the visual editor will
+  have their placement adjusted to ensure all children fit within them.
 * `SCXML Editor: Add State` — Creates new state(s) in the state machine. If any state(s) are
   selected the new states are added as children of them. Also available via context menu in the
   visual editor.
-* `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the visual editor will
-  have their placement adjusted to ensure all children fit within them.
 * `SCXML Editor: Zoom to Fit` — Fit the entire state machine in the visual editor.
 * `SCXML Editor: Zoom to 100%` — Adjust the zoom to the base size.
 * `SCXML Editor: Show/Hide Events` — Toggle the display of transition events.
@@ -155,7 +158,8 @@ for core concepts on how the extension works and information flows.
 ### 0.4.0 (unreleased)
 
 * Ctrl+S/Cmd+S with the visual editor focused will save the text editor
-
+* Added `Layout Entire Diagram` command for automatic initial layout
+  * Automatically invoked when opening a new SCXML file
 
 ### 0.3.0 : 2023-Feb-27
 
