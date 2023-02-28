@@ -69,12 +69,12 @@ export class EditorGlue {
 			console.log(`EditorGlue received message ${message.command}`);
 			const doc = editor.document;
 			switch (message.command) {
-				case 'SCXMLParseErrors':
-					// TODO: Show these errors in the PROBLEMS panel
-					// Presumably using a DiagnosticCollection https://code.visualstudio.com/docs/extensionAPI/vscode-api#languages.createDiagnosticCollection
-					message.errors.forEach((error: any) => {
-						console.error(`Error parsing SCXML: Line ${error.line}, col ${error.col}: ${error.msg}`);
-					});
+				case 'showErrors':
+					this.manager.showErrors(this.editor.document, message.errors);
+				break;
+
+				case 'clearErrors':
+					this.manager.showErrors(this.editor.document, []);
 				break;
 
 				case 'replaceDocument':

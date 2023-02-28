@@ -25,6 +25,7 @@ export class SCXMLEditorManager {
 	public glueByURI: Map<vscode.Uri, EditorGlue> = new Map();
 	private _glueWithActiveWebView: EditorGlue | null = null;
 	public context: vscode.ExtensionContext;
+	public diagnostics: vscode.DiagnosticCollection;
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context;
@@ -53,6 +54,8 @@ export class SCXMLEditorManager {
 			}));
 		}
 
+		this.diagnostics = vscode.languages.createDiagnosticCollection("emoji");
+		context.subscriptions.push(this.diagnostics);
 	}
 
 	// If any webview was last active, use that
@@ -75,6 +78,17 @@ export class SCXMLEditorManager {
 		// Need to track when editor views gain and lose focus
 		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.editorActive', !!this.activeGlue);
 		this.updateSelectionScopes(newValue);
+	}
+
+	public showErrors(doc: vscode.TextDocument, errors: any[]) {
+		const diags: vscode.Diagnostic[] = errors.map(error => {
+			return new vscode.Diagnostic(
+				new vscode.Range(error.line-1, error.col-1, error.line-1, error.col),
+				`Error parsing SCXML: ${error.msg}`,
+				vscode.DiagnosticSeverity.Error
+			);
+		});
+		this.diagnostics.set(doc.uri, diags);
 	}
 
 	public showEditor() {

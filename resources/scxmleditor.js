@@ -71,8 +71,9 @@ window.addEventListener('message', event => {
 			const xmlString = message.document;
 			const scxmlDocOrErrors = loadSCXML(xmlString);
 			if (Array.isArray(scxmlDocOrErrors)) {
-				vscode.postMessage({ command:'SCXMLParseErrors', errors:scxmlDocOrErrors });
+				vscode.postMessage({command:'showErrors', errors:scxmlDocOrErrors});
 			} else {
+				vscode.postMessage({command:'clearErrors'});
 				if (visualEditor.scxmlDoc) visualEditor.scxmlDoc.removeEventListener('changed', onSCXMLDocChanged, false);
 				visualEditor.useSCXML(scxmlDocOrErrors);
 				visualEditor.scxmlDoc.addEventListener('changed', onSCXMLDocChanged, false);
