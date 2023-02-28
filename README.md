@@ -8,24 +8,24 @@ in a manner that allows the SCXML to still be used in production.
 
 ## Features
 
-* Side-by-side editing allows you to edit either the XML code or the graphics and have
-  the other reflect the changes
-* Selecting states and transitions highlights them in the text editor, making then easy to find
-  for hand-editing or detailed inspection
+* Parallel editing allows you to modify either the XML code or the graphics and have the other
+  reflect the changes
 * Visual changes are stored in a custom namespace that does not affect SCXML operation
 * Visualization goes beyond just states and transition flow:
   * See which states have actions performed on entry or exit
   * See which transitions execute actions
-  * See which transitions have conditions guarding them,
-    or have no condition or event at all.
+  * See which transitions have conditions guarding them, or have no condition or event at all.
   * See transitions that just execute an action, but don't leave the state.
 * Visually differentiates transitions with actions
 * Visually differentiates transitions with conditions
+* Selecting graphical objects highlights them in the text editor, making them easy to find for
+  hand-editing or detailed inspection
 * Default visual style matches the current VS Code theme
   * Customization of state colors allows for additional information to be conveyed
-* Inspector palette supports authoring of custom actions (requires custom elements in SCXML)
-* Route of transitions around states via waypoints;
-  rounded corners make it clear when transitions turn versus cross another.
+* Inspector palette supports authoring of custom actions ([see below](#authoring-custom-executable-actions) for details)
+* Route transitions around states via waypoints
+  * Currently requires hand-editing the XML attribute to inject waypoints;
+    see the [documentation on visualization attributes](docs/attributes.md#transitions) for details
 
 
 ## Instructions
@@ -34,11 +34,11 @@ in a manner that allows the SCXML to still be used in production.
    and then invoke the command `SCXML Editor: Open to the Side`
    * Your states will (currently) be displayed in a jumbled mess. Sorry about that.
 2. Drag states to impose order and clarity.
+3. Select states or transitions and edit some aspects of them in the Inspector palette
+   that appears.
 
-_Better instructions to come when there's more useful
 
-
-### Commands
+### Other Commands
 
 * `SCXML Editor: Open to Side` — Opens a visual editor tied to the current SCXML document; only
   available if the language for the active text editor is set to XML.
@@ -148,6 +148,7 @@ Supported attribute types:
 * Ctrl-S/Cmd-S in visual editor should save text editor
 * Bug: Transition with only first point set does not draw to target state
 
+
 ### Medium Priority
 
 * Changing state or extension types in inspector does not update code to match.
@@ -175,6 +176,8 @@ Supported attribute types:
 * Rename state without Inspector
 * Attempting to resize `<parallel>` with no children throws error
 * Marker at the end of transitions with actions do not properly show up on light themes
+* Provide a language snippet for boostrapping an SCXML file
+
 
 ### Low Priority
 
@@ -195,4 +198,4 @@ Supported attribute types:
 
 ### 0.3.0
 
-Under-development version
+Initial public release.
