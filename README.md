@@ -125,72 +125,24 @@ For example:
   </viz:actions>
 ```
 
-Supported attribute types:
+Each `<viz:attribute>` must have a `name` and `type` attribute. Supported attribute types:
 
 * `string` — arbitrary text input
 * `choice` — text from a list of values
   * `values` must be a comma-delimited list of options to provide
 * `int` – integer
-  * `min` and `max` values constrain the range
+  * optional `min` and `max` attributes constrain the range
 * `float` – floating point number
-  * `min` and `max` values constrain the range
+  * optional `min` and `max` attributes constrain the range
   * `step` optionally defines the increment/decrement amounts and controls precision
 * `boolean` – values of "true" or "false" only
 
+## Known Issues, Planned Features
 
-## TODO (Known Issues, Planned Features)
+All issues and planned features are tracked using [GitHub Issues](https://github.com/Phrogz/visual-scxml-editor/issues):
 
-### High Priority
-
-* Create state via context menu should place at cursor, not drag parent
-* Create transition graphically via context menu
-* Add graphical editing of transition waypoints
-* Bug: Transition with only first point set does not draw to target state
-
-
-### Medium Priority
-
-* Changing state or extension types in inspector does not update code to match.
-* Toggle ruler/grid to show where transitions route
-* Fade out text below certain zoom level
-* Automatic layout of a state chart
-* Documentation showing screenshots, animation of auto routing
-* Documentation on instructions
-* Expose commands (zoom to fit, create state, etc.) via command palette
-* Marquee select (with inside vs touching)
-* Shrink markers below certain zoom level
-* Optionally draw condition as a label if no even is specified (e.g. "if (…)")
-* Optionally add condition to an event label ("event\nif (…)")
-* Moving a transition (with waypoints?) to the root level (via text) causes runtime error
-* Space uses mouse move to pan, without dragging
-* Allow explicit transition routing to omit explicit first and/or last attachment point, e.g.
-  `viz:pts="- X10 -"`
-* Switching tabs away from the text editor and back breaks the ability of the Webview to show
-  selection in text editor
-* Changes to inspector action parameters defocuses Inspector after editor updates;
-  this does not occur for non-action inputs, e.g. state size.
-* Fix the context `visual-scxml-editor.editorActive` to be active iff an editor is active,
-  and switch commands that could be invoked from the text editor (like `Add State`) to use this context.
-* Add command to create new text editor with SCXML shell + visual editor
-* Rename state without Inspector
-* Attempting to resize `<parallel>` with no children throws error
-* Marker at the end of transitions with actions do not properly show up on light themes
-* Provide a language snippet for boostrapping an SCXML file
-
-
-### Low Priority
-
-* Transitions targeting multiple states are not supported
-* Setting multiple initial states explicitly is not supported
-* Command to remove all visualization parameters
-* Context menu to zoom to fit
-* Move inspector into separate docked webview?
-* Move XML errors into separate docked webview (so we can erase and re-set them)
-* Custom transition colors
-* Export diagram as SVG or PNG
-* Visual editing of custom actions with child elements
-* Visual editing of custom actions derived via XSD
-* Closing the text editor should close the webview
+* [Major bugs](https://github.com/Phrogz/visual-scxml-editor/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Ahigh-value) are labeled with `bug` && `high-value`; alternatively, see [all bugs](https://github.com/Phrogz/visual-scxml-editor/issues?q=is%3Aissue+is%3Aopen+label%3Abug).
+* [Major features](https://github.com/Phrogz/visual-scxml-editor/issues?q=is%3Aissue+is%3Aopen+label%3Afeature+label%3Ahigh-value) are similarly labeled `feature` and `high-value`; alternatively, see [all features](https://github.com/Phrogz/visual-scxml-editor/issues?q=is%3Aissue+is%3Aopen+label%3Afeature).
 
 
 ## Contributing
