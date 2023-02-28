@@ -118,7 +118,7 @@
         {
           "command": "visual-scxml-editor.zoomToSelected",
           "group": "scxmldisplay",
-          "when":"visual-scxml-editor.visual-scxml-editor.anySelected"
+          "when":"visual-scxml-editor.anySelected"
         },
         {
           "command": "visual-scxml-editor.zoomTo100",

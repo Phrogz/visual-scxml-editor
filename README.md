@@ -51,6 +51,7 @@ in a manner that allows the SCXML to still be used in production.
   selected the new states are added as children of them. Also available via context menu in the
   visual editor.
 * `SCXML Editor: Zoom to Fit` — Fit the entire state machine in the visual editor.
+* `SCXML Editor: Zoom to Selected` — Fit the selected state(s) and transition(s) in the view.
 * `SCXML Editor: Zoom to 100%` — Adjust the zoom to the base size.
 * `SCXML Editor: Show/Hide Events` — Toggle the display of transition events.
 * `SCXML Editor: Delete Selection Only` — Delete selected state(s) and transition(s) in a
@@ -160,6 +161,7 @@ for core concepts on how the extension works and information flows.
 * Ctrl+S/Cmd+S with the visual editor focused will save the text editor
 * Added `Layout Entire Diagram` command for automatic initial layout
   * Automatically invoked when opening a new SCXML file
+* Added `Zoom to Selected` command
 
 ### 0.3.0 : 2023-Feb-27
 

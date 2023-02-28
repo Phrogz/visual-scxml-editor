@@ -348,17 +348,6 @@ class VisualEditor {
 		if (factor!==1.0) this.onZoomChanged();
 	}
 
-	zoomToExtents() {
-		const extents = this.extents;
-		const buffer = 0.1;
-		const oldZoom = this.zoomFactor;
-		this.svg.viewBox.baseVal.x = extents.x - buffer * extents.width;
-		this.svg.viewBox.baseVal.y = extents.y - buffer * extents.height;
-		this.svg.viewBox.baseVal.width = extents.width * (1+buffer*2);
-		this.svg.viewBox.baseVal.height = extents.height * (1+buffer*2);
-		if (oldZoom!==this.zoomFactor) this.onZoomChanged();
-	}
-
 	zoomTo100() {
 		const oldZoom = this.zoomFactor;
 		const extents = this.extents;
@@ -366,9 +355,31 @@ class VisualEditor {
 		if (oldZoom!==this.zoomFactor) this.onZoomChanged();
 	}
 
+	zoomToExtents() {
+		this.zoomToBounds(this.extents);
+	}
+
 	zoomToSelected() {
-		// TODO: implement like zoomToExtents (perhaps sharing code),
-		// but needs to find extents of selected item(s)
+		let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+		for (const item of this.selection) {
+			const bounds = item.visualBounds;
+			console.log({item, bounds});
+			if (bounds.x < minX) minX = bounds.x;
+			if (bounds.x + bounds.width > maxX) maxX = bounds.x + bounds.width;
+			if (bounds.y < minY) minY = bounds.y;
+			if (bounds.y + bounds.height > maxY) maxY = bounds.y + bounds.height;
+		}
+		this.zoomToBounds({x:minX, y:minY, width:maxX - minX, height:maxY - minY});
+	}
+
+	zoomToBounds(bounds) {
+		const buffer = 0.1;
+		const oldZoom = this.zoomFactor;
+		this.svg.viewBox.baseVal.x = bounds.x - buffer * bounds.width;
+		this.svg.viewBox.baseVal.y = bounds.y - buffer * bounds.height;
+		this.svg.viewBox.baseVal.width = bounds.width * (1+buffer*2);
+		this.svg.viewBox.baseVal.height = bounds.height * (1+buffer*2);
+		if (oldZoom!==this.zoomFactor) this.onZoomChanged();
 	}
 
 	onZoomChanged() {
@@ -687,15 +698,15 @@ class VisualState extends SCXMLState {
 		}
 	}
 
+	deselect() {
+		this._vse.main.classList.remove('selected');
+		if (!this.isParallelChild) this.removeSelectors();
+	}
+
 	delete(leaveInSelection=false, destructive=false) {
 		if (!leaveInSelection) this._vse.editor.removeFromSelection(this);
 		this.deleteGraphics();
 		super.delete({deleteSubStates:destructive, deleteTargetingTransitions:destructive});
-	}
-
-	deselect() {
-		this._vse.main.classList.remove('selected');
-		if (!this.isParallelChild) this.removeSelectors();
 	}
 
 	deleteGraphics() {
@@ -1147,6 +1158,10 @@ class VisualState extends SCXMLState {
 			return (a&&b) ? (a[0]-b[0]) : a ? -1 : 0;
 		})[0] === this;
 	}
+
+	get visualBounds() {
+		return transformedBoundingBox(this._vse.main);
+	}
 }
 Object.assign(VisualState.prototype, {
 	cornerRadius: 10
@@ -1227,6 +1242,10 @@ class VisualTransition extends SCXMLTransition {
 
 		ego.label.style.textAnchor = alignW ? 'end' : alignE ? 'start' : 'middle';
 		ego.label.style.dominantBaseline = alignN ? 'text-after-edge' : alignS ? 'text-before-edge' : 'middle';
+	}
+
+	get visualBounds() {
+		return transformedBoundingBox(this._vse.path);
 	}
 
 	select() {
@@ -1672,6 +1691,39 @@ function deindent(str) {
 	str = str.replace(/^(?:\r?\n)+/, '').replace(/\s+$/, '');
 	const shortest = (str.match(/^[ \t]*/g) || []).sort((a,b) => a.length-b.length)[0];
 	return shortest ? str.replace(new RegExp('^'+shortest, 'gm'), '') : str;
+}
+
+// Calculate the bounding box of an element with respect to its parent element
+function transformedBoundingBox(el){
+	const bb  = el.getBBox(),
+	      svg = el.ownerSVGElement;
+	const m = el.parentNode.getScreenCTM().inverse().multiply(el.getScreenCTM());
+
+	// Create an array of all four points for the original bounding box
+	var pts = [
+		svg.createSVGPoint(), svg.createSVGPoint(),
+		svg.createSVGPoint(), svg.createSVGPoint()
+	];
+	pts[0].x=bb.x;          pts[0].y=bb.y;
+	pts[1].x=bb.x+bb.width; pts[1].y=bb.y;
+	pts[2].x=bb.x+bb.width; pts[2].y=bb.y+bb.height;
+	pts[3].x=bb.x;          pts[3].y=bb.y+bb.height;
+
+	// Transform each into the space of the parent,
+	// and calculate the min/max points from that.
+	var xMin=Infinity,xMax=-Infinity,yMin=Infinity,yMax=-Infinity;
+	pts.forEach(function(pt){
+		pt = pt.matrixTransform(m);
+		xMin = Math.min(xMin,pt.x);
+		xMax = Math.max(xMax,pt.x);
+		yMin = Math.min(yMin,pt.y);
+		yMax = Math.max(yMax,pt.y);
+	});
+
+	// Update the bounding box with the new values
+	bb.x = xMin; bb.width  = xMax-xMin;
+	bb.y = yMin; bb.height = yMax-yMin;
+	return bb;
 }
 
 export default VisualEditor;
