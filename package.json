@@ -62,6 +62,11 @@
       },
       {
         "category": "SCXML Editor",
+        "command": "visual-scxml-editor.zoomToSelected",
+        "title": "Zoom to Selected"
+      },
+      {
+        "category": "SCXML Editor",
         "command": "visual-scxml-editor.toggleEventDisplay",
         "title": "Show/Hide Events"
       },
@@ -102,6 +107,11 @@
           "group": "scxmldisplay"
         },
         {
+          "command": "visual-scxml-editor.zoomToSelected",
+          "group": "scxmldisplay",
+          "when":"visual-scxml-editor.visual-scxml-editor.anySelected"
+        },
+        {
           "command": "visual-scxml-editor.zoomTo100",
           "group": "scxmldisplay"
         },
@@ -130,6 +140,10 @@
         {
           "command": "visual-scxml-editor.zoomTo100",
           "when": "visual-scxml-editor.visualEditorActive"
+        },
+        {
+          "command": "visual-scxml-editor.zoomToSelected",
+          "when": "visual-scxml-editor.visualEditorActive && visual-scxml-editor.anySelected"
         },
         {
           "command": "visual-scxml-editor.toggleEventDisplay",
@@ -170,7 +184,13 @@
         "command": "visual-scxml-editor.zoomToExtents",
         "key": "ctrl+alt+z",
         "mac": "cmd+alt+z",
-        "when": "visual-scxml-editor.editorActive"
+        "when": "visual-scxml-editor.editorActive && !visual-scxml-editor.anySelected"
+      },
+      {
+        "command": "visual-scxml-editor.zoomToSelected",
+        "key": "ctrl+alt+z",
+        "mac": "cmd+alt+z",
+        "when": "visual-scxml-editor.editorActive && visual-scxml-editor.anySelected"
       },
       {
         "command": "visual-scxml-editor.zoomTo100",

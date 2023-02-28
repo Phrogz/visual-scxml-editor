@@ -372,6 +372,11 @@ class VisualEditor {
 		if (oldZoom!==this.zoomFactor) this.onZoomChanged();
 	}
 
+	zoomToSelected() {
+		// TODO: implement like zoomToExtents (perhaps sharing code),
+		// but needs to find extents of selected item(s)
+	}
+
 	onZoomChanged() {
 		// Tell all the child states and transitions
 		this.scxmlDoc.states.forEach(state => state.onZoomChanged());

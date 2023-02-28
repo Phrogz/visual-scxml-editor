@@ -91,6 +91,7 @@ export class EditorGlue {
 
 				case 'zoomToExtents':
 				case 'zoomTo100':
+				case 'zoomToSelected':
 				case 'toggleEventDisplay':
 				case 'deleteSelectionOnly':
 				case 'deleteSelectionAndMore':
