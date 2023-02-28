@@ -195,14 +195,16 @@ Supported attribute types:
 
 ## Contributing
 
-Want to help fix bugs or add features? Great! See the [Architecture](docs/architecture.md) documentation.
+Want to help fix bugs or add features? Great! See the [Architecture documentation](docs/architecture.md)
+for core concepts on how the extension works and information flows.
 
 ## Release Notes
 
-### 0.4.0
+### 0.4.0 (unreleased)
 
 * Ctrl+S/Cmd+S with the visual editor focused will save the text editor
 
-### 0.3.0
+
+### 0.3.0 : 2023-Feb-27
 
 Initial public release.

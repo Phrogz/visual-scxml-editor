@@ -14,6 +14,7 @@
     "url": "https://github.com/Phrogz/visual-scxml-editor/issues",
     "email": "gavin@phrogz.net"
   },
+  "icon": "resources/icon.png",
   "engines": {
     "vscode": "^1.74.0"
   },

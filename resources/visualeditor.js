@@ -417,6 +417,7 @@ class VisualEditor {
 							case 'state':
 							case 'parallel':
 							case 'history':
+							case 'final':
 								if (n._vse) n.updateStyleForContainment();
 								else this.addState(n);
 								// FIXME: why isn't this available when adding a state as a child of <scxml>?
@@ -486,8 +487,18 @@ class VisualDoc extends SCXMLDoc {
 	createElementNS(nsURI, name, ...rest) {
 		const el = super.createElementNS(nsURI, name, ...rest);
 		if (nsURI === SCXMLNS) {
-			const wrapClass = name==='state' ? VisualState : name==='transition' ? VisualTransition : null;
-			console.info(`VisualDoc.createElementNS() wrapping in ${wrapClass?.name}`);
+			let wrapClass;
+			switch (name) {
+				case 'state':
+				case 'parallel':
+				case 'history':
+				case 'final':
+					wrapClass = VisualState;
+				break;
+				case 'transition':
+					wrapClass = VisualTransition;
+				break;
+			}
 			if (wrapClass) Object.setPrototypeOf(el, wrapClass.prototype);
 		}
 		return el;
@@ -538,7 +549,7 @@ class VisualState extends SCXMLState {
 		ego.label = make('text', {_dad:ego.main, _text:this.id});
 		ego.enter = make('path', {_dad:ego.main, d:'M0,0', 'class':'enter'});
 		ego.exit  = make('path', {_dad:ego.main, d:'M0,0', 'class':'exit'});
-		ego.dividerN  = make('line', {_dad:ego.main, y1:30, y2:30, 'class':'parallel-divider parallel-divider-h'});
+		ego.dividerN  = make('line', {_dad:ego.main, y1:VisualState.headerHeight, y2:VisualState.headerHeight, 'class':'parallel-divider parallel-divider-h'});
 		ego.dividerW  = make('line', {_dad:ego.main, 'class':'parallel-divider parallel-divider-v'});
 		ego.dividerW2 = make('line', {_dad:ego.main, 'class':'parallel-divider parallel-divider-v2'});
 
@@ -671,8 +682,8 @@ class VisualState extends SCXMLState {
 				const o = 4;
 				const r = this.cornerRadius-o;
 				if (this.isParallel) {
-					// Action brackets for parallels live in the top 30px of the diagram
-					h = 30;
+					// Action brackets for parallels live in the top of the diagram
+					h = VisualState.headerHeight;
 					setAttributes(ego.dividerN, {x2:w});
 				} else if (this.isParallelChild) {
 					setAttributes(ego.dividerW, {y2:h});

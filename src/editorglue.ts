@@ -22,7 +22,7 @@ export class EditorGlue {
 		this.editor = editor;
 		this.manager = manager;
 		this.selectedTypes = {
-			anySelected: true,
+			anySelected: false,
 			stateSelected: false,
 			transitionSelected: false,
 			parentStateSelected: false,
