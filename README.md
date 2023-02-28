@@ -102,29 +102,29 @@ For example:
 
 ```xml
 <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0"
-       xmlns:gnb="http://dawsonschool.org/robotics/2972"
+       xmlns:robo="http://dawsonschool.org/robotics/2972"
        xmlns:viz="http://phrogz.net/visual-scxml">
 	<viz:actions>
-    <!-- e.g. <gnb:enableDriving value="0" /> -->
-		<gnb:enableDriving>
+    <!-- e.g. <robo:enableDriving value="0" /> -->
+		<robo:enableDriving>
 			<viz:attribute max="1" min="0" name="value" type="int" />
-		</gnb:enableDriving>
+		</robo:enableDriving>
 
-    <!-- e.g. <gnb:robotToggle key="armRaised" value="1" /> -->
-		<gnb:robotToggle>
+    <!-- e.g. <robo:robotToggle key="armRaised" value="1" /> -->
+		<robo:robotToggle>
 			<viz:attribute name="key" type="choice" values="armRaised,gripperOpen" />
 			<viz:attribute max="1" min="0" name="value" type="int" />
-		</gnb:robotToggle>
+		</robo:robotToggle>
 
-    <!-- e.g. <gnb:doMagic magic="retractBoom" /> -->
-		<gnb:doMagic>
+    <!-- e.g. <robo:doMagic magic="retractBoom" /> -->
+		<robo:doMagic>
 			<viz:attribute name="magic" type="choice" values="(none),alignToPiece,extendBoom,retractBoom,autoReverse,driveToGrid" />
-		</gnb:doMagic>
+		</robo:doMagic>
 
-    <!-- e.g. <gnb:speak message="Hi mom!" /> -->
-		<gnb:speak>
+    <!-- e.g. <robo:speak message="Hi mom!" /> -->
+		<robo:speak>
 			<viz:attribute name="message" type="string" />
-		</gnb:speak>
+		</robo:speak>
 
   </viz:actions>
 ```
@@ -162,6 +162,7 @@ for core concepts on how the extension works and information flows.
 * Added `Layout Entire Diagram` command for automatic initial layout
   * Automatically invoked when opening a new SCXML file
 * Added `Zoom to Selected` command
+* SCXML parse errors show up in the Problems panel, clear when OK
 
 ### 0.3.0 : 2023-Feb-27
 
