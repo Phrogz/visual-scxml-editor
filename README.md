@@ -156,13 +156,14 @@ for core concepts on how the extension works and information flows.
 
 ## Release Notes
 
-### 0.4.0 (unreleased)
+### 0.4.0 2023-Feb-28
 
 * Ctrl+S/Cmd+S with the visual editor focused will save the text editor
 * Added `Layout Entire Diagram` command for automatic initial layout
   * Automatically invoked when opening a new SCXML file
 * Added `Zoom to Selected` command
 * SCXML parse errors show up in the Problems panel, clear when OK
+* Fixed bugs related to selection and dragging with left and right clicks
 
 ### 0.3.0 : 2023-Feb-27
 

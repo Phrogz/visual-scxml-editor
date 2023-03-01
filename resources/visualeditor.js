@@ -179,6 +179,7 @@ class VisualEditor {
 
 	makeDraggable(el, obj) {
 		el.addEventListener('mousedown', evt => {
+			if (evt.button) return; // Only drag when button is 0, i.e. left button
 			evt.stopPropagation();
 			const startLoc = this.pointFromScreen(evt.clientX, evt.clientY);
 			const sandbox={};
@@ -202,21 +203,31 @@ class VisualEditor {
 		});
 	}
 
-	select(evt, item){
-		if (evt.type==='mousedown' && evt.which===2) {
+	select(evt, item) {
+		if (evt.type==='mousedown' && evt.button===1) {
 			// middle mouse button down
 			return this.startPanning(evt);
 		}
 
+		const wasSelected = this.selection.includes(item);
 		const oldSelection = this.selection.concat();
-		if (!evt.shiftKey) {
+		if (evt.shiftKey) {
+			if (wasSelected) {
+				this.removeFromSelection(item);
+				item.deselect();
+			} else if (item) {
+				this.selection.push(item);
+				item.select();
+			}
+		} else if (!wasSelected) {
 			this.selection.forEach(i => i.deselect());
 			this.selection.length = 0;
+			if (item) {
+				this.selection.push(item);
+				item.select();
+			}
 		}
-		if (item) {
-			this.selection.push(item);
-			item.select();
-		}
+
 		if (this.onSelectionChanged) {
 			let anyChanged = oldSelection.length!==this.selection.length;
 			if (!anyChanged) {
