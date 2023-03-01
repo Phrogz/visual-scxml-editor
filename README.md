@@ -104,28 +104,27 @@ For example:
 <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0"
        xmlns:robo="http://dawsonschool.org/robotics/2972"
        xmlns:viz="http://phrogz.net/visual-scxml">
-	<viz:actions>
+  <viz:actions>
     <!-- e.g. <robo:enableDriving value="0" /> -->
-		<robo:enableDriving>
-			<viz:attribute max="1" min="0" name="value" type="int" />
-		</robo:enableDriving>
+    <robo:enableDriving>
+      <viz:attribute max="1" min="0" name="value" type="int" />
+    </robo:enableDriving>
 
-    <!-- e.g. <robo:robotToggle key="armRaised" value="1" /> -->
-		<robo:robotToggle>
-			<viz:attribute name="key" type="choice" values="armRaised,gripperOpen" />
-			<viz:attribute max="1" min="0" name="value" type="int" />
-		</robo:robotToggle>
+    <!-- e.g. <robo:toggle key="armRaised" value="1" /> -->
+    <robo:toggle>
+      <viz:attribute name="key" type="choice" values="armRaised,gripperOpen" />
+      <viz:attribute max="1" min="0" name="value" type="int" />
+    </robo:toggle>
 
     <!-- e.g. <robo:doMagic magic="retractBoom" /> -->
-		<robo:doMagic>
-			<viz:attribute name="magic" type="choice" values="(none),alignToPiece,extendBoom,retractBoom,autoReverse,driveToGrid" />
-		</robo:doMagic>
+    <robo:doMagic>
+      <viz:attribute name="magic" type="choice" values="(none),alignToPiece,extendBoom,retractBoom,autoReverse,driveToGrid" />
+    </robo:doMagic>
 
-    <!-- e.g. <robo:speak message="Hi mom!" /> -->
-		<robo:speak>
-			<viz:attribute name="message" type="string" />
-		</robo:speak>
-
+    <!-- e.g. <robo:speak message="Hi Mom!" /> -->
+    <robo:speak>
+      <viz:attribute name="message" type="string" />
+    </robo:speak>
   </viz:actions>
 ```
 
@@ -155,6 +154,8 @@ Want to help fix bugs or add features? Great! See the [Architecture documentatio
 for core concepts on how the extension works and information flows.
 
 ## Release Notes
+
+### 0.5.0 (unreleased)
 
 ### 0.4.0 2023-Feb-28
 
