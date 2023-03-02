@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 'use strict';
 
 import * as vscode from 'vscode';
@@ -15,12 +16,13 @@ export interface SelectionTypes {
 let manager: SCXMLEditorManager;
 
 export function activate(context: vscode.ExtensionContext) {
-	console.info('SCXML Editor activated');
 	manager = new SCXMLEditorManager(context);
 }
 
 export function deactivate() {}
 
+const PassAlongCommands = ['createState','createChildState','fitChildren','layoutDiagram','zoomToExtents','zoomTo100','zoomToSelected',
+                           'toggleEventDisplay','deleteSelectionOnly','deleteSelectionAndMore'];
 export class SCXMLEditorManager {
 	public glueByURI: Map<vscode.Uri, EditorGlue> = new Map();
 	private _glueWithActiveWebView: EditorGlue | null = null;
@@ -31,7 +33,7 @@ export class SCXMLEditorManager {
 		this.context = context;
 		vscode.workspace.onDidChangeTextDocument((evt: vscode.TextDocumentChangeEvent) => {
 			const glue = this.glueByURI.get(evt.document.uri);
-			glue?.panel.webview.postMessage({command:'updateFromText', document:evt.document.getText()});
+			glue?.maybeUpdateVisualsFromText();
 		});
 
 		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.showEditor', () => {
@@ -47,7 +49,11 @@ export class SCXMLEditorManager {
 			this.activeGlue?.save();
 		}));
 
-		for (const cmd of 'createState fitChildren layoutDiagram zoomToExtents zoomTo100 zoomToSelected toggleEventDisplay deleteSelectionOnly deleteSelectionAndMore'.split(' ')) {
+		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.createTransition', () => {
+			this.activeGlue?.createTransition();
+		}));
+
+		for (const cmd of PassAlongCommands) {
 			context.subscriptions.push(vscode.commands.registerCommand(`visual-scxml-editor.${cmd}`, () => {
 				console.info(`SCXML Editor handling command ${cmd}`);
 				this.sendToActiveEditor(cmd);
@@ -112,7 +118,7 @@ export class SCXMLEditorManager {
 		if (this.activeGlue) {
 			this.activeGlue.panel.webview.postMessage({command});
 		} else {
-			console.info(`Visual SCXML Editor not sending command '${command} to anyone because there is no active editor panel'`);
+			console.info(`Visual SCXML Editor not sending command '${command}' to anyone because there is no active EditorGlue.`);
 		}
 	}
 

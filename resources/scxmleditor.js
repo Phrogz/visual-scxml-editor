@@ -58,6 +58,7 @@ function onSCXMLDocChanged() {
 
 function sendXMLToTextEditor() {
 	if (visualEditor.scxmlDoc) {
+		console.info('scxmleditor sending replaceDocument into the glue');
 		const xml = neatXML(visualEditor.scxmlDoc, serializationOptions);
 		vscode.postMessage({command:'replaceDocument', xml});
 	}
@@ -76,12 +77,15 @@ window.addEventListener('message', event => {
 				vscode.postMessage({command:'clearErrors'});
 				if (visualEditor.scxmlDoc) visualEditor.scxmlDoc.removeEventListener('changed', onSCXMLDocChanged, false);
 				visualEditor.useSCXML(scxmlDocOrErrors);
+				vscode.postMessage({command:'validIDs', ids:scxmlDocOrErrors.ids});
 				visualEditor.scxmlDoc.addEventListener('changed', onSCXMLDocChanged, false);
 				actionSchema = readActionSchema(scxmlDocOrErrors);
 				return true;
 			}
 		break;
+
 		case 'createState':
+		case 'createChildState':
 			if (visualEditor.scxmlDoc) {
 				const parentElements = visualEditor.selection?.filter(el => el.canHaveChildStates);
 				if (!parentElements.length) parentElements.push(visualEditor.scxmlDoc.root);
@@ -98,6 +102,7 @@ window.addEventListener('message', event => {
 			for (const el of parents) el.expandToFitChildren();
 		break;
 
+		case 'createTransition':
 		case 'layoutDiagram':
 		case 'zoomToExtents':
 		case 'zoomTo100':
@@ -105,7 +110,7 @@ window.addEventListener('message', event => {
 		case 'toggleEventDisplay':
 		case 'deleteSelectionOnly':
 		case 'deleteSelectionAndMore':
-			visualEditor[message.command]();
+			visualEditor[message.command](message);
 		break;
 	}
 });

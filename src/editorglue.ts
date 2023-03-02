@@ -8,15 +8,27 @@ import { Disposable, TextEditor, WebviewPanel} from 'vscode';
 import { window, ViewColumn } from 'vscode';
 import { SCXMLEditorManager, SelectionTypes } from './extension';
 
+interface SelectedItem {
+	name          : string,
+	id            : string,
+	parentName    : string,
+	parentId      : string,
+	indexInParent : number,
+	hasChildren   : boolean
+}
+
 export class EditorGlue {
 	public panel: WebviewPanel;
 	public selectedTypes: SelectionTypes;
+	public selectedItems: SelectedItem[] = [];
+	public stateIDs: string[] = [];
 	public readonly editor: TextEditor;
 	private readonly resourceMap: Map<string, string> = new Map();
 	private disposables: Disposable[] = [];
 	private disposed: boolean = false;
 	private manager: SCXMLEditorManager;
 	private selectionDecorator: vscode.TextEditorDecorationType;
+	private lastReplacedTime: number= 0;
 
 	public constructor(manager: SCXMLEditorManager, editor: TextEditor) {
 		this.editor = editor;
@@ -53,6 +65,7 @@ export class EditorGlue {
 		this.resourceMap = new Map([
 			['neatXMLJS',      this.webviewURI('neatxml.js')],
 			['scxmlDOMJS',     this.webviewURI('scxmldom.js')],
+			['visualDOMJS',    this.webviewURI('visualdom.js')],
 			['visualEditorJS', this.webviewURI('visualeditor.js')],
 			['scxmlEditorJS',  this.webviewURI('scxmleditor.js')],
 			['baseCSS',        this.webviewURI('base.css')],
@@ -87,6 +100,10 @@ export class EditorGlue {
 
 				case 'save':
 					this.save();
+				break;
+
+				case 'validIDs':
+					this.stateIDs = message.ids;
 				break;
 
 				case 'zoomToExtents':
@@ -126,7 +143,36 @@ export class EditorGlue {
 		console.info(`EditorGlue reacting to webview.onDidChangeViewState by forcing it to reload from XML`);
 
 		// Redocking the panel requires the webview to reload (why?)
-		this.panel.webview.postMessage({command:'updateFromText', document:this.editor.document.getText()});
+		this.maybeUpdateVisualsFromText();
+	}
+
+	public maybeUpdateVisualsFromText() {
+		const elapsedSinceLastUpdate = (Date.now() - this.lastReplacedTime)/1000;
+		// TODO: using time is a gross hack; can we just set a flag in replaceDocument() and clear it here?
+		if (elapsedSinceLastUpdate > 0.4) {
+			this.panel.webview.postMessage({command:'updateFromText', document:this.editor.document.getText()});
+		}
+	}
+
+
+	public async createTransition() {
+		const ids = this.stateIDs.sort();
+		const sourceIds = this.selectedItems
+		                      .filter(i => i.name==='state' || i.name==='parallel' || i.name==='history')
+		                      .map(s => s.id);
+		if (!sourceIds.length) {
+			const sourceId = await window.showQuickPick(ids, {placeHolder: 'source state for the transition'});
+			if (sourceId) sourceIds.push(sourceId);
+		}
+		if (sourceIds.length) {
+			const ids = this.stateIDs.sort();
+			const targetId = await window.showQuickPick(ids, {placeHolder: `target state for the transition${sourceIds.length>1 ? 's' : ''}`});
+			if (targetId) {
+				const event     = await window.showInputBox({placeHolder: 'triggering event (empty for none)'});
+				const condition = await window.showInputBox({placeHolder: 'guard condition (empty for none)'});
+				this.panel.webview.postMessage({command:'createTransition', targetId, event, condition, sourceIds});
+			}
+		}
 	}
 
 	public sendCommandToTextEditor(command: string) {
@@ -152,6 +198,7 @@ export class EditorGlue {
 	}
 
 	public replaceDocument(newXML: string) {
+		this.lastReplacedTime = Date.now();
 		const fullRange = this.editor.document.validateRange(new vscode.Range(0, 0, this.editor.document.lineCount, 0));
 		const editorTabCol = this.findEditorTabCol();
 		if (editorTabCol) {
@@ -161,7 +208,8 @@ export class EditorGlue {
 		}
 	}
 
-	public showSelection(selectedItems: any[]) {
+	public showSelection(selectedItems: SelectedItem[]) {
+		this.selectedItems = selectedItems;
 		this.selectedTypes.anySelected = false;
 		this.selectedTypes.stateSelected = false;
 		this.selectedTypes.transitionSelected = false;

@@ -63,13 +63,14 @@ _See the implementation of the above objects for the properties and methods they
 
 # Visual DOM
 
-Once the SCXMLDoc is created passed to [`visualeditor.js](../resources/visualeditor.js), where MORE
-prototypes are injected into certain elements. These properties and methods manage the visual state
-of the diagram, outside the scope of just SCXML.
+Once the SCXMLDoc is created and passed to [`visualeditor.js](../resources/visualeditor.js),
+MORE prototypes are injected into certain elements, defined in [`visualdom.js`](../resources/visualdom.js).
+These properties and methods manage the visual state of the diagram, outside the scope of just SCXML.
 
 * **`VisualDoc`** — a simple extension to the XMLDocument which ensures that newly-created elements
   get properly injected with the new prototypes.
 * **`VisualRoot`** — added just to the root `<scxml>` element.
 * **`VisualState`** — added to state elements (other than `<scxml>`.
+* **`VisualTransition`** — added to `<transition>` elements.
 
 _See the implementation of the above objects for the properties and methods they provide._

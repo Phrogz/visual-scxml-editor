@@ -47,9 +47,13 @@ in a manner that allows the SCXML to still be used in production.
   Also resets any existing transition routing to the defaults.
 * `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the visual editor will
   have their placement adjusted to ensure all children fit within them.
-* `SCXML Editor: Add State` — Creates new state(s) in the state machine. If any state(s) are
-  selected the new states are added as children of them. Also available via context menu in the
-  visual editor.
+* `SCXML Editor: Add State` (or `Add Child State`) — Creates new state(s) in the state machine.
+  If any state(s) are selected the new states are added as children of them.
+  Also available via context menu in the visual editor.
+* `SCXML Editor: Add Transition` — Creates new transition(s) in the state machine, starting at the
+  selected state(s). (If no states are selected, uses a quick pick to select a state to start from.)
+  Quick picks also let you select the target state, and specify an event name and conditional.
+  The command is also available via context menu in the visual editor.
 * `SCXML Editor: Zoom to Fit` — Fit the entire state machine in the visual editor.
 * `SCXML Editor: Zoom to Selected` — Fit the selected state(s) and transition(s) in the view.
 * `SCXML Editor: Zoom to 100%` — Adjust the zoom to the base size.
@@ -156,6 +160,8 @@ for core concepts on how the extension works and information flows.
 ## Release Notes
 
 ### 0.5.0 (unreleased)
+
+* `Add Transition` command lets you create a transition with minimal typing
 
 ### 0.4.0 2023-Feb-28
 

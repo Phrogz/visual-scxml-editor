@@ -313,7 +313,9 @@ export class SCXMLState extends Element {
 	get canHaveChildStates() {
 		return this.nodeName==='scxml' || this.nodeName==='state' || this.nodeName==='parallel';
 	}
-
+	get canHaveTransitions() {
+		return this.nodeName==='state' || this.nodeName==='parallel' || this.nodeName==='history';
+	}
 }
 Object.assign(SCXMLState.prototype, {
 	isState: true
@@ -363,7 +365,7 @@ export class SCXMLTransition extends Element {
 		return this.ownerDocument.getStateById(this.targetId);
 	}
 	set target(state) {
-		this.targetId = state && state.id;
+		this.targetId = (typeof state==='string') ? state : state?.id;
 	}
 
 	get targetsOtherState() {

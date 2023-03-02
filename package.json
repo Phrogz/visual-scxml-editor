@@ -2,7 +2,7 @@
   "name": "visual-scxml-editor",
   "displayName": "Visual SCXML Editor",
   "description": "Visualize, graphically lay out, and edit SCXML statecharts in parallel with the XML",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "Phrogz",
   "license": "MIT",
   "repository": {
@@ -18,9 +18,7 @@
   "engines": {
     "vscode": "^1.74.0"
   },
-  "categories": [
-    "Visualization", "Other"
-  ],
+  "categories": ["Visualization", "Other"],
   "keywords": ["SCXML", "statechart", "statemachine"],
   "main": "./out/extension.js",
   "contributes": {
@@ -34,6 +32,11 @@
         "category": "SCXML Editor",
         "command": "visual-scxml-editor.createState",
         "title": "Add State"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.createChildState",
+        "title": "Add Child State"
       },
       {
         "category": "SCXML Editor",
@@ -84,49 +87,64 @@
         "category": "SCXML Editor",
         "command": "visual-scxml-editor.deleteSelectionAndMore",
         "title": "Delete Selection and References"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.createTransition",
+        "title": "Add Transition"
       }
     ],
     "menus": {
       "webview/context": [
         {
           "command": "visual-scxml-editor.deleteSelectionOnly",
-          "group": "scxmlstatemanipulation",
-          "when":"visual-scxml-editor.visual-scxml-editor.anySelected"
+          "group": "scxmledit",
+          "when":"visual-scxml-editor.anySelected"
         },
         {
           "command": "visual-scxml-editor.deleteSelectionAndMore",
-          "group": "scxmlstatemanipulation",
+          "group": "scxmledit",
           "when":"visual-scxml-editor.anySelected"
         },
         {
           "command": "visual-scxml-editor.createState",
-          "group": "scxmlstatemanipulation"
+          "group": "scxmledit",
+          "when":"!visual-scxml-editor.stateSelected"
+        },
+        {
+          "command": "visual-scxml-editor.createChildState",
+          "group": "scxmledit",
+          "when":"visual-scxml-editor.stateSelected"
+        },
+        {
+          "command": "visual-scxml-editor.createTransition",
+          "group": "scxmledit"
         },
         {
           "command": "visual-scxml-editor.layoutDiagram",
-          "group": "scxmlstatemanipulation"
+          "group": "scxmllayout"
         },
         {
           "command": "visual-scxml-editor.fitChildren",
-          "group": "scxmlstatemanipulation",
+          "group": "scxmllayout",
           "when":  "visual-scxml-editor.parentStateSelected"
         },
         {
           "command": "visual-scxml-editor.zoomToExtents",
-          "group": "scxmldisplay"
+          "group": "scxmlzoomplusdisplay"
         },
         {
           "command": "visual-scxml-editor.zoomToSelected",
-          "group": "scxmldisplay",
+          "group": "scxmlzoomplusdisplay",
           "when":"visual-scxml-editor.anySelected"
         },
         {
           "command": "visual-scxml-editor.zoomTo100",
-          "group": "scxmldisplay"
+          "group": "scxmlzoomplusdisplay"
         },
         {
           "command": "visual-scxml-editor.toggleEventDisplay",
-          "group": "scxmldisplay"
+          "group": "scxmlzoomplusdisplay"
         }
       ],
       "commandPalette": [
@@ -136,6 +154,14 @@
         },
         {
           "command": "visual-scxml-editor.createState",
+          "when": "visual-scxml-editor.visualEditorActive && !visual-scxml-editor.stateSelected"
+        },
+        {
+          "command": "visual-scxml-editor.createChildState",
+          "when": "visual-scxml-editor.visualEditorActive && visual-scxml-editor.stateSelected"
+        },
+        {
+          "command": "visual-scxml-editor.createTransition",
           "when": "visual-scxml-editor.visualEditorActive"
         },
         {
