@@ -41,6 +41,12 @@ export class EditorGlue {
 			parallelSelected: false
 		};
 
+		vscode.workspace.onDidCloseTextDocument(textDoc => {
+			if (textDoc === this.editor.document) {
+				this.dispose();
+			}
+		});
+
 		this.selectionDecorator = window.createTextEditorDecorationType({
 			border: '2px dashed',
 			borderRadius: '6px',
@@ -61,6 +67,7 @@ export class EditorGlue {
 			this.manager.glueByURI.delete(this.editor.document.uri);
 			this.dispose();
 		});
+		this.disposables.push(this.panel);
 
 		this.resourceMap = new Map([
 			['neatXMLJS',      this.webviewURI('neatxml.js')],
