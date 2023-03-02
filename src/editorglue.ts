@@ -154,7 +154,6 @@ export class EditorGlue {
 		}
 	}
 
-
 	public async createTransition() {
 		const ids = this.stateIDs.sort();
 		const sourceIds = this.selectedItems
@@ -197,8 +196,8 @@ export class EditorGlue {
 		this.sendCommandToTextEditor('workbench.action.files.save');
 	}
 
-	public replaceDocument(newXML: string) {
-		this.lastReplacedTime = Date.now();
+	public async replaceDocument(newXML: string, forceUpdate:boolean = false) {
+		this.lastReplacedTime = forceUpdate ? 0 : Date.now();
 		const fullRange = this.editor.document.validateRange(new vscode.Range(0, 0, this.editor.document.lineCount, 0));
 		const editorTabCol = this.findEditorTabCol();
 		if (editorTabCol) {

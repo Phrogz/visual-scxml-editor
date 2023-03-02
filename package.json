@@ -25,6 +25,11 @@
     "commands": [
       {
         "category": "SCXML Editor",
+        "command": "visual-scxml-editor.createBlank",
+        "title": "Create Blank State Machine"
+      },
+      {
+        "category": "SCXML Editor",
         "command": "visual-scxml-editor.showEditor",
         "title": "Open to the Side"
       },
@@ -148,6 +153,9 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "visual-scxml-editor.createBlank"
+        },
         {
           "command": "visual-scxml-editor.showEditor",
           "when": "editorLangId == xml"

@@ -228,6 +228,7 @@ class VisualEditor {
 	}
 
 	addToSelection(item) {
+		if (!item) return;
 		if (!this.selection.includes(item)) {
 			item.visuallySelect?.();
 			this.selection.push(item);

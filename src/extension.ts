@@ -13,6 +13,11 @@ export interface SelectionTypes {
 	parallelSelected: Boolean
 }
 
+const BlankSCXML = `<?xml version="1.0" encoding="UTF-8"?>
+<scxml version="1.0" xmlns="http://www.w3.org/2005/07/scxml" xmlns:viz="http://phrogz.net/visual-scxml">
+	<state id="MyFirstState"/>
+</scxml>`;
+
 let manager: SCXMLEditorManager;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -35,6 +40,17 @@ export class SCXMLEditorManager {
 			const glue = this.glueByURI.get(evt.document.uri);
 			glue?.maybeUpdateVisualsFromText();
 		});
+
+		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.createBlank', () => {
+			vscode.commands.executeCommand('workbench.action.files.newUntitledFile').then(() => {
+				const textEditor = vscode.window.activeTextEditor;
+				if (textEditor) {
+					vscode.languages.setTextDocumentLanguage(textEditor.document, 'xml').then(() => {
+						this.showEditor()?.replaceDocument(BlankSCXML, true);
+					});
+				}
+			});
+		}));
 
 		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.showEditor', () => {
 			console.info(`SCXML Editor showing editor for ${vscode.window.activeTextEditor?.document.uri.fsPath}`);
@@ -99,17 +115,20 @@ export class SCXMLEditorManager {
 
 	public showEditor() {
 		const editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor;
-		const doc = editor?.document;
+		if (editor) {
+			const doc = editor.document;
 
-		if (doc && doc.languageId === "xml") {
-			const scxmlURI = doc.uri;
+			if (doc?.languageId === "xml") {
+				const scxmlURI = doc.uri;
 
-			let glueForDoc = this.glueByURI.get(scxmlURI);
-			if (glueForDoc) {
-				glueForDoc.panel.reveal();
-			} else {
-				const glueForDoc = new EditorGlue(this, editor);
-				this.glueByURI.set(scxmlURI, glueForDoc);
+				let glueForDoc = this.glueByURI.get(scxmlURI);
+				if (glueForDoc) {
+					glueForDoc.panel.reveal();
+				} else {
+					glueForDoc = new EditorGlue(this, editor);
+					this.glueByURI.set(scxmlURI, glueForDoc);
+				}
+				return glueForDoc;
 			}
 		}
 	}

@@ -4,7 +4,7 @@ An extension for Visual Studio Code that visualizes SCXML state charts,
 and provides the ability to visually adjust the state chart,
 in a manner that allows the SCXML to still be used in production.
 
-![](docs/example.png)
+![screenshot of SCXML adjacent to a visual statechart](docs/example.png)
 
 ## Features
 
@@ -34,6 +34,9 @@ in a manner that allows the SCXML to still be used in production.
    and then invoke the command `SCXML Editor: Open to the Side`
    * If this is your first time working on this file, the `Layout Entire Diagram`
      command will be run for you to roughly make an initial sensible layout.
+   * Alternatively, the command `SCXML Editor: Create Blank State Machine` will create
+     a new text editor, fill it out with the minimum needed for a state machine, and
+     open a visual editor connected to it.
 2. Drag states to impose order and clarity.
 3. Select states or transitions and edit some aspects of them in the Inspector palette
    that appears.
@@ -41,6 +44,7 @@ in a manner that allows the SCXML to still be used in production.
 
 ### Available Commands
 
+* `SCXML Editor: Create Blank State Machine` — Creates a new untitled .
 * `SCXML Editor: Open to Side` — Opens a visual editor tied to the current SCXML document; only
   available if the language for the active text editor is set to XML.
 * `SCXML Editor: Layout Entire Diagram` — Moves all states to hopefully-useful initial places.
@@ -159,11 +163,12 @@ for core concepts on how the extension works and information flows.
 
 ## Release Notes
 
-### 0.5.0 (unreleased)
+### **0.5.0** — (unreleased)
 
+* `Create Blank State Machine` command creates a new template file for you to start with
 * `Add Transition` command lets you create a transition with minimal typing
 
-### 0.4.0 2023-Feb-28
+### **0.4.0** — 2023-Feb-28
 
 * Ctrl+S/Cmd+S with the visual editor focused will save the text editor
 * Added `Layout Entire Diagram` command for automatic initial layout
@@ -172,6 +177,6 @@ for core concepts on how the extension works and information flows.
 * SCXML parse errors show up in the Problems panel, clear when OK
 * Fixed bugs related to selection and dragging with left and right clicks
 
-### 0.3.0 : 2023-Feb-27
+### **0.3.0** — 2023-Feb-27
 
 Initial public release.
