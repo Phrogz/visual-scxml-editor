@@ -30,6 +30,24 @@ export class VisualDoc extends SCXMLDoc {
 		}
 		return el;
 	}
+
+	removeVisualization() {
+		const nodIterator = this.evaluate(
+			// Select elements and attribute in the vizualization namespace without
+			// a namespaced element in their ancestry (since those will be removed hierarchically)
+			'//viz:*[not(ancestor::viz:*)] | //@viz:*[not(ancestor::viz:*)]',
+			this,
+			this.createNSResolver(this.documentElement),
+			XPathResult.ANY_TYPE
+		);
+		const nodesToDelete = [];
+		let n;
+		while (n = nodIterator.iterateNext()) nodesToDelete.push(n);
+		for (n of nodesToDelete) {
+			if (n.nodeType === Node.ELEMENT_NODE) n.parentElement.removeChild(n);
+			else                                  n.ownerElement.removeAttributeNode(n);
+		}
+	}
 }
 
 // We don't want to make the root <scxml> element a full VisualState
@@ -199,12 +217,12 @@ export class VisualState extends SCXMLState {
 	}
 
 	updateAttribute(attrNS, attrName) {
-		const val = this.getAttributeNS(attrNS, attrName);
 		const ego = this._vse;
 		let recognized = false;
 		switch (attrName) {
 			case 'xywh':
-				let [x,y,w,h] = val.split(/\s+/).map(Number);
+				// If the attribute has been removed, ask our getter to give us a default value
+				let [x,y,w,h] = this.getAttributeNS(attrNS, attrName)?.split(/\s+/).map(Number) || this.xywh;
 				ego.tx.setTranslate(x, y);
 				setAttributes(ego.shadow, {x:x, y:y});
 				setAttributes(ego.rect,   {width:w, height:h});

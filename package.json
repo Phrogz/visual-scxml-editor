@@ -95,6 +95,11 @@
       },
       {
         "category": "SCXML Editor",
+        "command": "visual-scxml-editor.removeVisualization",
+        "title": "Reset Visualization"
+      },
+      {
+        "category": "SCXML Editor",
         "command": "visual-scxml-editor.createTransition",
         "title": "Add Transition"
       }
@@ -150,6 +155,10 @@
         {
           "command": "visual-scxml-editor.toggleEventDisplay",
           "group": "scxmlzoomplusdisplay"
+        },
+        {
+          "command": "visual-scxml-editor.removeVisualization",
+          "group": "scxmlzounds"
         }
       ],
       "commandPalette": [
@@ -203,6 +212,10 @@
         {
           "command": "visual-scxml-editor.deleteSelectionAndMore",
           "when": "visual-scxml-editor.visualEditorActive && visual-scxml-editor.anySelected"
+        },
+        {
+          "command": "visual-scxml-editor.removeVisualization",
+          "when": "visual-scxml-editor.visualEditorActive"
         },
         {
           "command": "visual-scxml-editor.save",

@@ -112,6 +112,7 @@ export class EditorGlue {
 				case 'toggleEventDisplay':
 				case 'deleteSelectionOnly':
 				case 'deleteSelectionAndMore':
+				case 'removeVisualization':
 					this.panel.webview.postMessage(message.command);
 				break;
 

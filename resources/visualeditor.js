@@ -521,6 +521,11 @@ class VisualEditor {
 		this.selection.forEach(o => o.placeSelectors && o.placeSelectors());
 	}
 
+	removeVisualization() {
+		this.clearSelection();
+		this.scxmlDoc.removeVisualization();
+	}
+
 	onDocChange(mutationList) {
 		console.info('VisualEditor.onDocChange() invoked due to SCXMLDoc mutation');
 		let interestingChanges = false;

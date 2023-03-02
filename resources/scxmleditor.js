@@ -110,6 +110,7 @@ window.addEventListener('message', event => {
 		case 'toggleEventDisplay':
 		case 'deleteSelectionOnly':
 		case 'deleteSelectionAndMore':
+		case 'removeVisualization':
 			visualEditor[message.command](message);
 		break;
 	}

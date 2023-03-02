@@ -71,7 +71,8 @@ in a manner that allows the SCXML to still be used in production.
   the most destructive manner:
   * Descendant states are also deleted.
   * Transitions targeting state(s) to be deleted are also deleted.
-
+* `SCXML Editor: Reset Visualization` — Remove every attribute and element in the document using
+  the custom visualization namespace.
 
 ### Keyboard Controls in the Visual Editor
 
@@ -167,6 +168,7 @@ for core concepts on how the extension works and information flows.
 
 * `Create Blank State Machine` command creates a new template file for you to start with
 * `Add Transition` command lets you create a transition with minimal typing
+* `Reset Visualization` command removes all visualization attributes and elements from the SCXML
 
 ### **0.4.0** — 2023-Feb-28
 
