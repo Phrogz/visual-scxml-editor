@@ -164,7 +164,7 @@ for core concepts on how the extension works and information flows.
 
 ## Release Notes
 
-### **0.5.0** — (unreleased)
+### **0.5.0** — 2023-Mar-2
 
 * `Create Blank State Machine` command creates a new template file for you to start with
 * `Add Transition` command lets you create a transition with minimal typing
