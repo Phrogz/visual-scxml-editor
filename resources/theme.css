@@ -43,6 +43,7 @@ body.vscode-dark #inspector table { background:#444 }
 #target-actions polygon,
 #target polygon,
 #targetless circle { fill:var(--vscode-editor-foreground) }
+#target-actions path { stroke:var(--vscode-editor-foreground) }
 #source-conditional > circle { fill:var(--vscode-editor-findMatchHighlightBackground); stroke:white }
 #source-conditional-error > circle { fill:var(--vscode-editor-findMatchHighlightBackground); stroke:var(--vscode-editorError-foreground, var(--vscode-debugExceptionWidget-border)) }
 #source-error > circle { fill:var(--vscode-editorError-foreground, var(--vscode-debugExceptionWidget-border)); opacity:1 }
@@ -53,9 +54,6 @@ body.vscode-dark #inspector table { background:#444 }
 #targetless-error > circle,
 #targetless-actions-error > circle { stroke:var(--vscode-editorError-foreground, var(--vscode-debugExceptionWidget-border)) }
 
-
-body.vscode-dark #target-actions path { stroke:white }
-body.vscode-dark #targetless-actions circle { stroke:white }
 .transition.selected path.catcher { stroke:var(--vscode-editor-selectionBackground, var(--vscode-editor-wordHighlightStrongBackground)); }
 .transition.targetless.selected path.catcher { fill:var(--vscode-editor-selectionBackground, var(--vscode-editor-wordHighlightStrongBackground)); }
 
