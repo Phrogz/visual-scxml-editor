@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset='utf-8'>
+	<title>Wayline Test</title>
+	<style type='text/css' media='all'>
+		html,body {
+			background:black;
+			margin:0; padding:0;
+      height: 100%
+		}
+		canvas { position:absolute; top:0; left:0; width:100%; height:100%; background:white; }
+	</style>
+</head><body>
+<canvas></canvas>
+<script>
+'use strict';
+const can = document.querySelector('canvas');
+const ctx = can.getContext('2d');
+let anchors = [
+	{isState:true, x:200, y:200, w:200, h:80, cornerRadius:20},
+	{y:300, horz:1},
+    {x:450, horz:0},
+	{y:350, horz:1},
+	// {},
+	{isState:true, x:600, y:250, w:160, h:180, cornerRadius:60}
+];
+
+
+/*
+let timer = setInterval(()=>{
+	const t = Date.now() / 3000;
+    for (const [i,a] of anchors.entries()) {
+        if (!a.isState) {
+            delete a.x;
+            delete a.y;
+            const type = Math.round((t*i)) % 2;
+            if (type===0) a.y = Math.sin(t * 1.2 * i) * 200 + 440 + i*10;
+            if (type===1) a.x = Math.cos(t * i) * 300 + 300 + i*20;
+            a.horz = (type==0);
+        }
+    }
+	redraw();
+},3000);
+//*/
+
+document.body.addEventListener('keydown', e => clearInterval(timer));
+
+function redraw() {
+	ctx.clearRect(0,0,can.width,can.height);
+	drawStates(anchors);
+    const expanded = expandAnchors(anchors);
+    drawGuides(expanded);
+    console.log(expanded);
+
+    // const path = pathFromAnchors(expanded);
+    // drawCircles(path);
+	// drawPath(path);
+}
+
+// Convert state anchors, and inject alternates as needed
+function expandAnchors(anchors) {
+    const expanded = anchors.slice();
+    const Ω = expanded.length-1;
+    if (expanded[0].isState) expanded[0] = bestStateAnchorTowards(expanded[0], expanded[1]);
+    if (expanded[Ω].isState) expanded[Ω] = bestStateAnchorTowards(expanded[Ω], expanded[Ω-1]);
+
+    // inject cross waylines between two parallel, unless they are aligned
+    let injectCt = 0;
+    for (let i=1; i<expanded.length && injectCt<10; ++i) {
+        const prev = expanded[i-1];
+        const next = expanded[i];
+        let inject = false;
+        if (next.horz === prev.horz) {
+            const axis = next.horz ? 'y' : 'x';
+            if ((axis in prev) && (axis in next) && (prev[axis] !== next[axis])) {
+                let injected = {horz:!next.horz, injected:true};
+                expanded.splice(i,0,injected);
+                console.log({i, prev, injected, next});
+                i--;
+                injectCt++;
+            }
+        }
+    }
+
+    return expanded;
+}
+
+function cornersFromAnchors(anchors) {
+	// Calculate intersection points
+	let prevPoint = anchors[0], nextPoint;
+	// const pts = [prevPoint];
+	const pts = [Object.assign({}, prevPoint)];
+	for (let i=1; i<anchors.length; ++i) {
+		// nextPoint = anchors[i];
+		nextPoint = Object.assign({}, anchors[i]);
+
+        const mainAxis = prevPoint.horz ? 'x' : 'y',
+              crosAxis = prevPoint.horz ? 'y' : 'x';
+
+        // Insert an anchor of opposite orientation between two sequential anchors with the same orientation
+        if (prevPoint.horz===nextPoint.horz) {
+            let nextMain = nextPoint[mainAxis];
+            for (let j=i; nextMain===undefined; ++j) nextMain = anchors[j][mainAxis];
+            nextPoint = {
+                [mainAxis] : (prevPoint[mainAxis]+nextMain)/2,
+                [crosAxis] : prevPoint[crosAxis],
+                horz      : !prevPoint.horz,
+                injected   : true
+            };
+            // Since we generated a new anchor, retry the next real anchor next loop
+            i--;
+        } else {
+            nextPoint[crosAxis] = prevPoint[crosAxis];
+        }
+		pts.push(nextPoint);
+		prevPoint = nextPoint;
+	}
+    return pts;
+}
+
+function svgPathFromCorners(pts) {
+
+}
+
+
+// prevPoint.distanceToNext = Math.hypot(nextPoint.x-prevPoint.x, nextPoint.y-prevPoint.y);
+
+// source, target: two objects with {x, y, w, h}
+function bestConnectingStateAnchors(source, target) {
+    const {x:sx,y:sy,w:sw,h:sh} = source;
+    const {x:tx,y:ty,w:tw,h:th} = target;
+    const [sr,sb,tr,tb] = [sx+sw, sy+sh, tx+tw, ty+th];
+    if (containedWithin(source, target)) {
+        return [
+            anchorOnState(source, 'E', sh/2, true),
+            anchorOnState(target, 'E', sy + sh/2 - ty, false),
+        ];
+    } else if (containedWithin(target, source)) {
+        return [
+            anchorOnState(source, 'W', target.y + th/2 - source.y, true),
+            anchorOnState(target, 'W', th/2, false),
+        ];
+    } else {
+        const gapN = sy-tb;
+        const gapS = ty-sb;
+        const gapE = tx-sr;
+        const gapW = sx-tr;
+        const biggest = Math.max(gapE, gapS, gapW, gapN);
+        const avgY = (Math.max(sy,ty)+Math.min(sb,tb))/2;
+        const avgX = (Math.max(sx,tx)+Math.min(sr,tr))/2;
+        const result = [];
+        if (biggest===gapE) {
+            result.push(anchorOnState(source, 'E', avgY-sy-5, true));
+            if      (avgY<ty) result.push(anchorOnState(target, 'N', 0, false));
+            else if (avgY>tb) result.push(anchorOnState(target, 'S', 0, false));
+            else              result.push(anchorOnState(target, 'W', avgY-ty-5, false));
+        } else if (biggest===gapS) {
+            result.push(anchorOnState(source, 'S', avgX-sx-5, true));
+            if      (avgX<tx) result.push(anchorOnState(target, 'W', 0, false));
+            else if (avgX>tr) result.push(anchorOnState(target, 'E', 0, false));
+            else              result.push(anchorOnState(target, 'N', avgX-tx-5, false));
+        } else if (biggest===gapW) {
+            result.push(anchorOnState(source, 'W', avgY-sy+5, true));
+            if      (avgY<ty) result.push(anchorOnState(target, 'N', tw, false));
+            else if (avgY>tb) result.push(anchorOnState(target, 'S', tw, false));
+            else              result.push(anchorOnState(target, 'E', avgY-ty+5, false));
+        } else if (biggest===gapN) {
+            result.push(anchorOnState(source, 'N', avgX-sx+5, true));
+            if      (avgX<tx) result.push(anchorOnState(target, 'W', th, false));
+            else if (avgX>tr) result.push(anchorOnState(target, 'E', th, false));
+            else              result.push(anchorOnState(target, 'S', avgX-tx+5, false));
+        }
+        return result;
+    }
+}
+
+// Find the best spot on the side of this state to go towards the point,
+// reaching the point in the horz/vert direction desired
+function bestStateAnchorTowards(state, targetAnchor) {
+    const {x:sx,y:sy,w,h} = state;
+    const rr = state.cornerRadius;
+    const xMin = rr, xMax = w-rr,
+          yMin = rr, yMax = h-rr;
+    let {x:tx, y:ty, horz} = targetAnchor;
+    const result = Object.assign({}, state);
+    let txClamped, tyClamped;
+
+    const hasX = tx!==undefined,
+          hasY = ty!==undefined;
+
+    // translate to state-local space for easier comparisons and offset calculation
+    if (hasX) {
+        tx -= sx;
+        txClamped = Math.min(Math.max(xMin, tx), xMax);
+    }
+    if (hasY) {
+        ty -= sy;
+        tyClamped = Math.min(Math.max(yMin, ty), yMax);
+    }
+
+    // console.log({tx, ty, txClamped, tyClamped});
+    if (hasX && hasY) {
+        if (horz) {
+            // console.log('case 1');
+            result.x = sx + ((ty < 0 || ty > h) ? txClamped : (tx < w/2) ? 0 : w);
+            result.y = sy + ((ty < 0) ? 0 : (ty > h) ? h : tyClamped);
+            result.horz = (ty >= 0 && ty <= h);
+        } else {
+            // console.log('case 2');
+            result.x = sx + ((tx < 0) ? 0 : (tx > w) ? w : txClamped);
+            result.y = sy + ((tx < 0 || tx > w) ? tyClamped : (ty < h/2) ? 0 : h);
+            result.horz = (tx < 0 || tx > w);
+        }
+    } else {
+        if (horz) {
+            // console.log('case 3');
+            delete result.x;
+            if (ty < 0 || ty > h) result.xRange = [sx + xMin, sx + xMax];
+            else                  result.xOptions = [sx, sx + w];
+            result.y = sy + ((ty < 0) ? 0 : (ty > h) ? h : tyClamped); // note: identical to a case above; could be DRY'd up
+            result.horz = (ty >= 0 && ty <= h);
+        } else {
+            // console.log('case 4');
+            result.x = sx + ((tx < 0) ? 0 : (tx > w) ? w : txClamped); // note: identical to a case above; could be DRY'd up
+            delete result.y;
+            if (tx < 0 || tx > w) result.yRange = [sy + yMin, sy + yMax];
+            else                  result.yOptions = [sy, sy + h];
+            result.horz = (tx < 0 || tx > w);                          // note: identical to a case above; could be DRY'd up
+        }
+    }
+
+    return result;
+}
+
+function containedWithin(inner, outer) {
+	return (inner.x>=outer.x && inner.y>=outer.y && (inner.x+inner.w)<=(outer.x+outer.w) && (inner.y+inner.h)<=(outer.y+outer.h));
+}
+
+function anchorOnState(state, side, offset) {
+	const rad = state.cornerRadius;
+	let {x,y,w,h} = state;
+	const [l,t,r,b] = [x+rad, y+rad, x+w-rad, y+h-rad];
+	const anchor = {x, y, horz:true, side, offset};
+	if (side==='N' || side==='S') {
+		anchor.horz = false;
+		anchor.x += offset;
+		if (anchor.x<l) anchor.x=l;
+		else if (anchor.x>r) anchor.x=r;
+		if (side==='S') anchor.y+=h;
+	}
+	if (side==='W' || side==='E') {
+		anchor.y += offset;
+		if (anchor.y<t) anchor.y=t;
+		else if (anchor.y>b) anchor.y=b;
+		if (side==='E') anchor.x+=w;
+	}
+	return anchor;
+}
+
+
+function pathFromAnchors(anchors, maxRadius=Infinity) {
+    anchors = anchors.concat();
+	// Calculate intersection points
+	let prevPoint = anchors[0], nextPoint;
+	const pts = [prevPoint];
+	for (let i=1; i<anchors.length; ++i) {
+		nextPoint = Object.assign({}, anchors[i]);
+		// Interject an anchor of opposite orientation between two sequential anchors with the same orientation
+		if (nextPoint.horz===prevPoint.horz) {
+			const mainAxis = prevPoint.horz ? 'x' : 'y',
+			      crosAxis = prevPoint.horz ? 'y' : 'x';
+			let nextMain = nextPoint[mainAxis];
+			for (let j=i; nextMain===undefined; ++j) nextMain = anchors[j][mainAxis];
+			nextPoint = {
+				[mainAxis] : (prevPoint[mainAxis]+nextMain)/2,
+				[crosAxis] : prevPoint[crosAxis],
+				horz      : !prevPoint.horz
+			};
+			// Since we generated a new anchor, retry the next real anchor next loop
+			i--;
+		} else {
+			if (prevPoint.horz) nextPoint.y = prevPoint.y;
+			else                nextPoint.x = prevPoint.x;
+		}
+		pts.push(nextPoint);
+		prevPoint.distanceToNext = Math.hypot(nextPoint.x-prevPoint.x, nextPoint.y-prevPoint.y);
+		prevPoint = nextPoint;
+	}
+	nextPoint = anchors[anchors.length-1];
+	prevPoint.distanceToNext = Math.hypot(nextPoint.x-prevPoint.x, nextPoint.y-prevPoint.y);
+	pts.push(nextPoint);
+
+	// Crawl along the point triplets, calculating curves
+	let lastCmd = {c:'M', x:pts[0].x, y:pts[0].y}
+	const path = [lastCmd];
+	for (let i=1; i<pts.length-1; ++i) {
+		const [a,b,c] = [pts[i-1], pts[i], pts[i+1]];
+		const radius = Math.min(a.distanceToNext/2, b.distanceToNext/2, maxRadius);
+
+		let x=a.horz ? (a.x<b.x ? b.x-radius : b.x+radius) : a.x;
+		let y=a.horz ? a.y : (a.y<b.y ? b.y-radius : b.y+radius);
+		if (x!==lastCmd.x || y!==lastCmd.y) {
+			lastCmd = {c:'L', x:x, y:y}
+			path.push(lastCmd);
+		}
+
+		x = b.x + (b.horz ? (c.x>b.x ? radius : -radius) : 0);
+		y = b.y + (b.horz ? 0 : (c.y>b.y ? radius : -radius));
+
+		if (x===lastCmd.x || y===lastCmd.y) lastCmd = {c:'L', x:x, y:y};
+		else                                lastCmd = {c:'A', x1:b.x, y1:b.y, x:x, y:y, r:radius};
+		path.push(lastCmd);
+	}
+	const last = pts[pts.length-1];
+	path.push({c:'L', x:last.x, y:last.y});
+
+	return path;
+}
+
+function drawCircles(path) {
+	const colors = 'red orange green blue purple'.split(/\s+/);
+	let colori = 0;
+
+	path.forEach((cmd,i) => {
+		ctx.beginPath();
+		ctx.ellipse(cmd.x || cmd.x2, cmd.y || cmd.y2, 8, 8, 0, 0, Math.PI*2);
+		ctx.strokeStyle = colors[(colori++) % colors.length];
+		ctx.lineWidth = 2;
+		ctx.stroke();
+	});
+}
+
+function drawStates(anchors) {
+	ctx.save();
+	ctx.fillStyle = 'white';
+	ctx.strokeStyle = 'black';
+	ctx.globalAlpha = 0.5;
+	for (const a of anchors) {
+		if (a.isState) {
+			ctx.beginPath();
+			ctx.roundRect(a.x, a.y, a.w, a.h, a.cornerRadius);
+			ctx.fill();
+			ctx.stroke();
+		}
+	}
+	ctx.restore();
+}
+
+const rainbow = ['#FF0000','#FF7F00','#FFD400','#999900','#BFFF00','#6AFF00','#00EAFF','#0095FF','#0040FF','#AA00FF','#FF00AA'];
+function drawGuides(anchors) {
+	ctx.lineCap = 'round';
+	for (const [i,a] of anchors.entries()) {
+        const xs=[a.x], ys=[a.y];
+        const color = rainbow[i % rainbow.length];
+        if ('xOptions' in a) xs.push(...a.xOptions);
+        if ('xRange' in a) for (let x=a.xRange[0]; x<=a.xRange[1]; x+=(a.xRange[1]-a.xRange[0])/10) xs.push(x);
+
+        if ('yOptions' in a) ys.push(...a.yOptions);
+        if ('yRange' in a) for (let y=a.yRange[0]; y<=a.yRange[1]; y+=(a.yRange[1]-a.yRange[0])/10) ys.push(y);
+
+        ctx.strokeStyle=color;
+        for (const x of xs) {
+            for (const y of ys) {
+                ctx.beginPath();
+                if ((x===undefined || y===undefined) && !a.xOptions && !a.yOptions) {
+                    ctx.lineWidth = 1;
+                    if (a.horz) {
+                        ctx.moveTo(0,y);
+                        ctx.lineTo(can.width,y);
+                    } else {
+                        ctx.moveTo(x,0);
+                        ctx.lineTo(x,can.height);
+                    }
+                    ctx.setLineDash(a.injected ? [5,10] : []);
+                    ctx.stroke();
+                } else {
+                    ctx.lineWidth = 4;
+                    if (a.horz) {
+                        ctx.moveTo(x-15, y);
+                        ctx.lineTo(x+15, y);
+                    } else {
+                        ctx.moveTo(x, y-15);
+                        ctx.lineTo(x, y+15);
+                    }
+                    ctx.stroke();
+                }
+            }
+        }
+
+	}
+}
+
+function drawPath(path) {
+	ctx.beginPath();
+	path.forEach( cmd => {
+		switch (cmd.c) {
+			case 'M': ctx.moveTo(cmd.x, cmd.y); break;
+			case 'L': ctx.lineTo(cmd.x, cmd.y); break;
+			case 'A': ctx.arcTo(cmd.x1, cmd.y1, cmd.x, cmd.y, cmd.r); break;
+		}
+	});
+	ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+	ctx.lineWidth = 4;
+	ctx.stroke();
+}
+
+window.onresize = () => {
+	can.width = can.offsetWidth;
+	can.height = can.offsetHeight;
+	ctx.setTransform(1,0,0,1,0,0);
+	redraw();
+}
+onresize();
+
+</script>
+</body></html>

@@ -1,0 +1,64 @@
+
+<html><head><title>24 Visually Unique Colors</title>
+<meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
+<style type="text/css" media="screen">
+	* { margin:0; padding:0; font-family:Candara, sans-serif; font-size:100%; }
+	body { background:#808080; margin:0; }
+	#content { margin:1em 2em; }
+	h1 { background:black; color:#ccc; padding:0.1em 1.67em; font-size:120% }
+	h2 { margin-top:2em; border-bottom:1px solid #333; margin-bottom:0.5em; font-size:110%;}
+	h2:first-child { margin-top:0 }
+	ul { white-space:nowrap; margin-bottom:0.5em; }
+	li { display:inline-block; margin-right:2em; line-height:100%; width:10em; white-space:nowrap; font-size:8pt; }
+	li span { width:2em; height:3em; float:left; margin-right:0.5em; border:1px solid black; }
+</style>
+<script type="text/javascript" charset="utf-8" src="http://phrogz.net/JS/RGBHSV_js.txt"></script>
+<script type="text/javascript" charset="utf-8">
+	var colors=[
+		["#FF0000","#FF7F00","#FFD400","#FFFF00","#BFFF00","#6AFF00","#00EAFF","#0095FF","#0040FF","#AA00FF","#FF00AA"],
+		["#EDB9B9","#E7E9B9","#B9EDE0","#B9D7ED","#DCB9ED"],
+		["#8F2323","#8F6A23","#4F8F23","#23628F","#6B238F"],
+		["#000000","#737373","#CCCCCC"]
+	];
+
+	function ShowColors(wrapper){
+		for (var i=0,rows=colors.length;i<rows;i++){
+			var row=colors[i];
+			var ul = document.getElementById(wrapper).appendChild(document.createElement('ul'));
+            colors.flat().map(c => RGB2HSV(RGBfromHTML(c))).sort(a,b => b.hsv - a.hsv).forEach( hsv => {
+				var li = ul.appendChild(document.createElement('li'));
+				li.appendChild( document.createElement('span') ).style.backgroundColor=hsv2hsl(c);
+                li.innerHTML += color+"<br>rgb("+(rgb.r*255).toFixed(0)+","+(rgb.g*255).toFixed(0)+","+(rgb.b*255).toFixed(0)+")<br>hsv("+(hsv.h).toFixed(0)+"°,"+(hsv.s*100).toFixed(0)+"%,"+(hsv.v*100).toFixed(0)+"%)";
+            });
+			for (var col=0,cols=row.length;col<cols;col++){
+				var li = ul.appendChild(document.createElement('li'));
+				// var columnIndex = (wrapper=='sorted') ? col : (col * ( (cols%2==0) ? 2 : (cols%3==0) ? 1 : 3 ) ) % cols
+				// var color=row[columnIndex];
+				// rgb = RGBfromHTML(color);
+				// hsv = RGB2HSV(rgb.r,rgb.g,rgb.b);
+				li.appendChild( document.createElement('span') ).style.backgroundColor=hsv2hsl(color;
+				li.innerHTML += color+"<br>rgb("+(rgb.r*255).toFixed(0)+","+(rgb.g*255).toFixed(0)+","+(rgb.b*255).toFixed(0)+")<br>hsv("+(hsv.h).toFixed(0)+"°,"+(hsv.s*100).toFixed(0)+"%,"+(hsv.v*100).toFixed(0)+"%)";
+			}
+		}
+	}
+	window.onload = function(){
+		ShowColors('sorted');
+		// ShowColors('diffed');
+	}
+    function hsv2hsl(hsv) {
+        const l = v-v*s/2;
+        const m = Math.min(l,1-l)
+        return `hsl(${h},${m?(v-l)/m:0}%,${l}%)`;
+    },
+
+</script>
+</head><body>
+	<h1>24 Visually Unique Colors</h1>
+	<div id="content">
+	<h2>Sorted by Hue</h2>
+	<div id="hueonly"></div>
+	<h2>Sorted by Hue and Value</h2>
+	<div id="sorted"></div>
+	<h2>Sorted for Visual Differentiation between Neighbors</h2>
+	<div id="diffed"></div>
+</div></body></html>

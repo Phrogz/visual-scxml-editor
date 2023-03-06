@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<script>
+const testCases = {
+    "ends are fully-set points, alternating waylines" : {
+        anchors: [
+            {x:0, y:180, horz:1},
+            {x:100, horz:0},
+            {horz:1, injected:true},
+            {x:200, horz:0},
+            {horz:1, injected:true},
+            {x:300, horz:0},
+            {y:0, horz:1},
+            {x:400, y:50, horz:0},
+        ],
+        corners: [
+            {x:0,   y:180},
+            {x:100, y:180},
+            {x:100, y:120},
+            {x:200, y:120},
+            {x:200, y:60},
+            {x:300, y:60},
+            {x:300, y:0},
+            {x:400, y:0},
+            {x:400, y:50}
+        ]
+    }
+}
+
+function findCorners(anchors) {
+    let last = Object.assign({}, anchors[0]);
+    const pts = [last];
+    for (let i=1; i<anchors.length; ++i) {
+        const prev = anchors[i-1];
+        const next = anchors[i];
+        const mainAxis = prev.horz ? 'y' : 'x';
+        const crosAxis = prev.horz ? 'x' : 'y';
+        const pt = {[mainAxis]:prev[mainAxis]};
+
+        if (!(crosAxis in next)) {
+            let nextValidValue;
+            // Find the next anchor with the axis value we need,
+            // and divide the space between here and there evenly
+            const crosAnchors = [pt, next];
+            // We cannot guarantee that the horz values alternate, so step one at a time
+            for (let j=i+1; j<anchors.length && nextValidValue===undefined; j++) {
+                const anchor = anchors[j];
+                if (anchor.horz==next.horz) {
+                    if (crosAxis in anchor) nextValidValue = anchor[crosAxis];
+                    else crosAnchors.push(anchor);
+                }
+            }
+
+            if (nextValidValue!==undefined) {
+                const step = (nextValidValue - last[crosAxis]) / (crosAnchors.length);
+                console.log(`At i=${i} we went looking for the next value of ${crosAxis} and found it to be ${nextValidValue}, so are stepping by ${step}`);
+                for (const [i,a] of crosAnchors.entries()) a[crosAxis] = last[crosAxis] + step * i;
+            } else {
+                // TODO: what if we could not find the point?
+            }
+        }
+        if (next[crosAxis]) {
+            pt[crosAxis] = next[crosAxis];
+        } else {
+            // we never were able to resolve this axis, what do we do?
+        }
+        pts.push(pt);
+        last = pt;
+    }
+    pts.push(anchors[anchors.length-1]);
+    // TODO: what if it's not
+    return pts;
+}
+
+for (const [name,test] of Object.entries(testCases)) {
+    console.log({name:name, anchors:test.anchors, pts:findCorners(test.anchors), ptsexpected:test.corners});
+}
+
+</script>
+</body>
+</html>
