@@ -1,86 +1,349 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="notranslate" translate="no">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+	<meta charset="UTF-8">
+	<meta name="google" content="notranslate">
+	<title>Document</title>
+<style>
+html, body { margin:0; padding:0; min-height:100% }
+svg { display:block; width:100%; position:fixed }
+.c0 { fill:#FF0000; stroke:#FF0000 }
+.c1 { fill:#FF7F00; stroke:#FF7F00 }
+.c2 { fill:#FFD400; stroke:#FFD400 }
+.c3 { fill:#FFFF00; stroke:#FFFF00 }
+.c4 { fill:#BFFF00; stroke:#BFFF00 }
+.c5 { fill:#6AFF00; stroke:#6AFF00 }
+.c6 { fill:#00EAFF; stroke:#00EAFF }
+.c7 { fill:#0095FF; stroke:#0095FF }
+.c8 { fill:#0040FF; stroke:#0040FF }
+.c9 { fill:#AA00FF; stroke:#AA00FF }
+.c10 { fill:#FF00AA; stroke:#FF00AA }
+#guideOut { opacity:0.2 }
+#expectedOut { opacity:0.4 }
+#actualOut circle { stroke:black; stroke-opacity:0.3 }
+text { fill:black }
+line { stroke:black; opacity:0.5 }
+</style>
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 1000 800">
+	<text id="testTitle" x="300" y="100">Hi Mom</text>
+	<g id="guideOut"></g>
+	<g id="expectedOut"></g>
+	<g id="actualOut"></g>
+</svg>
 <script>
-const testCases = {
-    "ends are fully-set points, alternating waylines" : {
-        anchors: [
-            {x:0, y:180, horz:1},
-            {x:100, horz:0},
-            {horz:1, injected:true},
-            {x:200, horz:0},
-            {horz:1, injected:true},
-            {x:300, horz:0},
-            {y:0, horz:1},
-            {x:400, y:50, horz:0},
-        ],
-        corners: [
-            {x:0,   y:180},
-            {x:100, y:180},
-            {x:100, y:120},
-            {x:200, y:120},
-            {x:200, y:60},
-            {x:300, y:60},
-            {x:300, y:0},
-            {x:400, y:0},
-            {x:400, y:50}
-        ]
-    }
-}
+const SVG = "http://www.w3.org/2000/svg";
+const testCases = [
+	{
+		name: "ends are fully-set points, alternating waylines",
+		anchors: [
+			{x:1, y:180, horz:1},
+			{x:100, horz:0},
+			{horz:1, injected:true},
+			{x:200, horz:0},
+			{horz:1, injected:true},
+			{x:300, horz:0},
+			{y:0, horz:1},
+			{x:400, y:50, horz:0},
+		],
+		corners: [
+			{x:1,   y:180},
+			{x:100, y:180},
+			{x:100, y:120},
+			{x:200, y:120},
+			{x:200, y:60},
+			{x:300, y:60},
+			{x:300, y:0},
+			{x:400, y:0},
+			{x:400, y:50}
+		]
+	},
+	{
+		name: "aligned horiz ranges",
+		anchors : [
+			{xRange:[0,100], y:0,   horz:false},
+			{horz:true},
+			{xRange:[0,100], y:100, horz:false},
+		],
+		corners : [
+			{x:50, y:0},
+			{x:50, y:50},
+			{x:50, y:100},
+		]
+	},
+	{
+		name: "overlapping horiz ranges",
+		anchors : [
+			{xRange:[0,100],  y:0,   horz:false},
+			{horz:true},
+			{xRange:[50,150], y:100, horz:false},
+		],
+		corners : [
+			{x:75, y:0},
+			{x:75, y:50},
+			{x:75, y:100},
+		]
+	},
+	{
+		name: "separated horiz ranges 1",
+		anchors : [
+			{xRange:[0,100],  y:0,   horz:false},
+			{horz:true},
+			{xRange:[150,200], y:100, horz:false},
+		],
+		corners : [
+			{x:100, y:0},
+			{x:100, y:50},
+			{x:150, y:50},
+			{x:150, y:100},
+		]
+	},
+	{
+		name: "separated horiz ranges 2",
+		anchors : [
+			{xRange:[200,300],  y:0,   horz:false},
+			{horz:true},
+			{xRange:[0,100], y:100, horz:false},
+		],
+		corners : [
+			{x:200, y:0},
+			{x:200, y:50},
+			{x:100, y:50},
+			{x:100, y:100},
+		]
+	},
+	{
+		name: "aligned vert slice",
+		anchors : [
+			{x:100, yOptions:[0,60],   horz:false},
+			{horz:true},
+			{x:100, yOptions:[180,240],  horz:false},
+		],
+		corners : [
+			{x:100, y:60},
+			{x:100, y:120},
+			{x:100, y:180},
+		]
+	},
+];
 
 function findCorners(anchors) {
-    let last = Object.assign({}, anchors[0]);
-    const pts = [last];
-    for (let i=1; i<anchors.length; ++i) {
-        const prev = anchors[i-1];
-        const next = anchors[i];
-        const mainAxis = prev.horz ? 'y' : 'x';
-        const crosAxis = prev.horz ? 'x' : 'y';
-        const pt = {[mainAxis]:prev[mainAxis]};
+	anchors = anchors.map(a => Object.assign({},a));
+	resolveStateAnchor(anchors, true);
+	resolveStateAnchor(anchors, false);
 
-        if (!(crosAxis in next)) {
-            let nextValidValue;
-            // Find the next anchor with the axis value we need,
-            // and divide the space between here and there evenly
-            const crosAnchors = [pt, next];
-            // We cannot guarantee that the horz values alternate, so step one at a time
-            for (let j=i+1; j<anchors.length && nextValidValue===undefined; j++) {
-                const anchor = anchors[j];
-                if (anchor.horz==next.horz) {
-                    if (crosAxis in anchor) nextValidValue = anchor[crosAxis];
-                    else crosAnchors.push(anchor);
-                }
-            }
+	//*
+	let last = anchors[0];
+	const pts = [last];
+	for (let i=1; i<anchors.length; ++i) {
+		const prev = anchors[i-1];
+		const next = anchors[i];
+		const mainAxis = prev.horz ? 'y' : 'x';
+		const crosAxis = prev.horz ? 'x' : 'y';
+		const pt = {[mainAxis]:prev[mainAxis]};
 
-            if (nextValidValue!==undefined) {
-                const step = (nextValidValue - last[crosAxis]) / (crosAnchors.length);
-                console.log(`At i=${i} we went looking for the next value of ${crosAxis} and found it to be ${nextValidValue}, so are stepping by ${step}`);
-                for (const [i,a] of crosAnchors.entries()) a[crosAxis] = last[crosAxis] + step * i;
-            } else {
-                // TODO: what if we could not find the point?
-            }
-        }
-        if (next[crosAxis]) {
-            pt[crosAxis] = next[crosAxis];
-        } else {
-            // we never were able to resolve this axis, what do we do?
-        }
-        pts.push(pt);
-        last = pt;
-    }
-    pts.push(anchors[anchors.length-1]);
-    // TODO: what if it's not
-    return pts;
+		if (!(crosAxis in next)) {
+			let nextValidValue;
+			// Find the next anchor with the axis value we need,
+			// and divide the space between here and there evenly
+			const crosAnchors = [pt, next];
+			// We cannot guarantee that the horz values alternate, so step one at a time
+			for (let j=i+1; j<anchors.length && nextValidValue===undefined; j++) {
+				const anchor = anchors[j];
+				if (crosAxis in anchor) nextValidValue = anchor[crosAxis];
+				else if (anchor.horz==next.horz) crosAnchors.push(anchor);
+			}
+
+			// there is ~no chance nextValidValue will be undefined, as the final anchor should/must have x/y values after `resolveStateAnchor`
+			const step = (nextValidValue - last[crosAxis]) / (crosAnchors.length);
+			console.log(`At i=${i} we went looking for the next value of ${crosAxis} and found it to be ${nextValidValue}, so are stepping by ${step}`);
+			for (const [i,a] of crosAnchors.entries()) a[crosAxis] = last[crosAxis] + step * i;
+		}
+		if (crosAxis in next) {
+			pt[crosAxis] = next[crosAxis];
+		} else {
+			// we never were able to resolve this axis, what do we do?
+		}
+		pts.push(pt);
+		last = pt;
+	}
+	//*/
+
+	pts.push(anchors[anchors.length-1]);
+
+	return pts;
 }
 
-for (const [name,test] of Object.entries(testCases)) {
-    console.log({name:name, anchors:test.anchors, pts:findCorners(test.anchors), ptsexpected:test.corners});
+function resolveStateAnchor(anchors, forward) {
+	if (!forward) anchors = anchors.slice().reverse();
+	const anchor0 = anchors[0];
+	for (const axis of ['x','y']) {
+		if (!(axis in anchor0)) {
+			const rangeName = `${axis}Range`,
+				  optsName  = `${axis}Options`,
+				  noOptsErr = new Error(`State anchors must have one of .${axis}, .${rangeName}, or .${optsName}`);
+			let foundValue;
+			for (let i=1; i<anchors.length && foundValue===undefined; i++) {
+				if (axis in anchors[i]) foundValue = anchors[i][axis];
+			}
+			const [min0, max0] = anchor0[rangeName] || anchor0[optsName];
+			const mid0 = (min0 + max0) / 2;
+			if (foundValue !== undefined) {
+				if (anchor0[rangeName]) {
+					anchor0[axis] = Math.min(Math.max(foundValue, min0), max0);
+				} else if (anchor0[`${axis}Options`]) {
+					anchor0[axis] = (Math.abs(foundValue-min0) < Math.abs(foundValue-max0)) ? min0 : max0;
+				} else throw noOptsErr;
+			} else {
+				const anchorΩ = anchors[anchors.length-1];
+				const [minΩ, maxΩ] = anchorΩ[rangeName] || anchorΩ[optsName];
+				const midΩ = (minΩ + maxΩ) / 2;
+				let best;
+				if (anchor0[rangeName]) {
+					if (anchorΩ[rangeName]) {
+						if (max0 <= minΩ)      best = (max0 + minΩ) / 2;
+						else if (maxΩ <= min0) best = (min0 + maxΩ) / 2;
+						else { // the ranges overlap
+							if      (max0 < maxΩ && min0 > minΩ) best = (min0 + max0) / 2;
+							else if (maxΩ < max0 && minΩ > min0) best = (minΩ + maxΩ) / 2;
+							else if (minΩ < max0)                best = (minΩ + max0) / 2;
+							else                                 best = (min0 + maxΩ) / 2;
+						}
+					} else if (anchorΩ[optsName]) {
+						// TODO: maybe the first two branches produce the same result as the last?
+						if      (min0 <= minΩ && minΩ <= max0) best = minΩ;
+						else if (min0 <= maxΩ && maxΩ <= max0) best = maxΩ;
+						else best = (Math.abs(minΩ - mid0) < Math.abs(maxΩ - mid0)) ? minΩ : maxΩ;
+					} else throw noOptsErr;
+				} else if (anchor0[optsName]) {
+					if (anchorΩ[rangeName]) {
+						// TODO: maybe the first two branches produce the same result as the last?
+						if      (minΩ <= min0 && min0 <= maxΩ) best = min0;
+						else if (minΩ <= max0 && max0 <= maxΩ) best = max0;
+						else best = (Math.abs(min0 - midΩ) < Math.abs(max0 - midΩ)) ? min0 : max0;
+					} else if (anchorΩ[optsName]) {
+						const [,best0, bestΩ] = [
+							[Math.abs(min0 - minΩ), min0, minΩ],
+							[Math.abs(min0 - maxΩ), min0, maxΩ],
+							[Math.abs(max0 - maxΩ), max0, maxΩ],
+							[Math.abs(max0 - minΩ), max0, minΩ]
+						].sort((a,b) => a[0]-b[0])[0];
+						anchor0[axis] = best0;
+						anchorΩ[axis] = bestΩ;
+					} else throw noOptsErr;
+				} else throw noOptsErr;
+				if (best !== undefined) {
+					// FIXME: I think this might futz up an "option" by allowing an intermediate value
+					anchor0[axis] = Math.min(Math.max(best, min0), max0);
+					anchorΩ[axis] = Math.min(Math.max(best, minΩ), maxΩ);
+				}
+			}
+		}
+	}
+}
+
+let testIndex = 0;
+let testTimer;
+function runTest() {
+	const {name, anchors, corners:expected} = testCases[testIndex];
+	console.log(name);
+
+	testTitle.innerHTML = name;
+	expectedOut.innerHTML = '';
+	actualOut.innerHTML = '';
+	guideOut.innerHTML = '';
+
+	drawGuides(anchors);
+	showPoints(expected, expectedOut, 7);
+
+	const result = findCorners(anchors);
+	console.log({result})
+	showPoints(result,   actualOut,   3);
+}
+
+function drawGuides(anchors) {
+	for (const [i,a] of anchors.entries()) {
+		const xs=[a.x], ys=[a.y];
+		if ('xOptions' in a) xs.push(...a.xOptions);
+		if ('xRange' in a) for (let x=a.xRange[0]; x<=a.xRange[1]; x+=(a.xRange[1]-a.xRange[0])/10) xs.push(x);
+		if ('yOptions' in a) ys.push(...a.yOptions);
+		if ('yRange' in a) for (let y=a.yRange[0]; y<=a.yRange[1]; y+=(a.yRange[1]-a.yRange[0])/10) ys.push(y);
+		for (const x of xs) {
+			for (const y of ys) {
+				if ((x===undefined || y===undefined) && !a.xOptions && !a.yOptions) {
+					if      ( a.horz && y!==undefined) makeEl('line', {['class']:'wayline horz', x1:-1e3, y1:y, x2:1e3, y2:y, _dad:guideOut});
+					else if (!a.horz && x!==undefined) makeEl('line', {['class']:'wayline vert', x1:x, y1:-1e3, x2:x, y2:1e3, _dad:guideOut});
+				} else if (x!==undefined && y!==undefined) {
+					if (a.horz) makeEl('line', {['class']:'anchor horz', x1:x-10, y1:y, x2:x+10, y2:y, _dad:guideOut});
+					else        makeEl('line', {['class']:'anchor vert', x1:x, y1:y-10, x2:x, y2:y+10, _dad:guideOut});
+					makeEl('circle', {['class']:'anchor', cx:x, cy:y, r:2, _dad:guideOut});
+				}
+			}
+		}
+	}
+}
+
+function showPoints(pts, parent, r=7) {
+	for (const [i,c] of pts.entries()) {
+		makeEl('circle', {_dad:parent, cx:c.x, cy:c.y, r:r, ['class']:`c${i % 11}`});
+	}
+}
+
+function stepTest(offset=1) {
+	testIndex = (testIndex + testCases.length + offset) % testCases.length;
+}
+
+function startTests() {
+	stepTest(1);
+	runTest();
+	testTimer = setInterval(_ => {
+		stepTest(1);
+		runTest();
+	}, 1000);
+}
+
+function stopTests() {
+	clearInterval(testTimer);
+	testTimer = null;
+}
+
+document.body.addEventListener('keydown', evt => {
+	switch (evt.key) {
+		case ' ':
+			if (testTimer) stopTests();
+			else           startTests();
+		break;
+		case 'ArrowLeft':
+			stepTest(-1);
+			runTest();
+		break;
+		case 'ArrowRight':
+			stepTest(1);
+			runTest();
+		break;
+	}
+});
+
+runTest();
+
+function makeEl(name, opts={}) {
+	const el = document.createElementNS(SVG, name);
+	for (const k of Object.keys(opts)){
+		switch(k){
+			case '_dad':
+				opts[k].appendChild(el);
+			break;
+
+			case '_text':
+				el.appendChild(document.createTextNode(opts[k]));
+			break;
+
+			default:
+				el.setAttribute(k, opts[k]);
+		}
+	}
+	return el;
 }
 
 </script>
