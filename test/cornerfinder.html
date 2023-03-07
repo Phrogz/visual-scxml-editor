@@ -35,8 +35,7 @@ line { stroke:black; opacity:0.5 }
 <script>
 const SVG = "http://www.w3.org/2000/svg";
 const testCases = [
-	{
-		name: "ends are fully-set points, alternating waylines",
+	{name: "ends are fully-set points, alternating waylines",
 		anchors: [
 			{x:1, y:180, horz:1},
 			{x:100, horz:0},
@@ -59,8 +58,7 @@ const testCases = [
 			{x:400, y:50}
 		]
 	},
-	{
-		name: "aligned horiz ranges",
+	{name: "aligned horiz ranges",
 		anchors : [
 			{xRange:[0,100], y:0,   horz:false},
 			{horz:true},
@@ -72,8 +70,7 @@ const testCases = [
 			{x:50, y:100},
 		]
 	},
-	{
-		name: "overlapping horiz ranges",
+	{name: "overlapping horiz ranges",
 		anchors : [
 			{xRange:[0,100],  y:0,   horz:false},
 			{horz:true},
@@ -85,8 +82,7 @@ const testCases = [
 			{x:75, y:100},
 		]
 	},
-	{
-		name: "separated horiz ranges 1",
+	{name: "separated horiz ranges 1",
 		anchors : [
 			{xRange:[0,100],  y:0,   horz:false},
 			{horz:true},
@@ -99,8 +95,7 @@ const testCases = [
 			{x:150, y:100},
 		]
 	},
-	{
-		name: "separated horiz ranges 2",
+	{name: "separated horiz ranges 2",
 		anchors : [
 			{xRange:[200,300],  y:0,   horz:false},
 			{horz:true},
@@ -113,8 +108,7 @@ const testCases = [
 			{x:100, y:100},
 		]
 	},
-	{
-		name: "aligned vert slice",
+	{name: "aligned vert slice",
 		anchors : [
 			{x:100, yOptions:[0,60],   horz:false},
 			{horz:true},
@@ -124,6 +118,81 @@ const testCases = [
 			{x:100, y:60},
 			{x:100, y:120},
 			{x:100, y:180},
+		]
+	},
+	{name: "aligned vert slice with offset wayline",
+		anchors : [
+			{x:100, yOptions:[0,60],   horz:false},
+			{y:150, horz:true},
+			{x:100, yOptions:[180,240],  horz:false},
+		],
+		corners : [
+			{x:100, y:60},
+			{x:100, y:150},
+			{x:100, y:180},
+		]
+	},
+	{name: "mixed bag 1",
+		anchors : [
+			{x:50, yRange:[20,80],   horz:true},
+			{x:100, horz:false },
+			{x:100, yOptions:[220,300],  horz:false},
+		],
+		corners : [
+			{x:50,  y:80},
+			{x:100, y:80},
+			{x:100, y:220},
+		]
+	},
+	{name: "mixed bag 2",
+		anchors : [
+			{x:50, yRange:[20,80],   horz:true},
+			{x:100, horz:false },
+			{x:80, yRange:[220,280],   horz:true},
+		],
+		corners : [
+			{x:50,  y:80},
+			{x:100, y:80},
+			{x:100, y:220},
+			{x:80, y:220},
+		]
+	},
+	{name: "mixed bag 3",
+		anchors : [
+			{x:50, yRange:[20,80],   horz:true},
+			{x:100, horz:false },
+			{y:120, horz:true },
+			{xRange:[200, 300], y:180,   horz:false},
+		],
+		corners : [
+			{x:50,  y:80},
+			{x:100, y:80},
+			{x:100, y:120},
+			{x:200, y:120},
+			{x:200, y:180},
+		]
+	},
+	{name: "unset ends, alternating waylines",
+		anchors: [
+			{x:1, yRange:[180, 240], horz:1},
+			{x:100, horz:0},
+			{horz:1, injected:true},
+			{x:200, horz:0},
+			{horz:1, injected:true},
+			{x:300, horz:0},
+			{y:0, horz:1},
+			{xRange:[400,500], y:50, horz:0},
+		],
+		corners: [
+			{x:1,   y:180},
+			{x:100, y:180},
+			{x:100, y:120},
+			{x:200, y:120},
+			{x:200, y:60},
+			{x:300, y:60},
+			{x:300, y:0},
+			{x:400, y:0},
+			{x:400, y:50}
 		]
 	},
 ];
