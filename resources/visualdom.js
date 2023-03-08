@@ -131,8 +131,8 @@ export class VisualState extends SCXMLState {
 		if (this.isParallelChild) return;
 		for (const [s,xy] of sandbox.starts) s.xy = [xy[0]+dx, xy[1]+dy];
 		for (const [s,] of sandbox.starts) {
-			s.transitions.forEach(t => t.reroute && t.reroute());
-			s.incomingTransitions.forEach(t => t.reroute && t.reroute());
+			s.transitions.forEach(t => t.reroute?.());
+			s.incomingTransitions.forEach(t => t.reroute?.());
 		}
 		this._vse.editor.updateSelectors();
 	}
@@ -242,8 +242,8 @@ export class VisualState extends SCXMLState {
 				ego.exit.setAttribute('d', `M${w-o-r},${o} A${r},${r},0,0,1,${w-o},${o+r} L${w-o},${h-o-r} A${r},${r},0,0,1,${w-o-r},${h-o}`);
 
 				// Some transitions in the scxmlDoc may not be visual (e.g. children of <initial>)
-				this.transitions.forEach(t => t.reroute && t.reroute());
-				this.incomingTransitions.forEach(t => t.reroute && t.reroute());
+				this.transitions.forEach(t => t.reroute?.());
+				this.incomingTransitions.forEach(t => t.reroute?.());
 				this.updateLabelPosition();
 				this.updateStyleForContainment();
 				recognized = true;
@@ -514,6 +514,59 @@ export class VisualState extends SCXMLState {
 		this.placeSelectors();
 	}
 
+	// Find the best spot on the side of this state to go towards the point,
+	// reaching the point in the horiz/vert direction desired
+	bestAnchorTowards(targetAnchor) {
+		const [sx,sy,w,h] = this.xywh;
+		const rr = this.cornerRadius;
+		const xMin = rr, xMax = w-rr,
+		      yMin = rr, yMax = h-rr;
+		let {x:tx, y:ty, horiz} = targetAnchor;
+		const result = {auto:true};
+		let txClamped, tyClamped;
+
+		const hasX = tx!==undefined,
+		      hasY = ty!==undefined;
+
+		// translate to state-local space for easier comparisons and offset calculation
+		if (hasX) {
+			tx -= sx;
+			txClamped = Math.min(Math.max(xMin, tx), xMax);
+		}
+		if (hasY) {
+			ty -= sy;
+			tyClamped = Math.min(Math.max(yMin, ty), yMax);
+		}
+
+		if (hasX && hasY) {
+			if (horiz) {
+				result.x = sx + ((ty < 0 || ty > h) ? txClamped : (tx < w/2) ? 0 : w);
+				result.y = sy + ((ty < 0) ? 0 : (ty > h) ? h : tyClamped);
+				result.horiz = (ty >= 0 && ty <= h);
+			} else {
+				result.x = sx + ((tx < 0) ? 0 : (tx > w) ? w : txClamped);
+				result.y = sy + ((tx < 0 || tx > w) ? tyClamped : (ty < h/2) ? 0 : h);
+				result.horiz = (tx < 0 || tx > w);
+			}
+		} else {
+			if (horiz) {
+				delete result.x;
+				if (ty < 0 || ty > h) result.xRange = [sx + xMin, sx + xMax];
+				else                  result.xOptions = [sx, sx + w];
+				result.y = sy + ((ty < 0) ? 0 : (ty > h) ? h : tyClamped); // note: identical to a case above; could be DRY'd up
+				result.horiz = (ty >= 0 && ty <= h);
+			} else {
+				result.x = sx + ((tx < 0) ? 0 : (tx > w) ? w : txClamped); // note: identical to a case above; could be DRY'd up
+				delete result.y;
+				if (tx < 0 || tx > w) result.yRange = [sy + yMin, sy + yMax];
+				else                  result.yOptions = [sy, sy + h];
+				result.horiz = (tx < 0 || tx > w);                          // note: identical to a case above; could be DRY'd up
+			}
+		}
+
+		return result;
+	}
+
 	get x()  { return this.xywh[0]; }
 	set x(x) { const xywh=this.xywh; xywh[0]=this._vse.editor.snap(x); this.xywh=xywh; }
 
@@ -770,6 +823,19 @@ export class VisualTransition extends SCXMLTransition {
 		}
 	}
 
+	// Find the best spot on the side of this state to go towards the point,
+	// reaching the point in the horiz/vert direction desired
+	bestAnchorFromStateTowards(state, x, y, horiz=false) {
+		const [x1,y1,w,h] = state.xywh;
+		x -= x1;
+		y -= y1;
+		let side;
+		if (horiz) side = (y<0) ? 'N' : (y>h) ? 'S' : (x < w/2) ? 'W' : 'E';
+		else       side = (x<0) ? 'W' : (x>w) ? 'E' : (y < h/2) ? 'N' : 'S';
+		const offset = (side==='N' || side==='S') ? x : y;
+		return anchorOnState(state, side, offset);
+	}
+
 	checkCondition() {
 		this._vse.main.classList.toggle('conditional',   this.condition);
 		this._vse.main.classList.toggle('conditionless', !this.condition);
@@ -830,6 +896,7 @@ export class VisualTransition extends SCXMLTransition {
 		} else {
 			this.removeAttributeNS(visualNS, 'r');
 		}
+		this.reroute();
 	}
 
 	get labelOffsets() {
@@ -958,22 +1025,110 @@ export class VisualTransition extends SCXMLTransition {
 	get anchors() {
 		const pts = this.pts;
 		if (!this.pts) return this.bestAnchors();
-		const anchors = [],
-				regex   = /([NSEWXY])\s*(\S+)/g;
+		const source=this.source, target=this.target;
+		let anchors = [], regex = /a|([NSEWXY])\s*(\S+)/g;
 		let match;
 		while (match=regex.exec(pts)) {
-			const [,direction,offset] = match;
-			switch (direction) {
+			const [auto, direction, offset] = match;
+			if (auto==='a') anchors.push({auto:true});
+			else switch (direction) {
 				case 'X': anchors.push({axis:direction, offset:offset, x:offset*1, horiz:false}); break;
 				case 'Y': anchors.push({axis:direction, offset:offset, y:offset*1, horiz:true }); break;
 				default:
-					const state = anchors.length ? this.target : this.parentNode;
-					const anchor = anchorOnState(state, direction, offset*1, state===this.parentNode);
+					const state = anchors.length ? target : source;
+					const anchor = anchorOnState(state, direction, offset*1, state===source);
 					if (anchor) anchors.push(anchor);
 			}
 		}
 		if (anchors.length===0) return this.bestAnchors();
+
+		// add 'auto' anchors at front and back if needed
+		if (anchors[0].axis) anchors.unshift({auto:true});
+		if (this.target && (anchors.length===1 || anchors[anchors.length-1].axis)) {
+			anchors.push({auto:true});
+		}
+
+		// remove any 'auto' anchors in the middle
+		anchors = anchors.filter((a,i) => (i===0) || (i===anchors.length-1) || (!a.auto));
+		if (!this.target) anchors.length = 1;
+		if (anchors.every(a => a.auto)) return this.bestAnchors();
+
+		const last = anchors.length-1;
+		// Add both auto anchors before resolving, so the first can use the second for resolution
+		if (anchors[0].auto) anchors[0] = this.source.bestAnchorTowards(anchors[1]);
+		if (anchors[last].auto) anchors[last] = this.target.bestAnchorTowards(anchors[last-1]);
+		if (anchors[0].auto) resolveAutoAnchor(anchors, true);
+		if (anchors[last].auto) resolveAutoAnchor(anchors, false);
+
 		return anchors;
+
+		function resolveAutoAnchor(anchors, forward) {
+			if (!forward) anchors = anchors.slice().reverse();
+			const anchor0 = anchors[0];
+			for (const axis of ['x','y']) {
+				if (!(axis in anchor0)) {
+					const rangeName = `${axis}Range`,
+						  optsName  = `${axis}Options`,
+						  noOptsErr = new Error(`State anchors must have one of .${axis}, .${rangeName}, or .${optsName}`);
+					let foundValue;
+					for (let i=1; i<anchors.length && foundValue===undefined; i++) {
+						if (axis in anchors[i]) foundValue = anchors[i][axis];
+					}
+					const [min0, max0] = anchor0[rangeName] || anchor0[optsName];
+					const mid0 = (min0 + max0) / 2;
+					if (foundValue !== undefined) {
+						if (anchor0[rangeName]) {
+							anchor0[axis] = Math.min(Math.max(foundValue, min0), max0);
+						} else if (anchor0[`${axis}Options`]) {
+							anchor0[axis] = (Math.abs(foundValue-min0) < Math.abs(foundValue-max0)) ? min0 : max0;
+						} else throw noOptsErr;
+					} else {
+						const anchorΩ = anchors[anchors.length-1];
+						const [minΩ, maxΩ] = anchorΩ[rangeName] || anchorΩ[optsName];
+						const midΩ = (minΩ + maxΩ) / 2;
+						let best;
+						if (anchor0[rangeName]) {
+							if (anchorΩ[rangeName]) {
+								if (max0 <= minΩ)      best = (max0 + minΩ) / 2;
+								else if (maxΩ <= min0) best = (min0 + maxΩ) / 2;
+								else { // the ranges overlap
+									if      (max0 < maxΩ && min0 > minΩ) best = (min0 + max0) / 2;
+									else if (maxΩ < max0 && minΩ > min0) best = (minΩ + maxΩ) / 2;
+									else if (minΩ < max0)                best = (minΩ + max0) / 2;
+									else                                 best = (min0 + maxΩ) / 2;
+								}
+							} else if (anchorΩ[optsName]) {
+								// TODO: maybe the first two branches produce the same result as the last?
+								if      (min0 <= minΩ && minΩ <= max0) best = minΩ;
+								else if (min0 <= maxΩ && maxΩ <= max0) best = maxΩ;
+								else best = (Math.abs(minΩ - mid0) < Math.abs(maxΩ - mid0)) ? minΩ : maxΩ;
+							} else throw noOptsErr;
+						} else if (anchor0[optsName]) {
+							if (anchorΩ[rangeName]) {
+								// TODO: maybe the first two branches produce the same result as the last?
+								if      (minΩ <= min0 && min0 <= maxΩ) best = min0;
+								else if (minΩ <= max0 && max0 <= maxΩ) best = max0;
+								else best = (Math.abs(min0 - midΩ) < Math.abs(max0 - midΩ)) ? min0 : max0;
+							} else if (anchorΩ[optsName]) {
+								const [,best0, bestΩ] = [
+									[Math.abs(min0 - minΩ), min0, minΩ],
+									[Math.abs(min0 - maxΩ), min0, maxΩ],
+									[Math.abs(max0 - maxΩ), max0, maxΩ],
+									[Math.abs(max0 - minΩ), max0, minΩ]
+								].sort((a,b) => a[0]-b[0])[0];
+								anchor0[axis] = best0;
+								anchorΩ[axis] = bestΩ;
+							} else throw noOptsErr;
+						} else throw noOptsErr;
+						if (best !== undefined) {
+							// FIXME: I think this might futz up an "option" by allowing an intermediate value
+							anchor0[axis] = Math.min(Math.max(best, min0), max0);
+							anchorΩ[axis] = Math.min(Math.max(best, minΩ), maxΩ);
+						}
+					}
+				}
+			}
+		}
 	}
 	set anchors(anchors) {
 		this.pts = anchors.map(a => `${a.side||a.axis}${a.offset}` ).join(' ');

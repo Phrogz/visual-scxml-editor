@@ -23,6 +23,8 @@ svg { display:block; width:100%; position:fixed }
 #actualOut circle { stroke:black; stroke-opacity:0.3 }
 text { fill:black }
 line { stroke:black; opacity:0.5 }
+path { fill:none; stroke:black }
+#maxRadiusSlider { position:fixed; top:1em; width:20em; right:1em }
 </style>
 </head>
 <body>
@@ -31,23 +33,25 @@ line { stroke:black; opacity:0.5 }
 	<g id="guideOut"></g>
 	<g id="expectedOut"></g>
 	<g id="actualOut"></g>
+	<path id="finalPath" d="M0,0"/>
 </svg>
+<input type="range" min="0.01" max="100" value="20" id="maxRadiusSlider">
 <script>
 const SVG = "http://www.w3.org/2000/svg";
 const testCases = [
 	{name: "ends are fully-set points, alternating waylines",
 		anchors: [
-			{x:1, y:180, horz:1},
+			{x:0, y:180, horz:1},
 			{x:100, horz:0},
 			{horz:1, injected:true},
 			{x:200, horz:0},
 			{horz:1, injected:true},
 			{x:300, horz:0},
-			{y:0, horz:1},
+			{y:0,   horz:1},
 			{x:400, y:50, horz:0},
 		],
 		corners: [
-			{x:1,   y:180},
+			{x:0,   y:180},
 			{x:100, y:180},
 			{x:100, y:120},
 			{x:200, y:120},
@@ -134,12 +138,12 @@ const testCases = [
 	},
 	{name: "mixed bag 1",
 		anchors : [
-			{x:50, yRange:[20,80],   horz:true},
+			{x:5, yRange:[20,80],   horz:true},
 			{x:100, horz:false },
 			{x:100, yOptions:[220,300],  horz:false},
 		],
 		corners : [
-			{x:50,  y:80},
+			{x:5,  y:80},
 			{x:100, y:80},
 			{x:100, y:220},
 		]
@@ -196,6 +200,12 @@ const testCases = [
 		]
 	},
 ];
+
+function addEndAnchors(constraints) {
+	const result = constraints.map(c => Object.assign({},c));
+	const [c0, cΩ] = [constraints[0], constraints[constraints.length-1]];
+	if (!('x' in c0 && 'y' in c0)) constraints.unshift()
+}
 
 function findCorners(anchors) {
 	anchors = anchors.map(a => Object.assign({},a));
@@ -327,8 +337,9 @@ function runTest() {
 	showPoints(expected, expectedOut, 7);
 
 	const result = findCorners(anchors);
-	console.log({result})
-	showPoints(result,   actualOut,   3);
+	showPoints(result, actualOut, 3);
+	const path = svgPathFromCorners(result, maxRadiusSlider.valueAsNumber);
+	finalPath.setAttribute('d', path);
 }
 
 function drawGuides(anchors) {
@@ -394,6 +405,8 @@ document.body.addEventListener('keydown', evt => {
 	}
 });
 
+maxRadiusSlider.addEventListener('input', runTest);
+
 runTest();
 
 function makeEl(name, opts={}) {
@@ -413,6 +426,118 @@ function makeEl(name, opts={}) {
 		}
 	}
 	return el;
+}
+
+function svgPathFromCorners(pts, maxRadius=1000) {
+	// Precalculate inter-point distances
+	for (let i=1; i<pts.length; ++i) {
+		const pt = pts[i-1];
+		const {x:x1, y:y1} = pt,
+		      {x:x2, y:y2} = pts[i];
+		pt.distanceToNext = Math.hypot(x2-x1, y2-y1);
+		pt.horz = y1===y2;
+	}
+
+	// Crawl along the point triplets, calculating curves
+	let lastCmd = {c:'M', x:pts[0].x, y:pts[0].y};
+	let cmds = [lastCmd];
+	for (let i=1; i<pts.length-1; ++i) {
+		const [a,b,c] = [pts[i-1], pts[i], pts[i+1]];
+		const radius = Math.min(a.distanceToNext/2, b.distanceToNext/2, maxRadius);
+
+		let x=a.horz ? (a.x<b.x ? b.x-radius : b.x+radius) : a.x;
+		let y=a.horz ? a.y : (a.y<b.y ? b.y-radius : b.y+radius);
+		if (x!==lastCmd.x || y!==lastCmd.y) {
+			lastCmd = {c:'L', x:x, y:y};
+			cmds.push(lastCmd);
+		}
+
+		x = b.x + (b.horz ? (c.x>b.x ? radius : -radius) : 0);
+		y = b.y + (b.horz ? 0 : (c.y>b.y ? radius : -radius));
+
+		if (x===lastCmd.x || y===lastCmd.y) lastCmd = {c:'L', x:x, y:y};
+		else                                lastCmd = {c:'A', x1:b.x, y1:b.y, x:x, y:y, r:radius};
+		cmds.push(lastCmd);
+	}
+	const last = pts[pts.length-1];
+	cmds.push({c:'L', x:last.x, y:last.y});
+	console.log(cmds);
+
+	let x,y;
+	return cmds.map(cmd => {
+		let result;
+		switch (cmd.c) {
+			case 'M':
+			case 'L':
+				result = `${cmd.c}${cmd.x},${cmd.y}`;
+			break;
+			case 'A':
+				const angle = (cmd.y1-y)*(cmd.x-cmd.x1)-(cmd.y-cmd.y1)*(cmd.x1-x);
+				result = `A${cmd.r},${cmd.r},0,0,${angle<0?1:0},${cmd.x},${cmd.y}`;
+			break;
+		}
+		x = cmd.x;
+		y = cmd.y;
+		return result;
+	}).join('');
+}
+
+// Find the best spot on the side of this state to go towards the point,
+// reaching the point in the horz/vert direction desired
+function bestStateAnchorTowards(state, targetAnchor) {
+    const {x:sx,y:sy,w,h} = state;
+    const rr = state.cornerRadius;
+    const xMin = rr, xMax = w-rr,
+          yMin = rr, yMax = h-rr;
+    let {x:tx, y:ty, horz} = targetAnchor;
+    const result = Object.assign({}, state);
+    let txClamped, tyClamped;
+
+    const hasX = tx!==undefined,
+          hasY = ty!==undefined;
+
+    // translate to state-local space for easier comparisons and offset calculation
+    if (hasX) {
+        tx -= sx;
+        txClamped = Math.min(Math.max(xMin, tx), xMax);
+    }
+    if (hasY) {
+        ty -= sy;
+        tyClamped = Math.min(Math.max(yMin, ty), yMax);
+    }
+
+    // console.log({tx, ty, txClamped, tyClamped});
+    if (hasX && hasY) {
+        if (horz) {
+            // console.log('case 1');
+            result.x = sx + ((ty < 0 || ty > h) ? txClamped : (tx < w/2) ? 0 : w);
+            result.y = sy + ((ty < 0) ? 0 : (ty > h) ? h : tyClamped);
+            result.horz = (ty >= 0 && ty <= h);
+        } else {
+            // console.log('case 2');
+            result.x = sx + ((tx < 0) ? 0 : (tx > w) ? w : txClamped);
+            result.y = sy + ((tx < 0 || tx > w) ? tyClamped : (ty < h/2) ? 0 : h);
+            result.horz = (tx < 0 || tx > w);
+        }
+    } else {
+        if (horz) {
+            // console.log('case 3');
+            delete result.x;
+            if (ty < 0 || ty > h) result.xRange = [sx + xMin, sx + xMax];
+            else                  result.xOptions = [sx, sx + w];
+            result.y = sy + ((ty < 0) ? 0 : (ty > h) ? h : tyClamped); // note: identical to a case above; could be DRY'd up
+            result.horz = (ty >= 0 && ty <= h);
+        } else {
+            // console.log('case 4');
+            result.x = sx + ((tx < 0) ? 0 : (tx > w) ? w : txClamped); // note: identical to a case above; could be DRY'd up
+            delete result.y;
+            if (tx < 0 || tx > w) result.yRange = [sy + yMin, sy + yMax];
+            else                  result.yOptions = [sy, sy + h];
+            result.horz = (tx < 0 || tx > w);                          // note: identical to a case above; could be DRY'd up
+        }
+    }
+
+    return result;
 }
 
 </script>

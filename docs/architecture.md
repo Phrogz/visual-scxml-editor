@@ -74,3 +74,65 @@ These properties and methods manage the visual state of the diagram, outside the
 * **`VisualTransition`** — added to `<transition>` elements.
 
 _See the implementation of the above objects for the properties and methods they provide._
+
+## Calculating Transition Routing
+
+A surprising amount of calculation goes into finding the "right" path for a transition to take.
+This section describes how the path is calculated.
+
+### Tterminology and Basic Concepts
+
+* An "anchor" is a point in space through which the path must pass, including the horizontal/vertical
+  orientation of the path as it passes through the point.
+* A "wayline" is an infinite horizontal or vertical line through which the path must pass next.
+  For example, a wayline specified as "X100" is a vertical line laterally placed at global x=100.
+
+The simplest cases occur when anchors exist on both states, and any waylines alternate orientation.
+For example:
+
+![](archtitecture-transitionpath-1.png)
+
+It becomes more difficult when sequential waylines exist with the same orientation.
+For the path to travel from one to the next, internally we must inject waylines with the opposite
+orientation between each pair. These waylines initially have orientation only,
+with automatic placement to be calculated to distribute distances traveled. For example:
+
+![](archtitecture-transitionpath-2.png)
+
+In the above, the two vertical waylines and the vertical orientation of the rightmost anchor require
+the path to be traveling vertically, with no horizontal wayline specified between them. The horizontal
+waylines shown in red are inserted, with their Y values computed to evenly distribute the vertical
+changes.
+
+Finally, calculations become tricker still if explicit anchors are omitted from one or both and states.
+In these situations, we look at the adjacent wayline to select candidate anchors, but must look for
+more information to select which candidate is best. For example:
+
+![](archtitecture-transitionpath-3.png)
+
+Above, given the vertical wayline to the right of the state on the left we procedurally decide that
+the transition should be attached to the right edge of the state. Where along that edge to attach to
+depends on where the line goes next. Similarly, the vertical wayline passing through the state on the
+right dictates that we should attach the transition to where the wayline intersects the top or bottom
+edge…but we can only pick which one once we know the next Y constraint. The horizontal wayline provides
+the information we need for both states to select our anchor points and create the path.
+
+### Steps to Creating the Path
+
+1. If neither state has an explicit anchor, and there are no waylines, a special method
+   (`VisualTransition.bestAnchors()`) is called to select the most desirable anchors on each state.
+   Otherwise…
+2. If either end of the path is not an anchor, and there is at least one wayline, for each state pick a
+   side and inject an "anchor range" based on the closest wayline. (`bestStateAnchorTowards()`);
+3. Resolve anchor ranges to be fully-constrained anchors by crawling along the path to find the next
+   constraint on the loosely-constrained axis, and use that to pick the closest point.
+   1. If there is no next fully-constrained value—if there are no waylines parallel to the axis of
+      freedom for the anchor range, and the opposite state's anchor is also an anchor range—then
+      the two anchor ranges are compared to find the best points.
+      ![](archtitecture-transitionpath-4.png)
+4. Pairs of adjacent waylines with the same orientation have a wayline of the opposite orientation
+   injected between them.
+5. After all orientation-only waylines are created, find the constraining values on either end and set
+   the values for the waylines to divide the space up evenly.
+6. Find the intersection points of all anchors and waylines.
+7. Finally, crawl along the list of intersection points and construct the curving path.

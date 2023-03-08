@@ -1,32 +1,51 @@
 <!DOCTYPE html>
 <html><head>
-	<meta charset='utf-8'>
-	<title>Wayline Test</title>
-	<style type='text/css' media='all'>
-		html,body {
-			background:black;
-			margin:0; padding:0;
-      height: 100%
-		}
-		canvas { position:absolute; top:0; left:0; width:100%; height:100%; background:white; }
-	</style>
+<meta charset='utf-8'>
+<title>Wayline Test</title>
+    <style>
+    html, body { margin:0; padding:0; min-height:100% }
+    svg { display:block; width:100%; position:fixed }
+    .c0 { fill:#FF0000; stroke:#FF0000 }
+    .c1 { fill:#FF7F00; stroke:#FF7F00 }
+    .c2 { fill:#FFD400; stroke:#FFD400 }
+    .c3 { fill:#FFFF00; stroke:#FFFF00 }
+    .c4 { fill:#BFFF00; stroke:#BFFF00 }
+    .c5 { fill:#6AFF00; stroke:#6AFF00 }
+    .c6 { fill:#00EAFF; stroke:#00EAFF }
+    .c7 { fill:#0095FF; stroke:#0095FF }
+    .c8 { fill:#0040FF; stroke:#0040FF }
+    .c9 { fill:#AA00FF; stroke:#AA00FF }
+    .c10 { fill:#FF00AA; stroke:#FF00AA }
+    #guideOut { opacity:0.2 }
+    #expectedOut { opacity:0.4 }
+    #actualOut circle { stroke:black; stroke-opacity:0.3 }
+    text { fill:black }
+    line { stroke:black; opacity:0.5 }
+    path { fill:none; stroke:black }
+    #maxRadiusSlider { position:fixed; top:1em; width:20em; right:1em }
+    </style>
+    <input type="range" min="0.01" max="100" value="20" id="maxRadiusSlider">
 </head><body>
-<canvas></canvas>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 1000 800">
+    <text id="testTitle" x="300" y="100">Hi Mom</text>
+    <g id="guideOut"></g>
+    <g id="expectedOut"></g>
+    <g id="actualOut"></g>
+    <path id="finalPath" d="M0,0"/>
+</svg>
+
 <script>
 'use strict';
-const can = document.querySelector('canvas');
-const ctx = can.getContext('2d');
 let anchors = [
 	{isState:true, x:200, y:200, w:200, h:80, cornerRadius:20},
 	{y:300, horz:1},
     {x:450, horz:0},
 	{y:350, horz:1},
-	// {},
 	{isState:true, x:600, y:250, w:160, h:180, cornerRadius:60}
 ];
 
 
-/*
+//*
 let timer = setInterval(()=>{
 	const t = Date.now() / 3000;
     for (const [i,a] of anchors.entries()) {
@@ -40,7 +59,7 @@ let timer = setInterval(()=>{
         }
     }
 	redraw();
-},3000);
+},30);
 //*/
 
 document.body.addEventListener('keydown', e => clearInterval(timer));
@@ -371,8 +390,9 @@ function drawGuides(anchors) {
                         ctx.moveTo(x,0);
                         ctx.lineTo(x,can.height);
                     }
-                    ctx.setLineDash(a.injected ? [5,10] : []);
+                    ctx.setLineDash(a.injected ? [8,20] : []);
                     ctx.stroke();
+                    ctx.setLineDash([]);
                 } else {
                     ctx.lineWidth = 4;
                     if (a.horz) {
