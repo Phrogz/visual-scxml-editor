@@ -352,12 +352,12 @@ function drawGuides(anchors) {
 		for (const x of xs) {
 			for (const y of ys) {
 				if ((x===undefined || y===undefined) && !a.xOptions && !a.yOptions) {
-					if      ( a.horz && y!==undefined) makeEl('line', {['class']:'wayline horz', x1:-1e3, y1:y, x2:1e3, y2:y, _dad:guideOut});
-					else if (!a.horz && x!==undefined) makeEl('line', {['class']:'wayline vert', x1:x, y1:-1e3, x2:x, y2:1e3, _dad:guideOut});
+					if      ( a.horz && y!==undefined) makeEl('line', {'class':'wayline horz', x1:-1e3, y1:y, x2:1e3, y2:y, _dad:guideOut});
+					else if (!a.horz && x!==undefined) makeEl('line', {'class':'wayline vert', x1:x, y1:-1e3, x2:x, y2:1e3, _dad:guideOut});
 				} else if (x!==undefined && y!==undefined) {
-					if (a.horz) makeEl('line', {['class']:'anchor horz', x1:x-10, y1:y, x2:x+10, y2:y, _dad:guideOut});
-					else        makeEl('line', {['class']:'anchor vert', x1:x, y1:y-10, x2:x, y2:y+10, _dad:guideOut});
-					makeEl('circle', {['class']:'anchor', cx:x, cy:y, r:2, _dad:guideOut});
+					if (a.horz) makeEl('line', {'class':'anchor horz', x1:x-10, y1:y, x2:x+10, y2:y, _dad:guideOut});
+					else        makeEl('line', {'class':'anchor vert', x1:x, y1:y-10, x2:x, y2:y+10, _dad:guideOut});
+					makeEl('circle', {'class':'anchor', cx:x, cy:y, r:2, _dad:guideOut});
 				}
 			}
 		}
@@ -366,7 +366,7 @@ function drawGuides(anchors) {
 
 function showPoints(pts, parent, r=7) {
 	for (const [i,c] of pts.entries()) {
-		makeEl('circle', {_dad:parent, cx:c.x, cy:c.y, r:r, ['class']:`c${i % 11}`});
+		makeEl('circle', {_dad:parent, cx:c.x, cy:c.y, r:r, 'class':`c${i % 11}`});
 	}
 }
 

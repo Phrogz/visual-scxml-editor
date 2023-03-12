@@ -32,7 +32,7 @@ export class VisualDoc extends SCXMLDoc {
 	}
 
 	removeVisualization() {
-		const nodIterator = this.evaluate(
+		const nodeIterator = this.evaluate(
 			// Select elements and attribute in the vizualization namespace without
 			// a namespaced element in their ancestry (since those will be removed hierarchically)
 			'//viz:*[not(ancestor::viz:*)] | //@viz:*[not(ancestor::viz:*)]',
@@ -42,7 +42,7 @@ export class VisualDoc extends SCXMLDoc {
 		);
 		const nodesToDelete = [];
 		let n;
-		while (n = nodIterator.iterateNext()) nodesToDelete.push(n);
+		while (n = nodeIterator.iterateNext()) nodesToDelete.push(n);
 		for (n of nodesToDelete) {
 			if (n.nodeType === Node.ELEMENT_NODE) n.parentElement.removeChild(n);
 			else                                  n.ownerElement.removeAttributeNode(n);
@@ -86,7 +86,7 @@ export class VisualState extends SCXMLState {
 	static defaultPaddingVert  = 20;
 
 	initialize(editor) {
-		// Create a single extra object on the element that holds information related to visualization for it
+		// A special "expando" property on the element that holds all visualization information for it
 		const ego = this._vse = {
 			editor   : editor,
 			shadow   : makeEl('rect', {_dad:editor.shadows, rx:this.cornerRadius, ry:this.cornerRadius}),
@@ -675,6 +675,7 @@ Object.assign(VisualState.prototype, {
 
 export class VisualTransition extends SCXMLTransition {
 	initialize(editor) {
+		// A special "expando" property on the element that holds all visualization information for it
 		const ego = this._vse = {
 			editor : editor,
 			main   : makeEl('g', {_dad:editor.transitions, 'class':'transition'}),
@@ -697,8 +698,8 @@ export class VisualTransition extends SCXMLTransition {
 	}
 
 	reroute() {
-		const ego = this._vse;
 		const anchors = this.anchors;
+		const ego = this._vse;
 		const path = svgPathFromAnchors(anchors, this.radius);
 
 		ego.path.setAttribute('d', path);
@@ -754,10 +755,133 @@ export class VisualTransition extends SCXMLTransition {
 		const main = this._vse.main;
 		main.parentNode.appendChild(main);
 		main.classList.add('selected');
+		this.createSelectors();
 	}
 
 	visuallyDeselect() {
 		this._vse.main.classList.remove('selected');
+		this.removeSelectors();
+	}
+
+	createSelectors() {
+		this.removeSelectors();
+
+		const ego = this._vse;
+		const wrapper = ego.editor.guides;
+		ego.selectors = [];
+		const numbers = '⓿➊➋➌➍➎➏➐➑➒';
+		const numberN = '🅝';
+		const anchors = this.anchors;
+		const viewport = calculateViewport(ego.editor.svg);
+
+		// Iterate in reverse order so that early anchor labels draw above later
+		for (let i=anchors.length; i--;) {
+			const [prev, anchor, next] = [anchors[i-1], anchors[i], anchors[i+1]];
+			if (anchor.axis) {
+				const n = numbers.charAt(i) || numberN;
+				const sel = {anchorIndex:i};
+				let guide, label, handle;
+				if (anchor.axis==='Y') {
+					sel.guide = makeEl('line', {_dad:wrapper, x1:-1e6, x2:1e6, y1:anchor.y, y2:anchor.y});
+					sel.label = makeEl('text', {_dad:wrapper, _text:n, x:viewport.x + 10, y:anchor.y});
+					sel.handle = makeEl('rect', {_dad:ego.editor.selectors, 'class':'n'});
+				} else if (anchor.axis==='X') {
+					sel.guide = makeEl('line', {_dad:wrapper, x1:anchor.x, x2:anchor.x, y1:-1e6, y2:1e6});
+					sel.label = makeEl('text', {_dad:wrapper, _text:n, x:anchor.x, y:viewport.y + 10});
+					sel.handle = makeEl('rect', {_dad:ego.editor.selectors, 'class':'e'});
+				}
+				ego.selectors.push(sel);
+
+				const draggingClass = `dragging-${sel.handle.getAttribute('class')}`;
+				ego.editor.makeDraggable(sel.handle, {
+					startDragging: sandbox => {
+						sandbox.transtion = this;
+						sandbox.anchorIndex = i;
+						sandbox.offset = this.anchors[i].offset*1;
+						ego.editor.svg.classList.add(draggingClass);
+					},
+
+					handleDrag: (dx, dy, sandbox) => {
+						const a = this.anchors[sandbox.anchorIndex];
+						if (a.axis==='Y') {
+							a.y = a.offset = Math.round(sandbox.offset + dy);
+						} else if (a.axis==='X') {
+							a.x = a.offset = Math.round(sandbox.offset + dx);
+						}
+						// Push new value to be serialized, but also force recalculation of endpoints
+						this.anchors = this.anchors;
+						this.placeSelectors();
+					},
+
+					finishDragging: () => {
+						ego.editor.svg.classList.remove(draggingClass);
+						this.anchors = this._anchors;
+					}
+				});
+
+			}
+		}
+
+		this.placeSelectors();
+
+		if (!ego.viewBoxObserver) {
+			ego.viewBoxObserver = new MutationObserver(changes => {
+				for (const c of changes) {
+					if (c.attributeName==="viewBox") this.placeSelectors();
+				}
+			});
+		}
+		ego.viewBoxObserver.observe(ego.editor.svg, {attributes:true});
+	}
+
+	placeSelectors() {
+		const ego = this._vse;
+		if (!ego.selectors) return;
+		const anchors = this.anchors;
+		const viewport = calculateViewport(ego.editor.svg);
+
+		const zoom = Math.min(1, ego.editor.zoomFactor);
+		const [r, rw, rh] = [4*zoom, 18*zoom, 8*zoom];
+		let x,y,w,h;
+		for (const sel of ego.selectors) {
+			const axis = sel.label.dataset.axis;
+			const [prev, anchor, next] = [anchors[sel.anchorIndex-1], anchors[sel.anchorIndex], anchors[sel.anchorIndex+1]];
+			if (anchor?.axis==='Y') {
+				sel.guide.setAttribute('y1', anchor.y);
+				sel.guide.setAttribute('y2', anchor.y);
+				sel.label.setAttribute('x', viewport.x + 10);
+				sel.label.setAttribute('y', anchor.y);
+				[x,y,w,h] = [(prev.x + next.x)/2 - rw/2, anchor.y - rh/2, rw, rh];
+			} else if (anchor?.axis==='X') {
+				sel.guide.setAttribute('x1', anchor.x);
+				sel.guide.setAttribute('x2', anchor.x);
+				sel.label.setAttribute('x', anchor.x);
+				sel.label.setAttribute('y', viewport.y + 10);
+				[x,y,w,h] = [anchor.x - rh/2, (prev.y + next.y)/2 - rw/2, rh, rw];
+			}
+
+			sel.label.setAttribute(axis, viewport[axis] + 10);
+
+			sel.handle.setAttribute('x', x);
+			sel.handle.setAttribute('y', y);
+			sel.handle.setAttribute('width', w);
+			sel.handle.setAttribute('height', h);
+			sel.handle.setAttribute('rx', r);
+			sel.handle.setAttribute('ry', r);
+		}
+	}
+
+	removeSelectors() {
+		const ego = this._vse;
+		if (ego.selectors) {
+			for (const s of ego.selectors) {
+				s.handle.remove();
+				s.guide.remove();
+				s.label.remove();
+			}
+			delete ego.selectors;
+		}
+		if (ego.viewBoxObserver) ego.viewBoxObserver.disconnect();
 	}
 
 	delete() {
@@ -1023,6 +1147,8 @@ export class VisualTransition extends SCXMLTransition {
 	}
 
 	get anchors() {
+		if (this._anchors) return this._anchors;
+
 		const pts = this.pts;
 		if (!this.pts) return this.bestAnchors();
 		const source=this.source, target=this.target;
@@ -1060,7 +1186,7 @@ export class VisualTransition extends SCXMLTransition {
 		if (anchors[0].auto) resolveAutoAnchor(anchors, true);
 		if (anchors[last].auto) resolveAutoAnchor(anchors, false);
 
-		return anchors;
+		return this._anchors = anchors;
 
 		function resolveAutoAnchor(anchors, forward) {
 			if (!forward) anchors = anchors.slice().reverse();
@@ -1131,13 +1257,15 @@ export class VisualTransition extends SCXMLTransition {
 		}
 	}
 	set anchors(anchors) {
-		this.pts = anchors.map(a => `${a.side||a.axis}${a.offset}` ).join(' ');
+		this.pts = anchors.filter(a => !a.auto).map(a => [a.side||a.axis, Math.round(a.offset)].join('') ).join(' ');
+		delete this._anchors;
 	}
 
 	get pts() { return this.getAttributeNS(visualNS, 'pts'); }
-	set  pts(str) {
+	set pts(str) {
 		if (str) this.setAttributeNS(visualNS, 'pts', str);
 		else     this.removeAttributeNS(visualNS, 'pts');
+		delete this._anchors;
 	}
 }
 
@@ -1329,3 +1457,60 @@ function transformedBoundingBox(el){
 	bb.y = yMin; bb.height = yMax-yMin;
 	return bb;
 }
+
+// https://stackoverflow.com/a/23684202/405017
+function calculateViewport(svg) {
+	var style    = getComputedStyle(svg),
+		owidth   = parseInt(style.width,10),
+		oheight  = parseInt(style.height,10),
+		aspect   = svg.preserveAspectRatio.baseVal,
+		viewBox  = svg.viewBox.baseVal,
+		width    = viewBox && viewBox.width  || owidth,
+		height   = viewBox && viewBox.height || oheight,
+		x        = viewBox ? viewBox.x : 0,
+		y        = viewBox ? viewBox.y : 0;
+	if (!width || !height || !owidth || !oheight) return;
+	if (aspect.align===aspect.SVG_PRESERVEASPECTRATIO_NONE || !viewBox || !viewBox.height){
+	  return {x:x,y:y,width:width,height:height};
+	}else{
+	  var inRatio  = viewBox.width / viewBox.height,
+		  outRatio = owidth / oheight;
+	  var meetFlag = aspect.meetOrSlice != aspect.SVG_MEETORSLICE_SLICE;
+	  var fillAxis = outRatio>inRatio ? (meetFlag?'y':'x') : (meetFlag?'x':'y');
+	  if (fillAxis==='x'){
+		height = width/outRatio;
+		var diff = viewBox.height - height;
+		switch (aspect.align){
+		  case aspect.SVG_PRESERVEASPECTRATIO_UNKNOWN:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMINYMID:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMIDYMID:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMAXYMID:
+			y += diff/2;
+		  break;
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMINYMAX:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMIDYMAX:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMAXYMAX:
+			y += diff;
+		  break;
+		}
+	  }
+	  else{
+		width = height*outRatio;
+		var diff = viewBox.width - width;
+		switch (aspect.align){
+		  case aspect.SVG_PRESERVEASPECTRATIO_UNKNOWN:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMIDYMIN:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMIDYMID:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMIDYMAX:
+			x += diff/2;
+		  break;
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMAXYMID:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMAXYMIN:
+		  case aspect.SVG_PRESERVEASPECTRATIO_XMAXYMAX:
+			x += diff;
+		  break;
+		}
+	  }
+	  return {x:x,y:y,width:width,height:height};
+	}
+  }

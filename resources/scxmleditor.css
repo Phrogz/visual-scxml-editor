@@ -160,3 +160,5 @@ svg.dragging-w,  svg.dragging-e,  svg.dragging-w *,  svg.dragging-e *,  #selecto
 #targetless-actions > circle,
 #targetless-error > circle,
 #targetless-actions-error > circle { fill:none; stroke-width:0.8 }
+
+#guides line { stroke-width:1px; stroke-dasharray:5 3; vector-effect:non-scaling-stroke }

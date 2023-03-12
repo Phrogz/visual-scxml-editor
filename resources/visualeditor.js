@@ -134,6 +134,7 @@ class VisualEditor {
 
 	removeDocument() {
 		if (this.scxmlDoc) {
+			this.guides.remove();
 			this.shadows.remove();
 			this.content.remove();
 			this.transitions.remove();
@@ -141,6 +142,7 @@ class VisualEditor {
 			this.dragger.remove();
 		}
 
+		this.guides      = makeEl('g', {_dad:this.svg, id:'guides'});
 		this.shadows     = makeEl('g', {_dad:this.svg, id:'shadows'});
 		this.content     = makeEl('g', {_dad:this.svg, id:'content'});
 		this.transitions = makeEl('g', {_dad:this.svg, id:'transitions'});
@@ -343,8 +345,10 @@ class VisualEditor {
 		const zoomFactor = this.zoomFactor;
 		const onmove = evt => {
 			evt.stopPropagation();
-			this.svg.viewBox.baseVal.x = start.vx - (evt.clientX-start.mx) * zoomFactor;
-			this.svg.viewBox.baseVal.y = start.vy - (evt.clientY-start.my) * zoomFactor;
+			this.setViewBox(
+				start.vx - (evt.clientX-start.mx) * zoomFactor,
+				start.vy - (evt.clientY-start.my) * zoomFactor
+			);
 		};
 		document.body.addEventListener('mousemove', onmove);
 		document.body.addEventListener('mouseup', function() {
@@ -358,8 +362,10 @@ class VisualEditor {
 	}
 
 	panBy(dx, dy) {
-		this.svg.viewBox.baseVal.x += dx;
-		this.svg.viewBox.baseVal.y += dy;
+		this.setViewBox(
+			this.svg.viewBox.baseVal.x + dx,
+			this.svg.viewBox.baseVal.y + dy
+		)
 	}
 
 	zoomBy(factor, cx=null, cy=null) {
@@ -369,10 +375,12 @@ class VisualEditor {
 
 		if (cx===null) cx = this.svg.viewBox.baseVal.x + this.svg.viewBox.baseVal.width/2;
 		if (cy===null) cy = this.svg.viewBox.baseVal.y + this.svg.viewBox.baseVal.height/2;
-		this.svg.viewBox.baseVal.x = cx - (cx-this.svg.viewBox.baseVal.x)/factor;
-		this.svg.viewBox.baseVal.y = cy - (cy-this.svg.viewBox.baseVal.y)/factor;
-		this.svg.viewBox.baseVal.width  /= factor;
-		this.svg.viewBox.baseVal.height /= factor;
+		this.setViewBox(
+			cx - (cx-this.svg.viewBox.baseVal.x)/factor,
+			cy - (cy-this.svg.viewBox.baseVal.y)/factor,
+			this.svg.viewBox.baseVal.width  / factor,
+			this.svg.viewBox.baseVal.height / factor
+		);
 		if (factor!==1.0) this.onZoomChanged();
 	}
 
@@ -403,11 +411,19 @@ class VisualEditor {
 	zoomToBounds(bounds) {
 		const buffer = 0.1;
 		const oldZoom = this.zoomFactor;
-		this.svg.viewBox.baseVal.x = bounds.x - buffer * bounds.width;
-		this.svg.viewBox.baseVal.y = bounds.y - buffer * bounds.height;
-		this.svg.viewBox.baseVal.width = bounds.width * (1+buffer*2);
-		this.svg.viewBox.baseVal.height = bounds.height * (1+buffer*2);
+		this.setViewBox(
+			bounds.x - buffer * bounds.width,
+			bounds.y - buffer * bounds.height,
+			bounds.width * (1+buffer*2),
+			bounds.height * (1+buffer*2)
+		);
 		if (oldZoom!==this.zoomFactor) this.onZoomChanged();
+	}
+
+	setViewBox(x, y, w, h) {
+		if (w===undefined) w = this.svg.viewBox.baseVal.width;
+		if (h===undefined) h = this.svg.viewBox.baseVal.height;
+		this.svg.setAttribute('viewBox', [x, y, w, h].join(' '));
 	}
 
 	onZoomChanged() {
