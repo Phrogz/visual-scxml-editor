@@ -25,6 +25,8 @@ text { fill:black }
 line { stroke:black; opacity:0.5 }
 path { fill:none; stroke:black }
 #maxRadiusSlider { position:fixed; top:1em; width:20em; right:1em }
+#valid { position:fixed; top:1em; left:1em; color:#060; font-size:14pt }
+#valid.no { color:red; font-weight:bold; }
 </style>
 </head>
 <body>
@@ -36,9 +38,45 @@ path { fill:none; stroke:black }
 	<path id="finalPath" d="M0,0"/>
 </svg>
 <input type="range" min="0.01" max="100" value="20" id="maxRadiusSlider">
+<output id="valid">valid</output>
 <script>
 const SVG = "http://www.w3.org/2000/svg";
 const testCases = [
+	{name: "straight line",
+		anchors: [
+			{x:0, y:100, horz:1},
+			{x:100, y:100, horz:1},
+		],
+		corners: [
+			{x:0, y:100},
+			{x:100, y:100},
+		]
+	},
+	{name: "jiggle required",
+		anchors: [
+			{x:0, y:100, horz:1},
+			{x:100, y:120, horz:1},
+		],
+		corners: [
+			{x:0, y:100},
+			{x:50, y:100},
+			{x:50, y:120},
+			{x:100, y:120},
+		]
+	},
+	{name: "forced jiggle",
+		anchors: [
+			{x:0, y:100, horz:1},
+			{x:80, horz:0},
+			{x:100, y:120, horz:1},
+		],
+		corners: [
+			{x:0, y:100},
+			{x:80, y:100},
+			{x:80, y:120},
+			{x:100, y:120},
+		]
+	},
 	{name: "ends are fully-set points, alternating waylines",
 		anchors: [
 			{x:0, y:180, horz:1},
@@ -70,7 +108,6 @@ const testCases = [
 		],
 		corners : [
 			{x:50, y:0},
-			{x:50, y:50},
 			{x:50, y:100},
 		]
 	},
@@ -82,7 +119,6 @@ const testCases = [
 		],
 		corners : [
 			{x:75, y:0},
-			{x:75, y:50},
 			{x:75, y:100},
 		]
 	},
@@ -120,7 +156,6 @@ const testCases = [
 		],
 		corners : [
 			{x:100, y:60},
-			{x:100, y:120},
 			{x:100, y:180},
 		]
 	},
@@ -132,8 +167,21 @@ const testCases = [
 		],
 		corners : [
 			{x:100, y:60},
-			{x:100, y:150},
 			{x:100, y:180},
+		]
+	},
+	{name: "loopback",
+		anchors : [
+			{x:50, yRange:[80,130],  horz:true},
+			{vert:true, x:15},
+			{horz:true, y:15},
+			{x:50, yRange:[0,50],   horz:true},
+		],
+		corners : [
+			{x:50, y:80},
+			{x:15, y:80},
+			{x:15, y:15},
+			{x:50, y:15},
 		]
 	},
 	{name: "mixed bag 1",
@@ -199,6 +247,22 @@ const testCases = [
 			{x:400, y:50}
 		]
 	},
+	{name: "aligned waylines",
+		anchors: [
+			{x:10, y:20, horz:1},
+			{x:100, horz:0},
+			{x:100, horz:0},
+			{x:100, horz:0},
+			{x:100, horz:0},
+			{x:150, y:160, horz:1},
+		],
+		corners: [
+			{x:10, y:20},
+			{x:100, y:20},
+			{x:100, y:160},
+			{x:150, y:160},
+		]
+	},
 ];
 
 function addEndAnchors(constraints) {
@@ -208,11 +272,33 @@ function addEndAnchors(constraints) {
 }
 
 function findCorners(anchors) {
+	// Duplicate the anchors so changes we make don't affect the originals
 	anchors = anchors.map(a => Object.assign({},a));
+
+	// Ensure that the anchors on both ends have a single, explicity `x` and `y` coordinate
 	resolveStateAnchor(anchors, true);
 	resolveStateAnchor(anchors, false);
 
-	//*
+	// Remove inline points that are perfectly aligned to neighbors
+	for (let i=1; i<anchors.length-1; ++i) {
+		const axis = anchors[i-1].horz ? 'y' : 'x';
+		if ((axis in anchors[i-1]) &&
+		    (anchors[i-1][axis] === anchors[i+1][axis]) &&
+		    (!(axis in anchors[i]) || (anchors[i][axis] === anchors[i-1][axis]))) {
+			anchors.splice(i--, 1);
+		}
+	}
+
+	// Inject (unanchored) waylines as needed
+	for (let i=1; i<anchors.length; ++i) {
+		const prev = anchors[i-1];
+		const next = anchors[i];
+		const mainAxis = prev.horz ? 'y' : 'x';
+		if (prev.horz == next.horz && next[mainAxis] !== prev[mainAxis]) {
+			anchors.splice(i--, 0, {horz:!prev.horz, injected:true});
+		}
+	}
+
 	let last = anchors[0];
 	const pts = [last];
 	for (let i=1; i<anchors.length; ++i) {
@@ -220,36 +306,43 @@ function findCorners(anchors) {
 		const next = anchors[i];
 		const mainAxis = prev.horz ? 'y' : 'x';
 		const crosAxis = prev.horz ? 'x' : 'y';
-		const pt = {[mainAxis]:prev[mainAxis]};
 
-		if (!(crosAxis in next)) {
-			let nextValidValue;
-			// Find the next anchor with the axis value we need,
-			// and divide the space between here and there evenly
-			const crosAnchors = [pt, next];
-			// We cannot guarantee that the horz values alternate, so step one at a time
-			for (let j=i+1; j<anchors.length && nextValidValue===undefined; j++) {
-				const anchor = anchors[j];
-				if (crosAxis in anchor) nextValidValue = anchor[crosAxis];
-				else if (anchor.horz==next.horz) crosAnchors.push(anchor);
+		// Skip if the next point is perfectly aligned in the direction we're headed
+		if (next[mainAxis] !== prev[mainAxis]) {
+			const pt = {[mainAxis]:prev[mainAxis]};
+
+			if (crosAxis in next) {
+				pt[crosAxis] = next[crosAxis];
+			} else {
+				let nextValidValue;
+				// Find the next anchor with the axis value we need,
+				// and divide the space between here and there evenly
+				const crosAnchors = [pt, next];
+				// We cannot guarantee that the horz values alternate, so step one at a time
+				for (let j=i+1; j<anchors.length && nextValidValue===undefined; j++) {
+					const anchor = anchors[j];
+					if (crosAxis in anchor) nextValidValue = anchor[crosAxis];
+					else if (anchor.horz==next.horz) crosAnchors.push(anchor);
+				}
+
+				// there is ~no chance nextValidValue will be undefined, as the final anchor should/must have x/y values after `resolveStateAnchor`
+				const step = (nextValidValue - last[crosAxis]) / (crosAnchors.length);
+				for (const [i,a] of crosAnchors.entries()) a[crosAxis] = last[crosAxis] + step * i;
 			}
-
-			// there is ~no chance nextValidValue will be undefined, as the final anchor should/must have x/y values after `resolveStateAnchor`
-			const step = (nextValidValue - last[crosAxis]) / (crosAnchors.length);
-			console.log(`At i=${i} we went looking for the next value of ${crosAxis} and found it to be ${nextValidValue}, so are stepping by ${step}`);
-			for (const [i,a] of crosAnchors.entries()) a[crosAxis] = last[crosAxis] + step * i;
+			if (crosAxis in next) {
+				pt[crosAxis] = next[crosAxis];
+			} else {
+				// we never were able to resolve this axis, what do we do?
+			}
+			pts.push(pt);
+			last = pt;
 		}
-		if (crosAxis in next) {
-			pt[crosAxis] = next[crosAxis];
-		} else {
-			// we never were able to resolve this axis, what do we do?
-		}
-		pts.push(pt);
-		last = pt;
 	}
-	//*/
 
-	pts.push(anchors[anchors.length-1]);
+	const finalAnchor = anchors[anchors.length-1];
+	if (last.x !== finalAnchor.x || last.y !== finalAnchor.y) {
+		pts.push(finalAnchor);
+	}
 
 	return pts;
 }
@@ -340,6 +433,13 @@ function runTest() {
 	showPoints(result, actualOut, 3);
 	const path = svgPathFromCorners(result, maxRadiusSlider.valueAsNumber);
 	finalPath.setAttribute('d', path);
+
+	let validated = result.length === expected.length;
+	if (!validated) console.log(`result.length:${result.length}, expected:${expected.length}`);
+	else result.forEach( (pt,i) => validated = validated && pt.x===expected[i].x && pt.y===expected[i].y);
+	valid.value = validated ? 'valid' : 'invalid';
+	valid.classList.toggle('no', !validated);
+	if (!validated) console.log({expected, actual:result});
 }
 
 function drawGuides(anchors) {
@@ -461,7 +561,6 @@ function svgPathFromCorners(pts, maxRadius=1000) {
 	}
 	const last = pts[pts.length-1];
 	cmds.push({c:'L', x:last.x, y:last.y});
-	console.log(cmds);
 
 	let x,y;
 	return cmds.map(cmd => {
