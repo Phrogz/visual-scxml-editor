@@ -38,9 +38,9 @@
 'use strict';
 let anchors = [
 	{isState:true, x:200, y:200, w:200, h:80, cornerRadius:20},
-	{y:300, horz:1},
-    {x:450, horz:0},
-	{y:350, horz:1},
+	{y:300, horiz:1},
+    {x:450, horiz:0},
+	{y:350, horiz:1},
 	{isState:true, x:600, y:250, w:160, h:180, cornerRadius:60}
 ];
 
@@ -55,7 +55,7 @@ let timer = setInterval(()=>{
             const type = Math.round((t*i)) % 2;
             if (type===0) a.y = Math.sin(t * 1.2 * i) * 200 + 440 + i*10;
             if (type===1) a.x = Math.cos(t * i) * 300 + 300 + i*20;
-            a.horz = (type==0);
+            a.horiz = (type==0);
         }
     }
 	redraw();
@@ -89,10 +89,10 @@ function expandAnchors(anchors) {
         const prev = expanded[i-1];
         const next = expanded[i];
         let inject = false;
-        if (next.horz === prev.horz) {
-            const axis = next.horz ? 'y' : 'x';
+        if (next.horiz === prev.horiz) {
+            const axis = next.horiz ? 'y' : 'x';
             if ((axis in prev) && (axis in next) && (prev[axis] !== next[axis])) {
-                let injected = {horz:!next.horz, injected:true};
+                let injected = {horiz:!next.horiz, injected:true};
                 expanded.splice(i,0,injected);
                 console.log({i, prev, injected, next});
                 i--;
@@ -113,17 +113,17 @@ function cornersFromAnchors(anchors) {
 		// nextPoint = anchors[i];
 		nextPoint = Object.assign({}, anchors[i]);
 
-        const mainAxis = prevPoint.horz ? 'x' : 'y',
-              crosAxis = prevPoint.horz ? 'y' : 'x';
+        const mainAxis = prevPoint.horiz ? 'x' : 'y',
+              crosAxis = prevPoint.horiz ? 'y' : 'x';
 
         // Insert an anchor of opposite orientation between two sequential anchors with the same orientation
-        if (prevPoint.horz===nextPoint.horz) {
+        if (prevPoint.horiz===nextPoint.horiz) {
             let nextMain = nextPoint[mainAxis];
             for (let j=i; nextMain===undefined; ++j) nextMain = anchors[j][mainAxis];
             nextPoint = {
                 [mainAxis] : (prevPoint[mainAxis]+nextMain)/2,
                 [crosAxis] : prevPoint[crosAxis],
-                horz      : !prevPoint.horz,
+                horiz      : !prevPoint.horiz,
                 injected   : true
             };
             // Since we generated a new anchor, retry the next real anchor next loop
@@ -194,13 +194,13 @@ function bestConnectingStateAnchors(source, target) {
 }
 
 // Find the best spot on the side of this state to go towards the point,
-// reaching the point in the horz/vert direction desired
+// reaching the point in the horiz/vert direction desired
 function bestStateAnchorTowards(state, targetAnchor) {
     const {x:sx,y:sy,w,h} = state;
     const rr = state.cornerRadius;
     const xMin = rr, xMax = w-rr,
           yMin = rr, yMax = h-rr;
-    let {x:tx, y:ty, horz} = targetAnchor;
+    let {x:tx, y:ty, horiz} = targetAnchor;
     const result = Object.assign({}, state);
     let txClamped, tyClamped;
 
@@ -219,32 +219,32 @@ function bestStateAnchorTowards(state, targetAnchor) {
 
     // console.log({tx, ty, txClamped, tyClamped});
     if (hasX && hasY) {
-        if (horz) {
+        if (horiz) {
             // console.log('case 1');
             result.x = sx + ((ty < 0 || ty > h) ? txClamped : (tx < w/2) ? 0 : w);
             result.y = sy + ((ty < 0) ? 0 : (ty > h) ? h : tyClamped);
-            result.horz = (ty >= 0 && ty <= h);
+            result.horiz = (ty >= 0 && ty <= h);
         } else {
             // console.log('case 2');
             result.x = sx + ((tx < 0) ? 0 : (tx > w) ? w : txClamped);
             result.y = sy + ((tx < 0 || tx > w) ? tyClamped : (ty < h/2) ? 0 : h);
-            result.horz = (tx < 0 || tx > w);
+            result.horiz = (tx < 0 || tx > w);
         }
     } else {
-        if (horz) {
+        if (horiz) {
             // console.log('case 3');
             delete result.x;
             if (ty < 0 || ty > h) result.xRange = [sx + xMin, sx + xMax];
             else                  result.xOptions = [sx, sx + w];
             result.y = sy + ((ty < 0) ? 0 : (ty > h) ? h : tyClamped); // note: identical to a case above; could be DRY'd up
-            result.horz = (ty >= 0 && ty <= h);
+            result.horiz = (ty >= 0 && ty <= h);
         } else {
             // console.log('case 4');
             result.x = sx + ((tx < 0) ? 0 : (tx > w) ? w : txClamped); // note: identical to a case above; could be DRY'd up
             delete result.y;
             if (tx < 0 || tx > w) result.yRange = [sy + yMin, sy + yMax];
             else                  result.yOptions = [sy, sy + h];
-            result.horz = (tx < 0 || tx > w);                          // note: identical to a case above; could be DRY'd up
+            result.horiz = (tx < 0 || tx > w);                          // note: identical to a case above; could be DRY'd up
         }
     }
 
@@ -259,9 +259,9 @@ function anchorOnState(state, side, offset) {
 	const rad = state.cornerRadius;
 	let {x,y,w,h} = state;
 	const [l,t,r,b] = [x+rad, y+rad, x+w-rad, y+h-rad];
-	const anchor = {x, y, horz:true, side, offset};
+	const anchor = {x, y, horiz:true, side, offset};
 	if (side==='N' || side==='S') {
-		anchor.horz = false;
+		anchor.horiz = false;
 		anchor.x += offset;
 		if (anchor.x<l) anchor.x=l;
 		else if (anchor.x>r) anchor.x=r;
@@ -285,20 +285,20 @@ function pathFromAnchors(anchors, maxRadius=Infinity) {
 	for (let i=1; i<anchors.length; ++i) {
 		nextPoint = Object.assign({}, anchors[i]);
 		// Interject an anchor of opposite orientation between two sequential anchors with the same orientation
-		if (nextPoint.horz===prevPoint.horz) {
-			const mainAxis = prevPoint.horz ? 'x' : 'y',
-			      crosAxis = prevPoint.horz ? 'y' : 'x';
+		if (nextPoint.horiz===prevPoint.horiz) {
+			const mainAxis = prevPoint.horiz ? 'x' : 'y',
+			      crosAxis = prevPoint.horiz ? 'y' : 'x';
 			let nextMain = nextPoint[mainAxis];
 			for (let j=i; nextMain===undefined; ++j) nextMain = anchors[j][mainAxis];
 			nextPoint = {
 				[mainAxis] : (prevPoint[mainAxis]+nextMain)/2,
 				[crosAxis] : prevPoint[crosAxis],
-				horz      : !prevPoint.horz
+				horiz      : !prevPoint.horiz
 			};
 			// Since we generated a new anchor, retry the next real anchor next loop
 			i--;
 		} else {
-			if (prevPoint.horz) nextPoint.y = prevPoint.y;
+			if (prevPoint.horiz) nextPoint.y = prevPoint.y;
 			else                nextPoint.x = prevPoint.x;
 		}
 		pts.push(nextPoint);
@@ -316,15 +316,15 @@ function pathFromAnchors(anchors, maxRadius=Infinity) {
 		const [a,b,c] = [pts[i-1], pts[i], pts[i+1]];
 		const radius = Math.min(a.distanceToNext/2, b.distanceToNext/2, maxRadius);
 
-		let x=a.horz ? (a.x<b.x ? b.x-radius : b.x+radius) : a.x;
-		let y=a.horz ? a.y : (a.y<b.y ? b.y-radius : b.y+radius);
+		let x=a.horiz ? (a.x<b.x ? b.x-radius : b.x+radius) : a.x;
+		let y=a.horiz ? a.y : (a.y<b.y ? b.y-radius : b.y+radius);
 		if (x!==lastCmd.x || y!==lastCmd.y) {
 			lastCmd = {c:'L', x:x, y:y}
 			path.push(lastCmd);
 		}
 
-		x = b.x + (b.horz ? (c.x>b.x ? radius : -radius) : 0);
-		y = b.y + (b.horz ? 0 : (c.y>b.y ? radius : -radius));
+		x = b.x + (b.horiz ? (c.x>b.x ? radius : -radius) : 0);
+		y = b.y + (b.horiz ? 0 : (c.y>b.y ? radius : -radius));
 
 		if (x===lastCmd.x || y===lastCmd.y) lastCmd = {c:'L', x:x, y:y};
 		else                                lastCmd = {c:'A', x1:b.x, y1:b.y, x:x, y:y, r:radius};
@@ -383,7 +383,7 @@ function drawGuides(anchors) {
                 ctx.beginPath();
                 if ((x===undefined || y===undefined) && !a.xOptions && !a.yOptions) {
                     ctx.lineWidth = 1;
-                    if (a.horz) {
+                    if (a.horiz) {
                         ctx.moveTo(0,y);
                         ctx.lineTo(can.width,y);
                     } else {
@@ -395,7 +395,7 @@ function drawGuides(anchors) {
                     ctx.setLineDash([]);
                 } else {
                     ctx.lineWidth = 4;
-                    if (a.horz) {
+                    if (a.horiz) {
                         ctx.moveTo(x-15, y);
                         ctx.lineTo(x+15, y);
                     } else {

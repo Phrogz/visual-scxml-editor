@@ -698,6 +698,7 @@ export class VisualTransition extends SCXMLTransition {
 	}
 
 	reroute() {
+		delete this._anchors;
 		const anchors = this.anchors;
 		const ego = this._vse;
 		const path = svgPathFromAnchors(anchors, this.radius);
@@ -773,6 +774,7 @@ export class VisualTransition extends SCXMLTransition {
 		const numberN = '🅝';
 		const anchors = this.anchors;
 		const viewport = calculateViewport(ego.editor.svg);
+		const snapSize = ego.editor.gridSize / 2;
 
 		// Iterate in reverse order so that early anchor labels draw above later
 		for (let i=anchors.length; i--;) {
@@ -804,9 +806,9 @@ export class VisualTransition extends SCXMLTransition {
 					handleDrag: (dx, dy, sandbox) => {
 						const a = this.anchors[sandbox.anchorIndex];
 						if (a.axis==='Y') {
-							a.y = a.offset = Math.round(sandbox.offset + dy);
+							a.y = a.offset = Math.round((sandbox.offset+dy)/snapSize) * snapSize;
 						} else if (a.axis==='X') {
-							a.x = a.offset = Math.round(sandbox.offset + dx);
+							a.x = a.offset = Math.round((sandbox.offset+dx)/snapSize) * snapSize;
 						}
 						// Push new value to be serialized, but also force recalculation of endpoints
 						this.anchors = this.anchors;
@@ -815,7 +817,6 @@ export class VisualTransition extends SCXMLTransition {
 
 					finishDragging: () => {
 						ego.editor.svg.classList.remove(draggingClass);
-						this.anchors = this._anchors;
 					}
 				});
 
@@ -861,6 +862,7 @@ export class VisualTransition extends SCXMLTransition {
 			}
 
 			sel.label.setAttribute(axis, viewport[axis] + 10);
+			sel.label.style.fontSize = `${30*zoom}px`;
 
 			sel.handle.setAttribute('x', x);
 			sel.handle.setAttribute('y', y);
@@ -958,6 +960,24 @@ export class VisualTransition extends SCXMLTransition {
 		else       side = (x<0) ? 'W' : (x>w) ? 'E' : (y < h/2) ? 'N' : 'S';
 		const offset = (side==='N' || side==='S') ? x : y;
 		return anchorOnState(state, side, offset);
+	}
+
+	addWayline(axis=null) {
+		const anchors = this.anchors.filter(a => !a.injected);
+		const xy = axis.toLowerCase();
+		const newAnchor = {axis};
+		const anchorIndex = anchors.length-1;
+		anchors.splice(anchorIndex, 0, newAnchor);
+		let i;
+		for (i=anchorIndex-1; anchors[i] && !(xy in anchors[i]); --i){}
+		const prevValue = anchors[i][xy];
+		for (i=anchorIndex+1; anchors[i] && !(xy in anchors[i]); ++i){}
+		const nextValue = anchors[i][xy];
+		const delta = nextValue - prevValue;
+		newAnchor.offset = newAnchor[xy] = prevValue + Math.round(delta/3);
+		this.anchors = anchors;
+		this.placeSelectors();
+		// this.reroute();
 	}
 
 	checkCondition() {
@@ -1079,22 +1099,26 @@ export class VisualTransition extends SCXMLTransition {
 	}
 
 	// Returns ~ {side:'N', offset:80, x:120, y:210}
-	get sourceAnchor() { return this.pts && this.anchors[0]; }
-	set sourceAnchor(anchor) {
-		const anchors = this.anchors;
-		if (anchor) {
-			anchors[0] = anchor;
-		} else {
-			// If there's a target anchor, make up a good source anchor
-			if (anchors[1]) anchors[0] = this.bestAnchors()[0];
-			else this.anchors = [];
+	get sourceAnchor() {
+		if (this.pts) {
+			const anchor = this.anchors[0];
+			if (anchor?.side || anchor?.auto) return anchor;
 		}
-		this.anchors = anchors;
+	}
+	set sourceAnchor(anchor) {
+		if (anchor) {
+			const anchors = this.anchors;
+			if (anchors && anchors[0]) {
+				if (anchors[0].side || anchors[0].auto) anchors[0] = anchor;
+				else anchors.splice(0, 0, anchor);
+				this.anchors = anchors;
+			} else this.anchors = [anchor];
+		} else this.anchors = [];
 	}
 
 	get sourceAnchorSide() {
 		const anchor = this.sourceAnchor;
-		return anchor && anchor.side;
+		if (anchor && !anchor.auto) return anchor.side;
 	}
 	set sourceAnchorSide(side) {
 		this.sourceAnchor = side && {side, offset:this.sourceAnchorOffset||0};
@@ -1112,12 +1136,18 @@ export class VisualTransition extends SCXMLTransition {
 	get targetAnchor() {
 		if (this.pts) {
 			const anchors = this.anchors;
-			if (anchors.length>1) return anchors[anchors.length-1];
+			const lastAnchor = anchors[anchors.length-1];
+			if (lastAnchor?.side || lastAnchor?.auto) return lastAnchor;
 		}
 	}
 	set targetAnchor(anchor) {
 		const anchors = this.anchors;
 		if (anchor) {
+			const last = anchors[anchors.length-1];
+			if (last?.side || last?.auto) {
+
+			}
+			if (anchors.length)
 			if (anchors.length===1) anchors.push(anchor);
 			else anchors[anchors.length-1] = anchor;
 		} else {
@@ -1131,7 +1161,7 @@ export class VisualTransition extends SCXMLTransition {
 
 	get targetAnchorSide() {
 		const anchor = this.targetAnchor;
-		return anchor && anchor.side;
+		if (anchor && !anchor.auto) return anchor.side;
 	}
 	set targetAnchorSide(side) {
 		this.targetAnchor = side && this.target && {side, offset:this.targetAnchorOffset||0};
@@ -1162,7 +1192,7 @@ export class VisualTransition extends SCXMLTransition {
 				case 'Y': anchors.push({axis:direction, offset:offset, y:offset*1, horiz:true }); break;
 				default:
 					const state = anchors.length ? target : source;
-					const anchor = anchorOnState(state, direction, offset*1, state===source);
+					const anchor = anchorOnState(state, direction, offset*1, state===source, true);
 					if (anchor) anchors.push(anchor);
 			}
 		}
@@ -1274,13 +1304,13 @@ export class VisualTransition extends SCXMLTransition {
 // state: a state node
 // side: 'N', 'S', 'E', 'W'
 // offset: a distance along that edge
-function anchorOnState(state, side, offset, startState) {
+function anchorOnState(state, side, offset, isStartState, isRealAnchor=false) {
 	if (!state) return;
 	const rad = state.cornerRadius;
 	let [x,y,w,h] = state.xywh;
 	const [l,t,r,b] = [x+rad, y+rad, x+w-rad, y+h-rad];
-	const anchor = {x, y, horiz:true, side, offset};
-	if (startState!==undefined) anchor.start=startState;
+	const anchor = {x, y, horiz:true, side, offset, auto:!isRealAnchor};
+	if (isStartState!==undefined) anchor.start=isStartState;
 	if (side==='N' || side==='S') {
 		anchor.horiz = false;
 		anchor.x += offset;
@@ -1302,37 +1332,164 @@ function svgPathFromAnchors(anchors, maxRadius=Infinity) {
 		const [x,y] = [anchors[0].x,anchors[0].y];
 		return `M${x},${y}M${x-5},${y+0.01}A5,5,0,1,0,${x-5},${y-0.01}M${x},${y}`;
 	}
-	if (!maxRadius) maxRadius = Infinity;
 
-	// Calculate intersection points
-	let prevPoint = anchors[0], nextPoint;
-	const pts = [prevPoint];
-	for (let i=1; i<anchors.length; ++i) {
-		nextPoint = Object.assign({}, anchors[i]);
-		// Interject an anchor of opposite orientation between two sequential anchors with the same orientation
-		if (nextPoint.horiz===prevPoint.horiz) {
-			const mainAxis = prevPoint.horiz ? 'x' : 'y',
-			      crosAxis = prevPoint.horiz ? 'y' : 'x';
-			let nextMain = nextPoint[mainAxis];
-			for (let j=i; nextMain===undefined; ++j) nextMain = anchors[j][mainAxis];
-			nextPoint = {
-				[mainAxis] : (prevPoint[mainAxis]+nextMain)/2,
-				[crosAxis] : prevPoint[crosAxis],
-				horiz      : !prevPoint.horiz
-			};
-			// Since we generated a new anchor, retry the next real anchor next loop
-			i--;
-		} else {
-			if (prevPoint.horiz) nextPoint.y = prevPoint.y;
-			else                 nextPoint.x = prevPoint.x;
+	// Duplicate the anchors so changes we make don't affect the originals
+	anchors = anchors.map(a => Object.assign({},a));
+
+	// Ensure that the anchors on both ends have a single, explicit `x` and `y` coordinates
+	resolveStateAnchor(anchors, true);
+	resolveStateAnchor(anchors, false);
+
+	// Remove inline points that are perfectly aligned to neighbors
+	for (let i=1; i<anchors.length-1; ++i) {
+		const axis = anchors[i-1].horiz ? 'y' : 'x';
+		if ((axis in anchors[i-1]) &&
+			(anchors[i-1][axis] === anchors[i+1][axis]) &&
+			(!(axis in anchors[i]) || (anchors[i][axis] === anchors[i-1][axis]))) {
+			anchors.splice(i--, 1);
 		}
-		pts.push(nextPoint);
-		prevPoint.distanceToNext = Math.hypot(nextPoint.x-prevPoint.x, nextPoint.y-prevPoint.y);
-		prevPoint = nextPoint;
 	}
-	nextPoint = anchors[anchors.length-1];
-	prevPoint.distanceToNext = Math.hypot(nextPoint.x-prevPoint.x, nextPoint.y-prevPoint.y);
-	pts.push(nextPoint);
+
+	// Inject (unanchored) waylines as needed
+	for (let i=1; i<anchors.length; ++i) {
+		const prev = anchors[i-1];
+		const next = anchors[i];
+		const mainAxis = prev.horiz ? 'y' : 'x';
+		if (prev.horiz == next.horiz && next[mainAxis] !== prev[mainAxis]) {
+			anchors.splice(i--, 0, {horiz:!prev.horiz, injected:true});
+		}
+	}
+
+	const corners = findCorners(anchors);
+	return svgPathFromCorners(corners, maxRadius || Infinity);
+}
+
+function resolveStateAnchor(anchors, forward) {
+	if (!forward) anchors = anchors.slice().reverse();
+	const anchor0 = anchors[0];
+	for (const axis of ['x','y']) {
+		if (!(axis in anchor0)) {
+			const rangeName = `${axis}Range`,
+				  optsName  = `${axis}Options`,
+				  noOptsErr = new Error(`State anchors must have one of .${axis}, .${rangeName}, or .${optsName}`);
+			let foundValue;
+			for (let i=1; i<anchors.length && foundValue===undefined; i++) {
+				if (axis in anchors[i]) foundValue = anchors[i][axis];
+			}
+			const [min0, max0] = anchor0[rangeName] || anchor0[optsName];
+			const mid0 = (min0 + max0) / 2;
+			if (foundValue !== undefined) {
+				if (anchor0[rangeName]) {
+					anchor0[axis] = Math.min(Math.max(foundValue, min0), max0);
+				} else if (anchor0[`${axis}Options`]) {
+					anchor0[axis] = (Math.abs(foundValue-min0) < Math.abs(foundValue-max0)) ? min0 : max0;
+				} else throw noOptsErr;
+			} else {
+				const anchorΩ = anchors[anchors.length-1];
+				const [minΩ, maxΩ] = anchorΩ[rangeName] || anchorΩ[optsName];
+				const midΩ = (minΩ + maxΩ) / 2;
+				let best;
+				if (anchor0[rangeName]) {
+					if (anchorΩ[rangeName]) {
+						if (max0 <= minΩ)      best = (max0 + minΩ) / 2;
+						else if (maxΩ <= min0) best = (min0 + maxΩ) / 2;
+						else { // the ranges overlap
+							if      (max0 < maxΩ && min0 > minΩ) best = (min0 + max0) / 2;
+							else if (maxΩ < max0 && minΩ > min0) best = (minΩ + maxΩ) / 2;
+							else if (minΩ < max0)                best = (minΩ + max0) / 2;
+							else                                 best = (min0 + maxΩ) / 2;
+						}
+					} else if (anchorΩ[optsName]) {
+						// TODO: maybe the first two branches produce the same result as the last?
+						if      (min0 <= minΩ && minΩ <= max0) best = minΩ;
+						else if (min0 <= maxΩ && maxΩ <= max0) best = maxΩ;
+						else best = (Math.abs(minΩ - mid0) < Math.abs(maxΩ - mid0)) ? minΩ : maxΩ;
+					} else throw noOptsErr;
+				} else if (anchor0[optsName]) {
+					if (anchorΩ[rangeName]) {
+						// TODO: maybe the first two branches produce the same result as the last?
+						if      (minΩ <= min0 && min0 <= maxΩ) best = min0;
+						else if (minΩ <= max0 && max0 <= maxΩ) best = max0;
+						else best = (Math.abs(min0 - midΩ) < Math.abs(max0 - midΩ)) ? min0 : max0;
+					} else if (anchorΩ[optsName]) {
+						const [,best0, bestΩ] = [
+							[Math.abs(min0 - minΩ), min0, minΩ],
+							[Math.abs(min0 - maxΩ), min0, maxΩ],
+							[Math.abs(max0 - maxΩ), max0, maxΩ],
+							[Math.abs(max0 - minΩ), max0, minΩ]
+						].sort((a,b) => a[0]-b[0])[0];
+						anchor0[axis] = best0;
+						anchorΩ[axis] = bestΩ;
+					} else throw noOptsErr;
+				} else throw noOptsErr;
+				if (best !== undefined) {
+					// FIXME: I think this might futz up an "option" by allowing an intermediate value
+					anchor0[axis] = Math.min(Math.max(best, min0), max0);
+					anchorΩ[axis] = Math.min(Math.max(best, minΩ), maxΩ);
+				}
+			}
+		}
+	}
+}
+
+function findCorners(anchors) {
+	let last = anchors[0];
+	const pts = [last];
+	for (let i=1; i<anchors.length; ++i) {
+		const prev = anchors[i-1];
+		const next = anchors[i];
+		const mainAxis = prev.horiz ? 'y' : 'x';
+		const crosAxis = prev.horiz ? 'x' : 'y';
+
+		// Skip if the next point is perfectly aligned in the direction we're headed
+		if (next[mainAxis] !== prev[mainAxis]) {
+			const pt = {[mainAxis]:prev[mainAxis]};
+
+			if (crosAxis in next) {
+				pt[crosAxis] = next[crosAxis];
+			} else {
+				let nextValidValue;
+				// Find the next anchor with the axis value we need,
+				// and divide the space between here and there evenly
+				const crosAnchors = [pt, next];
+				// We cannot guarantee that the horiz values alternate, so step one at a time
+				for (let j=i+1; j<anchors.length && nextValidValue===undefined; j++) {
+					const anchor = anchors[j];
+					if (crosAxis in anchor) nextValidValue = anchor[crosAxis];
+					else if (anchor.horiz==next.horiz) crosAnchors.push(anchor);
+				}
+
+				// there is ~no chance nextValidValue will be undefined, as the final anchor should/must have x/y values after `resolveStateAnchor`
+				const step = (nextValidValue - last[crosAxis]) / (crosAnchors.length);
+				for (const [i,a] of crosAnchors.entries()) a[crosAxis] = last[crosAxis] + step * i;
+			}
+			if (crosAxis in next) {
+				pt[crosAxis] = next[crosAxis];
+			} else {
+				// we never were able to resolve this axis, what do we do?
+			}
+			pts.push(pt);
+			last = pt;
+		}
+	}
+
+	const finalAnchor = anchors[anchors.length-1];
+	if (last.x !== finalAnchor.x || last.y !== finalAnchor.y) {
+		pts.push(finalAnchor);
+	}
+
+	return pts;
+}
+
+function svgPathFromCorners(pts, maxRadius=1000) {
+	// Precalculate inter-point distances
+	for (let i=1; i<pts.length; ++i) {
+		const pt = pts[i-1];
+		const {x:x1, y:y1} = pt,
+		      {x:x2, y:y2} = pts[i];
+		pt.distanceToNext = Math.hypot(x2-x1, y2-y1);
+		pt.horiz = y1===y2;
+	}
 
 	// Crawl along the point triplets, calculating curves
 	let lastCmd = {c:'M', x:pts[0].x, y:pts[0].y};
@@ -1475,7 +1632,7 @@ function calculateViewport(svg) {
 	}else{
 	  var inRatio  = viewBox.width / viewBox.height,
 		  outRatio = owidth / oheight;
-	  var meetFlag = aspect.meetOrSlice != aspect.SVG_MEETORSLICE_SLICE;
+	  var meetFlag = aspect.meetOrSlice !== aspect.SVG_MEETORSLICE_SLICE;
 	  var fillAxis = outRatio>inRatio ? (meetFlag?'y':'x') : (meetFlag?'x':'y');
 	  if (fillAxis==='x'){
 		height = width/outRatio;

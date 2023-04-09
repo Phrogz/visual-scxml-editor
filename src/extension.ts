@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 const PassAlongCommands = ['createState','createChildState','fitChildren','layoutDiagram','zoomToExtents','zoomTo100','zoomToSelected',
-                           'toggleEventDisplay','deleteSelectionOnly','deleteSelectionAndMore','removeVisualization'];
+                           'toggleEventDisplay','deleteSelectionOnly','deleteSelectionAndMore','removeVisualization','addVerticalWayline','addHorizontalWayline'];
 export class SCXMLEditorManager {
 	public glueByURI: Map<vscode.Uri, EditorGlue> = new Map();
 	private _glueWithActiveWebView: EditorGlue | null = null;

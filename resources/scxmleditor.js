@@ -10,6 +10,7 @@ const NS = 'http://www.w3.org/2005/07/scxml';
 const visualNS  = 'http://phrogz.net/visual-scxml';
 const vscode = acquireVsCodeApi();
 const visualEditor = new VisualEditor(document.querySelector('svg'));
+window.vse = visualEditor;
 inspector.addEventListener('mousedown', evt => evt.stopPropagation(), false);
 visualEditor.onSelectionChanged = (sel) => {
 	console.info('scxmleditor.js is notified that the visual selection changed');
@@ -111,7 +112,13 @@ window.addEventListener('message', event => {
 		case 'deleteSelectionOnly':
 		case 'deleteSelectionAndMore':
 		case 'removeVisualization':
-			visualEditor[message.command](message);
+		case 'addVerticalWayline':
+		case 'addHorizontalWayline':
+			if (visualEditor[message.command] instanceof Function) {
+				visualEditor[message.command](message);
+			} else {
+				console.error(`scxmleditor.js unable to handle message ${message.command}`);
+			}
 		break;
 	}
 });
@@ -252,8 +259,8 @@ function updateInspectorForSelection(sel) {
 				insCondition.value = sel.condition;
 
 				setOptions(insTarget, targetIds, sel.targetId);
-				insTargetAnchorSide.value = sel.targetAnchorSide || '';
-				insTargetAnchorOffset.value = sel.targetAnchorOffset || '';
+				insTargetAnchorSide.value = sel.targetAnchorSide || 'a';
+				insTargetAnchorOffset.value = sel.targetAnchorOffset || 'a';
 				showActions(transitionExecutables, sel.executables);
 
 				insRadius.value = sel.radius;

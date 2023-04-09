@@ -176,6 +176,19 @@ class VisualEditor {
 		this.setSelection(newTrans);
 	}
 
+	addVerticalWayline() {
+		this.addWayline('X');
+	}
+
+	addHorizontalWayline() {
+		this.addWayline('Y');
+	}
+
+	addWayline(axis) {
+		const transitions = this.selection.filter(o => o.isTransition);
+		for (const t of transitions) t.addWayline(axis);
+	}
+
 	makeDraggable(el, obj) {
 		el.addEventListener('mousedown', evt => {
 			if (evt.button) return; // Only drag when button is 0, i.e. left button
@@ -365,7 +378,7 @@ class VisualEditor {
 		this.setViewBox(
 			this.svg.viewBox.baseVal.x + dx,
 			this.svg.viewBox.baseVal.y + dy
-		)
+		);
 	}
 
 	zoomBy(factor, cx=null, cy=null) {

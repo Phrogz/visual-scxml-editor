@@ -102,6 +102,16 @@
         "category": "SCXML Editor",
         "command": "visual-scxml-editor.createTransition",
         "title": "Add Transition"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.addVerticalWayline",
+        "title": "Add Wayline, Vertical"
+      },
+      {
+        "category": "SCXML Editor",
+        "command": "visual-scxml-editor.addHorizontalWayline",
+        "title": "Add Wayline, Horizontal"
       }
     ],
     "menus": {
@@ -125,6 +135,16 @@
           "command": "visual-scxml-editor.createChildState",
           "group": "scxmledit",
           "when":"visual-scxml-editor.stateSelected"
+        },
+        {
+          "command": "visual-scxml-editor.addHorizontalWayline",
+          "group": "scxmledit",
+          "when":"visual-scxml-editor.transitionSelected"
+        },
+        {
+          "command": "visual-scxml-editor.addVerticalWayline",
+          "group": "scxmledit",
+          "when":"visual-scxml-editor.transitionSelected"
         },
         {
           "command": "visual-scxml-editor.createTransition",
@@ -212,6 +232,14 @@
         {
           "command": "visual-scxml-editor.deleteSelectionAndMore",
           "when": "visual-scxml-editor.visualEditorActive && visual-scxml-editor.anySelected"
+        },
+        {
+          "command": "visual-scxml-editor.addHorizontalWayline",
+          "when":"visual-scxml-editor.visualEditorActive && visual-scxml-editor.transitionSelected"
+        },
+        {
+          "command": "visual-scxml-editor.addVerticalWayline",
+          "when":"visual-scxml-editor.visualEditorActive && visual-scxml-editor.transitionSelected"
         },
         {
           "command": "visual-scxml-editor.removeVisualization",
