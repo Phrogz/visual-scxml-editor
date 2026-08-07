@@ -209,9 +209,8 @@ export class EditorGlue {
 		const fullRange = this.editor.document.validateRange(new vscode.Range(0, 0, this.editor.document.lineCount, 0));
 		const editorTabCol = this.findEditorTabCol();
 		if (editorTabCol) {
-			window.showTextDocument(this.editor.document, {preserveFocus:true, viewColumn:editorTabCol}).then(() => {
-				this.editor.edit(edit => edit.replace(fullRange, newXML));
-			});
+			const editor = await window.showTextDocument(this.editor.document, {preserveFocus:true, viewColumn:editorTabCol});
+			await editor.edit(edit => edit.replace(fullRange, newXML));
 		}
 	}
 
