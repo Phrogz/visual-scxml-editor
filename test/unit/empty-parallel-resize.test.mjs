@@ -311,6 +311,55 @@ test('changing an initial attribute refreshes immediate child labels', () => {
 	}
 });
 
+test('state labels elide to fit and retain the complete ID in a tooltip', () => {
+	for (const children of [[], [{}]]) {
+		let width = 60;
+		const label = new FakeElement();
+		label.getComputedTextLength = () => Array.from(label.textContent).length * 10;
+		const state = Object.create(VisualState.prototype);
+		state._vse = {label};
+		state.states = children;
+		Object.defineProperties(state, {
+			id: {get: () => 'abcdefgh'},
+			isInitial: {get: () => false},
+			isParallelChild: {get: () => false},
+			isHistory: {get: () => false},
+			xywh: {get: () => [0, 0, width, 40]}
+		});
+
+		state.updateLabelPosition();
+		assert.equal(label.textContent, 'abc…');
+		assert.equal(label.children.at(-1).textContent, 'abcdefgh');
+		assert.equal(label.getAttribute('x'), '30');
+		assert.equal(label.getAttribute('y'), children.length ? '15' : '20');
+
+		width = 120;
+		state.updateLabelPosition();
+		assert.equal(label.textContent, 'abcdefgh');
+		assert.equal(label.children.at(-1).textContent, 'abcdefgh');
+	}
+});
+
+test('state label adornments also stay within the available width', () => {
+	const label = new FakeElement();
+	label.getComputedTextLength = () => Array.from(label.textContent).length * 10;
+	const state = Object.create(VisualState.prototype);
+	state._vse = {label};
+	state.states = [];
+	Object.defineProperties(state, {
+		id: {get: () => 'longHistoryState'},
+		isInitial: {get: () => true},
+		isParallelChild: {get: () => false},
+		isHistory: {get: () => true},
+		isDeep: {get: () => true},
+		xywh: {get: () => [0, 0, 30, 20]}
+	});
+
+	state.updateLabel();
+	assert.ok(label.getComputedTextLength() <= 10);
+	assert.equal(label.children.at(-1).textContent, 'longHistoryState');
+});
+
 test('deleting a selection clears it before removing graphics', () => {
 	for (const [command, expectedDeleteArgs] of [
 		['deleteSelectionOnly', [true]],

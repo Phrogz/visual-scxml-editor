@@ -542,7 +542,37 @@ export class VisualState extends SCXMLState {
 		if (this.isHistory) {
 			prefix += this.isDeep ? '★ ' : '✪ ';
 		}
-		this._vse.label.textContent = `${prefix}${this.id}${postfix}`;
+
+		const label = this._vse.label;
+		const id = this.id || '';
+		const availableWidth = Math.max(0, this.w - 2*this.cornerRadius);
+		const fits = text => {
+			label.textContent = text;
+			return label.getComputedTextLength() <= availableWidth;
+		};
+		const fullLabel = `${prefix}${id}${postfix}`;
+		let visibleLabel = fullLabel;
+
+		if (!fits(fullLabel)) {
+			let shortest = 0, longest = id.length;
+			while (shortest < longest) {
+				const length = Math.ceil((shortest + longest) / 2);
+				if (fits(`${prefix}${id.slice(0, length)}…${postfix}`)) shortest = length;
+				else longest = length - 1;
+			}
+
+			visibleLabel = `${prefix}${id.slice(0, shortest)}…${postfix}`;
+			if (!fits(visibleLabel)) {
+				visibleLabel = `${prefix.trimEnd()}…`;
+				if (!fits(visibleLabel)) {
+					visibleLabel = prefix.trimEnd();
+					if (!fits(visibleLabel)) visibleLabel = fits('…') ? '…' : '';
+				}
+			}
+		}
+
+		label.textContent = visibleLabel;
+		makeEl('title', {_dad:label}).textContent = id;
 	}
 
 	updateColor() {
@@ -556,6 +586,7 @@ export class VisualState extends SCXMLState {
 		const [,,w,h] = this.xywh;
 		const top = this.states.length>0 ? 15 : h/2;
 		setAttributes(this._vse.label, {x:w/2, y:top});
+		this.updateLabel();
 	}
 
 	containedWithin(s2) {
