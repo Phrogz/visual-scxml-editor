@@ -23,6 +23,9 @@ should be a human-readable and human-editable XML file.
 ## Transitions
 
 * **`viz:pts="start (wayline+)? end?"`** — route points for the transition line
+  * Either endpoint may be omitted; the editor automatically chooses the missing attachment point.
+    For example, `viz:pts="N10"` fixes the source on its north edge and automatically attaches the
+    other end to the target state.
   * The first and last values (`start` and `end`) describe offsets along an edge of the initial and
     target state; for example, `E20` is a point 20 units down from the top of the right edge, while
     `N0` is a point (nominally) along the of the state at the left edge. Transitions cannot attach
