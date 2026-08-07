@@ -565,8 +565,7 @@ export class VisualState extends SCXMLState {
 		const overflowing = ego.label.getComputedTextLength() >= availableWidth - 1;
 		setAttributes(ego.label, {
 			x: overflowing ? this.cornerRadius : w/2,
-			y: top,
-			'text-anchor': overflowing ? 'start' : 'middle'
+			y: top
 		});
 
 		if (overflowing) {

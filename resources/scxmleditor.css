@@ -26,6 +26,9 @@ svg text {
 .state text {
     opacity:var(--state-label-opacity, 1);
 }
+.state text[mask] {
+    text-anchor:start;
+}
 
 .state.parallel .parallel-divider,
 .state.parallel-child .parallel-divider {
