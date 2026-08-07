@@ -386,6 +386,7 @@ test('the editor provides the shared state-label fade gradient', () => {
 	const editorCSS = fs.readFileSync(new URL('../../resources/scxmleditor.css', import.meta.url), 'utf8');
 	assert.match(editorHTML, /<linearGradient id='state-label-fade'/);
 	assert.match(editorCSS, /\.state text\[mask\]\s*\{\s*text-anchor:start;/);
+	assert.match(editorCSS, /\.state\.parallel > text\s*\{\s*opacity:var\(--state-label-opacity, 1\) !important;/);
 });
 
 test('deleting a selection clears it before removing graphics', () => {
