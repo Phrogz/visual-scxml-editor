@@ -437,6 +437,12 @@ class VisualEditor {
 		if (w===undefined) w = this.svg.viewBox.baseVal.width;
 		if (h===undefined) h = this.svg.viewBox.baseVal.height;
 		this.svg.setAttribute('viewBox', [x, y, w, h].join(' '));
+
+		const markerScale = Math.min(1, 2/this.zoomFactor);
+		for (const marker of this.svg.querySelectorAll('marker')) {
+			marker.setAttribute('markerWidth', marker.viewBox.baseVal.width * markerScale);
+			marker.setAttribute('markerHeight', marker.viewBox.baseVal.height * markerScale);
+		}
 	}
 
 	onZoomChanged() {
