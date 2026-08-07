@@ -24,6 +24,10 @@ class FakeElement {
 		return this.attributes.get(name) ?? null;
 	}
 
+	removeAttribute(name) {
+		this.attributes.delete(name);
+	}
+
 	setAttribute(name, value) {
 		this.attributes.set(name, String(value));
 		if (name.startsWith('data-')) {
@@ -311,40 +315,57 @@ test('changing an initial attribute refreshes immediate child labels', () => {
 	}
 });
 
-test('state labels elide to fit and retain the complete ID in a tooltip', () => {
+test('overflowing state labels are left-aligned and faded until they fit', () => {
 	for (const children of [[], [{}]]) {
 		let width = 60;
+		let id = 'abcdefgh';
 		const label = new FakeElement();
 		label.getComputedTextLength = () => Array.from(label.textContent).length * 10;
 		const state = Object.create(VisualState.prototype);
-		state._vse = {label};
+		state._vse = {label, main:new FakeElement()};
 		state.states = children;
 		Object.defineProperties(state, {
-			id: {get: () => 'abcdefgh'},
+			id: {get: () => id},
 			isInitial: {get: () => false},
 			isParallelChild: {get: () => false},
 			isHistory: {get: () => false},
 			xywh: {get: () => [0, 0, width, 40]}
 		});
 
-		state.updateLabelPosition();
-		assert.equal(label.textContent, 'abc…');
+		state.updateLabel();
+		assert.equal(label.textContent, 'abcdefgh');
 		assert.equal(label.children.at(-1).textContent, 'abcdefgh');
-		assert.equal(label.getAttribute('x'), '30');
+		assert.equal(label.getAttribute('x'), '10');
 		assert.equal(label.getAttribute('y'), children.length ? '15' : '20');
+		assert.equal(label.getAttribute('text-anchor'), 'start');
+		assert.match(label.getAttribute('mask'), /^url\(#state-label-mask-\d+\)$/);
+		assert.equal(state._vse.labelMask.getAttribute('width'), '40');
+		assert.equal(state._vse.labelMaskSolid.getAttribute('width'), '25');
+		assert.equal(state._vse.labelMaskFade.getAttribute('width'), '15');
 
 		width = 120;
 		state.updateLabelPosition();
 		assert.equal(label.textContent, 'abcdefgh');
-		assert.equal(label.children.at(-1).textContent, 'abcdefgh');
+		assert.equal(label.getAttribute('x'), '60');
+		assert.equal(label.getAttribute('text-anchor'), 'middle');
+		assert.equal(label.getAttribute('mask'), null);
+		assert.equal(state._vse.labelMask, undefined);
+
+		id = 'abcdefghijklmnop';
+		state.updateLabel();
+		assert.equal(label.textContent, id);
+		assert.equal(label.getAttribute('x'), '10');
+		assert.equal(label.getAttribute('text-anchor'), 'start');
+		assert.match(label.getAttribute('mask'), /^url\(#state-label-mask-\d+\)$/);
+		assert.equal(label.children.at(-1).textContent, id);
 	}
 });
 
-test('state label adornments also stay within the available width', () => {
+test('minimum-width adorned labels fade inside the state', () => {
 	const label = new FakeElement();
 	label.getComputedTextLength = () => Array.from(label.textContent).length * 10;
 	const state = Object.create(VisualState.prototype);
-	state._vse = {label};
+	state._vse = {label, main:new FakeElement()};
 	state.states = [];
 	Object.defineProperties(state, {
 		id: {get: () => 'longHistoryState'},
@@ -356,8 +377,17 @@ test('state label adornments also stay within the available width', () => {
 	});
 
 	state.updateLabel();
-	assert.ok(label.getComputedTextLength() <= 10);
+	assert.equal(label.getAttribute('x'), '10');
+	assert.equal(label.getAttribute('text-anchor'), 'start');
+	assert.equal(state._vse.labelMask.getAttribute('width'), '10');
+	assert.equal(state._vse.labelMaskSolid.getAttribute('width'), '0');
+	assert.equal(state._vse.labelMaskFade.getAttribute('width'), '10');
 	assert.equal(label.children.at(-1).textContent, 'longHistoryState');
+});
+
+test('the editor provides the shared state-label fade gradient', () => {
+	const editorHTML = fs.readFileSync(new URL('../../resources/scxmleditor.html', import.meta.url), 'utf8');
+	assert.match(editorHTML, /<linearGradient id='state-label-fade'/);
 });
 
 test('deleting a selection clears it before removing graphics', () => {

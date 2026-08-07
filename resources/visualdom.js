@@ -6,6 +6,7 @@ import { SCXMLDoc, SCXMLState, SCXMLTransition } from 'scxmlDOM';
 const SCXMLNS  = 'http://www.w3.org/2005/07/scxml';
 const SVGNS    = 'http://www.w3.org/2000/svg';
 const visualNS = 'http://phrogz.net/visual-scxml';
+let nextStateLabelMaskId = 0;
 
 export class VisualDoc extends SCXMLDoc {
 	createElementNS(nsURI, name, ...rest) {
@@ -543,36 +544,10 @@ export class VisualState extends SCXMLState {
 			prefix += this.isDeep ? '★ ' : '✪ ';
 		}
 
-		const label = this._vse.label;
 		const id = this.id || '';
-		const availableWidth = Math.max(0, this.w - 2*this.cornerRadius);
-		const fits = text => {
-			label.textContent = text;
-			return label.getComputedTextLength() <= availableWidth;
-		};
-		const fullLabel = `${prefix}${id}${postfix}`;
-		let visibleLabel = fullLabel;
-
-		if (!fits(fullLabel)) {
-			let shortest = 0, longest = id.length;
-			while (shortest < longest) {
-				const length = Math.ceil((shortest + longest) / 2);
-				if (fits(`${prefix}${id.slice(0, length)}…${postfix}`)) shortest = length;
-				else longest = length - 1;
-			}
-
-			visibleLabel = `${prefix}${id.slice(0, shortest)}…${postfix}`;
-			if (!fits(visibleLabel)) {
-				visibleLabel = `${prefix.trimEnd()}…`;
-				if (!fits(visibleLabel)) {
-					visibleLabel = prefix.trimEnd();
-					if (!fits(visibleLabel)) visibleLabel = fits('…') ? '…' : '';
-				}
-			}
-		}
-
-		label.textContent = visibleLabel;
-		makeEl('title', {_dad:label}).textContent = id;
+		this._vse.label.textContent = `${prefix}${id}${postfix}`;
+		makeEl('title', {_dad:this._vse.label}).textContent = id;
+		this.updateLabelPosition();
 	}
 
 	updateColor() {
@@ -585,8 +560,42 @@ export class VisualState extends SCXMLState {
 	updateLabelPosition() {
 		const [,,w,h] = this.xywh;
 		const top = this.states.length>0 ? 15 : h/2;
-		setAttributes(this._vse.label, {x:w/2, y:top});
-		this.updateLabel();
+		const ego = this._vse;
+		const availableWidth = Math.max(0, w - 2*this.cornerRadius);
+		const overflowing = ego.label.getComputedTextLength() >= availableWidth - 1;
+		setAttributes(ego.label, {
+			x: overflowing ? this.cornerRadius : w/2,
+			y: top,
+			'text-anchor': overflowing ? 'start' : 'middle'
+		});
+
+		if (overflowing) {
+			if (!ego.labelMask) {
+				const maskId = `state-label-mask-${++nextStateLabelMaskId}`;
+				ego.labelMask = makeEl('mask', {
+					_dad:ego.main,
+					id:maskId,
+					maskUnits:'userSpaceOnUse',
+					maskContentUnits:'userSpaceOnUse'
+				});
+				ego.labelMaskSolid = makeEl('rect', {_dad:ego.labelMask, fill:'white'});
+				ego.labelMaskFade = makeEl('rect', {_dad:ego.labelMask, fill:'url(#state-label-fade)'});
+				ego.label.setAttribute('mask', `url(#${maskId})`);
+			}
+
+			const fadeWidth = Math.min(15, availableWidth);
+			const solidWidth = availableWidth - fadeWidth;
+			const maskY = top - VisualState.headerHeight/2;
+			setAttributes(ego.labelMask, {x:this.cornerRadius, y:maskY, width:availableWidth, height:VisualState.headerHeight});
+			setAttributes(ego.labelMaskSolid, {x:this.cornerRadius, y:maskY, width:solidWidth, height:VisualState.headerHeight});
+			setAttributes(ego.labelMaskFade, {x:this.cornerRadius+solidWidth, y:maskY, width:fadeWidth, height:VisualState.headerHeight});
+		} else if (ego.labelMask) {
+			ego.label.removeAttribute('mask');
+			ego.labelMask.parentNode.removeChild(ego.labelMask);
+			delete ego.labelMask;
+			delete ego.labelMaskSolid;
+			delete ego.labelMaskFade;
+		}
 	}
 
 	containedWithin(s2) {
