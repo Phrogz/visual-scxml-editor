@@ -215,9 +215,15 @@ export class VisualState extends SCXMLState {
 				});
 				el.xywh = [childX, childY, newWidth, childH];
 			} else {
+				let x = parentXYWH[0] + ed.gridSize;
+				let y = parentXYWH[1] + VisualState.headerHeight + ed.gridSize;
+				while (existingChildren.some(child => child.x===x && child.y===y)) {
+					x += ed.gridSize;
+					y += ed.gridSize;
+				}
 				el.xywh = [
-					parentXYWH[0] + ed.gridSize,
-					parentXYWH[1] + VisualState.headerHeight + ed.gridSize,
+					x,
+					y,
 					VisualState.defaultLeafWidth,
 					VisualState.defaultLeafHeight
 				];
