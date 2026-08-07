@@ -52,6 +52,7 @@ let actionSchema;
 const serializationOptions = {strip:true, indent:'\t', sort:true, cdata:true, tightcdata:true};
 let handleChangeTimer, changeDelayMS = 250;
 function onSCXMLDocChanged() {
+	vscode.postMessage({command:'validIDs', ids:visualEditor.scxmlDoc.ids});
 	// This does not error if the timer has never been set
 	clearTimeout(handleChangeTimer);
 	handleChangeTimer = setTimeout(sendXMLToTextEditor, changeDelayMS);
