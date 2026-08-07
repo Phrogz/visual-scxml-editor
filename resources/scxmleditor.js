@@ -4,6 +4,7 @@
 
 import { loadFromString as loadSCXML } from 'scxmlDOM';
 import VisualEditor from 'visualEditor';
+import { parseRoutingPoints } from 'visualDOM';
 import neatXML from 'neatXML';
 
 const NS = 'http://www.w3.org/2005/07/scxml';
@@ -76,7 +77,7 @@ window.addEventListener('message', event => {
 			if (Array.isArray(scxmlDocOrErrors)) {
 				vscode.postMessage({command:'showErrors', errors:scxmlDocOrErrors});
 			} else {
-				vscode.postMessage({command:'clearErrors'});
+				vscode.postMessage({command:'showErrors', errors:routingWarnings(scxmlDocOrErrors, xmlString)});
 				if (visualEditor.scxmlDoc) visualEditor.scxmlDoc.removeEventListener('changed', onSCXMLDocChanged, false);
 				visualEditor.useSCXML(scxmlDocOrErrors);
 				vscode.postMessage({command:'validIDs', ids:scxmlDocOrErrors.ids});
@@ -124,6 +125,31 @@ window.addEventListener('message', event => {
 		break;
 	}
 });
+
+function routingWarnings(scxmlDoc, xmlString) {
+	let searchIndex = 0;
+	return scxmlDoc.transitions.flatMap(transition => {
+		const attr = transition.getAttributeNodeNS(visualNS, 'pts');
+		if (!attr) return [];
+
+		const attrName = attr.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const matcher = new RegExp(`${attrName}\\s*=\\s*(["'])`, 'g');
+		matcher.lastIndex = searchIndex;
+		const match = matcher.exec(xmlString);
+		const valueIndex = match ? matcher.lastIndex : 0;
+		searchIndex = valueIndex + attr.value.length;
+		const invalid = parseRoutingPoints(attr.value).invalid;
+		if (!invalid.length) return [];
+
+		const precedingText = xmlString.slice(0, valueIndex);
+		return [{
+			line: precedingText.split('\n').length,
+			col: valueIndex - precedingText.lastIndexOf('\n'),
+			severity: 'warning',
+			msg: `Ignored malformed transition routing token${invalid.length===1 ? '' : 's'}: ${invalid.join(', ')}`
+		}];
+	});
+}
 
 function setOptions(sel, values, selectedValue) {
 	sel.options.length = 0;

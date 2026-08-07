@@ -1275,11 +1275,9 @@ export class VisualTransition extends SCXMLTransition {
 		const pts = this.pts;
 		if (!this.pts) return this.bestAnchors();
 		const source=this.source, target=this.target;
-		let anchors = [], regex = /a|([NSEWXY])\s*(\S+)/g;
-		let match;
-		while (match=regex.exec(pts)) {
-			const [auto, direction, offset] = match;
-			if (auto==='a') anchors.push({auto:true});
+		let anchors = [];
+		for (const {auto, direction, offset} of parseRoutingPoints(pts).points) {
+			if (auto) anchors.push({auto:true});
 			else switch (direction) {
 				case 'X': anchors.push({axis:direction, offset:offset, x:offset*1, horiz:false}); break;
 				case 'Y': anchors.push({axis:direction, offset:offset, y:offset*1, horiz:true }); break;
@@ -1390,6 +1388,22 @@ export class VisualTransition extends SCXMLTransition {
 		else     this.removeAttributeNS(visualNS, 'pts');
 		delete this._anchors;
 	}
+}
+
+// ****************************************************************************
+
+export function parseRoutingPoints(pts='') {
+	const matcher = /(?:^|\s)(a|([NSEWXY])\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?))(?=\s|$)/g;
+	const points = [], invalid = [];
+	let lastIndex = 0, match;
+	while (match=matcher.exec(pts)) {
+		invalid.push(...pts.slice(lastIndex, match.index).trim().split(/\s+/).filter(Boolean));
+		const [, token, direction, offset] = match;
+		points.push(token==='a' ? {auto:true} : {direction, offset:Number(offset)});
+		lastIndex = matcher.lastIndex;
+	}
+	invalid.push(...pts.slice(lastIndex).trim().split(/\s+/).filter(Boolean));
+	return {points, invalid};
 }
 
 // ****************************************************************************
