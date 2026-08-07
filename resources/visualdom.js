@@ -6,6 +6,7 @@ import { SCXMLDoc, SCXMLState, SCXMLTransition } from 'scxmlDOM';
 const SCXMLNS  = 'http://www.w3.org/2005/07/scxml';
 const SVGNS    = 'http://www.w3.org/2000/svg';
 const visualNS = 'http://phrogz.net/visual-scxml';
+let nextStateLabelMaskId = 0;
 
 export class VisualDoc extends SCXMLDoc {
 	createElementNS(nsURI, name, ...rest) {
@@ -542,7 +543,11 @@ export class VisualState extends SCXMLState {
 		if (this.isHistory) {
 			prefix += this.isDeep ? '★ ' : '✪ ';
 		}
-		this._vse.label.textContent = `${prefix}${this.id}${postfix}`;
+
+		const id = this.id || '';
+		this._vse.label.textContent = `${prefix}${id}${postfix}`;
+		makeEl('title', {_dad:this._vse.label}).textContent = id;
+		this.updateLabelPosition();
 	}
 
 	updateColor() {
@@ -555,7 +560,41 @@ export class VisualState extends SCXMLState {
 	updateLabelPosition() {
 		const [,,w,h] = this.xywh;
 		const top = this.states.length>0 ? 15 : h/2;
-		setAttributes(this._vse.label, {x:w/2, y:top});
+		const ego = this._vse;
+		const availableWidth = Math.max(0, w - 2*this.cornerRadius);
+		const overflowing = ego.label.getComputedTextLength() >= availableWidth - 1;
+		setAttributes(ego.label, {
+			x: overflowing ? this.cornerRadius : w/2,
+			y: top
+		});
+
+		if (overflowing) {
+			if (!ego.labelMask) {
+				const maskId = `state-label-mask-${++nextStateLabelMaskId}`;
+				ego.labelMask = makeEl('mask', {
+					_dad:ego.main,
+					id:maskId,
+					maskUnits:'userSpaceOnUse',
+					maskContentUnits:'userSpaceOnUse'
+				});
+				ego.labelMaskSolid = makeEl('rect', {_dad:ego.labelMask, fill:'white'});
+				ego.labelMaskFade = makeEl('rect', {_dad:ego.labelMask, fill:'url(#state-label-fade)'});
+				ego.label.setAttribute('mask', `url(#${maskId})`);
+			}
+
+			const fadeWidth = Math.min(15, availableWidth);
+			const solidWidth = availableWidth - fadeWidth;
+			const maskY = top - VisualState.headerHeight/2;
+			setAttributes(ego.labelMask, {x:this.cornerRadius, y:maskY, width:availableWidth, height:VisualState.headerHeight});
+			setAttributes(ego.labelMaskSolid, {x:this.cornerRadius, y:maskY, width:solidWidth, height:VisualState.headerHeight});
+			setAttributes(ego.labelMaskFade, {x:this.cornerRadius+solidWidth, y:maskY, width:fadeWidth, height:VisualState.headerHeight});
+		} else if (ego.labelMask) {
+			ego.label.removeAttribute('mask');
+			ego.labelMask.parentNode.removeChild(ego.labelMask);
+			delete ego.labelMask;
+			delete ego.labelMaskSolid;
+			delete ego.labelMaskFade;
+		}
 	}
 
 	containedWithin(s2) {
