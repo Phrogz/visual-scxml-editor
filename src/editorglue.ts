@@ -38,7 +38,8 @@ export class EditorGlue {
 			stateSelected: false,
 			transitionSelected: false,
 			parentStateSelected: false,
-			parallelSelected: false
+			parallelSelected: false,
+			initialCandidateSelected: false
 		};
 
 		vscode.workspace.onDidCloseTextDocument(textDoc => {
@@ -221,6 +222,7 @@ export class EditorGlue {
 		this.selectedTypes.transitionSelected = false;
 		this.selectedTypes.parentStateSelected = false;
 		this.selectedTypes.parallelSelected = false;
+		this.selectedTypes.initialCandidateSelected = false;
 
 		const editor = this.editor;
 		const doc = editor.document;
@@ -258,6 +260,7 @@ export class EditorGlue {
 				this.selectedTypes.stateSelected = true;
 				if (item.hasChildren) this.selectedTypes.parentStateSelected = true;
 				if (item.name==='parallel') this.selectedTypes.parallelSelected = true;
+				if (item.parentName!=='parallel') this.selectedTypes.initialCandidateSelected = true;
 				const matcher = new RegExp(`<${item.name}[^\\n>]+?id=["']${item.id}["'][^>]+>`, 'm');
 				const match = matcher.exec(scxml);
 				if (match) {

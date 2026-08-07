@@ -54,6 +54,9 @@ in a manner that allows the SCXML to still be used in production.
 * `SCXML Editor: Add State` (or `Add Child State`) — Creates new state(s) in the state machine.
   If any state(s) are selected the new states are added as children of them.
   Also available via context menu in the visual editor.
+* `SCXML Editor: Set as Initial` — Marks each eligible selected state as its parent's initial state,
+  replacing any previously marked sibling. Direct children of a `<parallel>` state are ignored, and
+  the command is unavailable when they are the only selected states.
 * `SCXML Editor: Add Transition` — Creates new transition(s) in the state machine, starting at the
   selected state(s). (If no states are selected, uses a quick pick to select a state to start from.)
   Quick picks also let you select the target state, and specify an event name and conditional.

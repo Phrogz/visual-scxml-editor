@@ -64,6 +64,14 @@ export class VisualRoot extends SCXMLState {
 		el.initialize(this._vse.editor);
 		return el;
 	}
+
+	updateAttribute(attrNS, attrName) {
+		if (attrName==='initial') {
+			this.states.forEach(s => s.updateLabel());
+			return true;
+		}
+		return false;
+	}
 }
 
 // ****************************************************************************
@@ -306,7 +314,7 @@ export class VisualState extends SCXMLState {
 			break;
 
 			case 'initial':
-				this.states.forEach(s => s.updateLabel);
+				this.states.forEach(s => s.updateLabel());
 				recognized = true;
 			break;
 		}
