@@ -297,13 +297,15 @@ class VisualEditor {
 	}
 
 	deleteSelectionOnly() {
-		for (const o of this.selection) o.delete(true);
+		const selection = this.selection.concat();
 		this.clearSelection();
+		for (const o of selection) o.delete(true);
 	}
 
 	deleteSelectionAndMore() {
-		for (const o of this.selection) o.delete(true, true);
+		const selection = this.selection.concat();
 		this.clearSelection();
+		for (const o of selection) o.delete(true, true);
 	}
 
 	toggleEventDisplay() {
