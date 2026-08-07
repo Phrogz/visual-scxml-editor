@@ -187,6 +187,40 @@ test('the parallel grows only enough to keep every child at minimum width', () =
 	assert.ok(fixture.children.every(child => child.w >= VisualState.minWidth));
 });
 
+function addChildWithSiblingPositions(siblingPositions) {
+	let childXYWH;
+	let expansionCount = 0;
+	const child = {
+		initialize() {},
+		set xywh(value) { childXYWH = value; }
+	};
+	const parent = Object.create(VisualState.prototype);
+	parent.isParallel = false;
+	parent.states = siblingPositions.map(([x,y]) => ({x,y}));
+	parent._vse = {editor:{gridSize:10}};
+	parent._addChild = () => child;
+	parent.expandToFitChildren = () => expansionCount++;
+	Object.defineProperty(parent, 'xywh', {get:() => [100, 200, 220, 100]});
+
+	parent.addChild();
+	return {childXYWH, expansionCount};
+}
+
+test('new children of a non-parallel parent use the first unoccupied diagonal grid position', () => {
+	assert.deepEqual(addChildWithSiblingPositions([]), {
+		childXYWH: [110, 240, 120, 40],
+		expansionCount: 1
+	});
+	assert.deepEqual(addChildWithSiblingPositions([
+		[110, 240],
+		[120, 250],
+		[130, 999]
+	]), {
+		childXYWH: [130, 260, 120, 40],
+		expansionCount: 1
+	});
+});
+
 function addWayline(anchors, axis) {
 	let currentAnchors = anchors;
 	let selectorsCreated = 0;
