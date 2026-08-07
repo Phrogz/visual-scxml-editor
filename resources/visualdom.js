@@ -1016,7 +1016,7 @@ export class VisualTransition extends SCXMLTransition {
 		const delta = nextValue - prevValue;
 		newAnchor.offset = newAnchor[xy] = prevValue + Math.round(delta/3);
 		this.anchors = anchors;
-		this.placeSelectors();
+		this.createSelectors();
 		// this.reroute();
 	}
 

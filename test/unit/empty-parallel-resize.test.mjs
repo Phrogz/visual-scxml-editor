@@ -43,7 +43,7 @@ const visualDOMWithStubbedDependency = visualDOMSource.replace(
 	'class SCXMLDoc {} class SCXMLState { addChild(...args) { return this._addChild(...args); } } class SCXMLTransition {}'
 );
 assert.notEqual(visualDOMWithStubbedDependency, visualDOMSource);
-const {VisualState} = await import(`data:text/javascript;base64,${Buffer.from(visualDOMWithStubbedDependency).toString('base64')}`);
+const {VisualState, VisualTransition} = await import(`data:text/javascript;base64,${Buffer.from(visualDOMWithStubbedDependency).toString('base64')}`);
 
 function makeState(states=[]) {
 	let xywh = [10, 20, 120, 80];
@@ -185,4 +185,44 @@ test('the parallel grows only enough to keep every child at minimum width', () =
 		[100, 30, 50, 70]
 	]);
 	assert.ok(fixture.children.every(child => child.w >= VisualState.minWidth));
+});
+
+function addWayline(anchors, axis) {
+	let currentAnchors = anchors;
+	let selectorsCreated = 0;
+	let selectorsPlaced = 0;
+	const transition = Object.create(VisualTransition.prototype);
+	Object.defineProperty(transition, 'anchors', {
+		get: () => currentAnchors,
+		set: value => { currentAnchors = value; }
+	});
+	transition.createSelectors = () => selectorsCreated++;
+	transition.placeSelectors = () => selectorsPlaced++;
+	transition.addWayline(axis);
+	return {anchors:currentAnchors, selectorsCreated, selectorsPlaced};
+}
+
+test('adding either wayline axis rebuilds selectors for the new handle', () => {
+	for (const [axis, coordinate] of [['X', 'x'], ['Y', 'y']]) {
+		const result = addWayline([
+			{x:0, y:0},
+			{x:90, y:90}
+		], axis);
+
+		assert.equal(result.anchors[1].axis, axis);
+		assert.equal(result.anchors[1][coordinate], 30);
+		assert.equal(result.selectorsCreated, 1);
+		assert.equal(result.selectorsPlaced, 0);
+	}
+});
+
+test('adding a consecutive wayline rebuilds selectors with both handles', () => {
+	const result = addWayline([
+		{x:0, y:0},
+		{axis:'X', offset:30, x:30},
+		{x:90, y:90}
+	], 'X');
+
+	assert.deepEqual(result.anchors.slice(1, 3).map(anchor => anchor.x), [30, 50]);
+	assert.equal(result.selectorsCreated, 1);
 });
