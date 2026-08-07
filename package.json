@@ -303,11 +303,13 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "vscode:prepublish": "npm run compile && npm run verify:case-sensitive-imports",
+    "clean": "node ./scripts/clean.js",
+    "compile": "npm run clean && tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "pretest": "npm run compile && npm run lint && npm run verify:case-sensitive-imports",
     "lint": "eslint src --ext ts",
+    "verify:case-sensitive-imports": "node ./scripts/verify-case-sensitive-imports.js",
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
