@@ -310,3 +310,32 @@ test('changing an initial attribute refreshes immediate child labels', () => {
 		assert.deepEqual(refreshes, ['first', 'second']);
 	}
 });
+
+test('deleting a selection clears it before removing graphics', () => {
+	for (const [command, expectedDeleteArgs] of [
+		['deleteSelectionOnly', [true]],
+		['deleteSelectionAndMore', [true, true]]
+	]) {
+		const editor = Object.create(VisualEditor.prototype);
+		let graphicsExist = true;
+		let deleteArgs;
+		const deletedItem = {
+			visuallyDeselect() {
+				assert.equal(graphicsExist, true);
+			},
+			delete(...args) {
+				assert.deepEqual(editor.selection, []);
+				deleteArgs = args;
+				graphicsExist = false;
+			}
+		};
+		const nextItem = {visuallySelect() {}};
+		editor.selection = [deletedItem];
+
+		editor[command]();
+		editor.setSelection([nextItem]);
+
+		assert.deepEqual(deleteArgs, expectedDeleteArgs);
+		assert.deepEqual(editor.selection, [nextItem]);
+	}
+});
