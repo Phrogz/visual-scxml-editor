@@ -10,7 +10,8 @@ export interface SelectionTypes {
 	stateSelected: Boolean,
 	transitionSelected: Boolean,
 	parentStateSelected: Boolean,
-	parallelSelected: Boolean
+	parallelSelected: Boolean,
+	initialCandidateSelected: Boolean
 }
 
 const BlankSCXML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -27,7 +28,8 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 const PassAlongCommands = ['createState','createChildState','fitChildren','layoutDiagram','zoomToExtents','zoomTo100','zoomToSelected',
-                           'toggleEventDisplay','deleteSelectionOnly','deleteSelectionAndMore','removeVisualization','addVerticalWayline','addHorizontalWayline'];
+                           'toggleEventDisplay','deleteSelectionOnly','deleteSelectionAndMore','removeVisualization','addVerticalWayline','addHorizontalWayline',
+                           'setInitial'];
 export class SCXMLEditorManager {
 	public glueByURI: Map<vscode.Uri, EditorGlue> = new Map();
 	private _glueWithActiveWebView: EditorGlue | null = null;
@@ -147,7 +149,8 @@ export class SCXMLEditorManager {
 			stateSelected: false,
 			transitionSelected: false,
 			parentStateSelected: false,
-			parallelSelected: false
+			parallelSelected: false,
+			initialCandidateSelected: false
 		};
 		for (const [scope, active] of Object.entries(selectedTypes)) {
 			vscode.commands.executeCommand('setContext', `visual-scxml-editor.${scope}`, active);

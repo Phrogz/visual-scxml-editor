@@ -189,6 +189,11 @@ class VisualEditor {
 		for (const t of transitions) t.addWayline(axis);
 	}
 
+	setInitial() {
+		const states = this.selection.filter(o => o.isState && !o.isParallelChild);
+		for (const state of states) state.isInitial = true;
+	}
+
 	makeDraggable(el, obj) {
 		el.addEventListener('mousedown', evt => {
 			if (evt.button) return; // Only drag when button is 0, i.e. left button

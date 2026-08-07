@@ -45,6 +45,11 @@
       },
       {
         "category": "SCXML Editor",
+        "command": "visual-scxml-editor.setInitial",
+        "title": "Set as Initial"
+      },
+      {
+        "category": "SCXML Editor",
         "command": "visual-scxml-editor.fitChildren",
         "title": "Expand State to Fit Children"
       },
@@ -137,6 +142,11 @@
           "when":"visual-scxml-editor.stateSelected"
         },
         {
+          "command": "visual-scxml-editor.setInitial",
+          "group": "scxmledit",
+          "when":"visual-scxml-editor.initialCandidateSelected"
+        },
+        {
           "command": "visual-scxml-editor.addHorizontalWayline",
           "group": "scxmledit",
           "when":"visual-scxml-editor.transitionSelected"
@@ -196,6 +206,10 @@
         {
           "command": "visual-scxml-editor.createChildState",
           "when": "visual-scxml-editor.visualEditorActive && visual-scxml-editor.stateSelected"
+        },
+        {
+          "command": "visual-scxml-editor.setInitial",
+          "when": "visual-scxml-editor.visualEditorActive && visual-scxml-editor.initialCandidateSelected"
         },
         {
           "command": "visual-scxml-editor.createTransition",

@@ -43,7 +43,15 @@ const visualDOMWithStubbedDependency = visualDOMSource.replace(
 	'class SCXMLDoc {} class SCXMLState { addChild(...args) { return this._addChild(...args); } } class SCXMLTransition {}'
 );
 assert.notEqual(visualDOMWithStubbedDependency, visualDOMSource);
-const {VisualState, VisualTransition} = await import(`data:text/javascript;base64,${Buffer.from(visualDOMWithStubbedDependency).toString('base64')}`);
+const {VisualRoot, VisualState, VisualTransition} = await import(`data:text/javascript;base64,${Buffer.from(visualDOMWithStubbedDependency).toString('base64')}`);
+
+const visualEditorSource = fs.readFileSync(new URL('../../resources/visualeditor.js', import.meta.url), 'utf8');
+const visualEditorWithStubbedDependency = visualEditorSource.replace(
+	"import { VisualDoc, VisualRoot, VisualState, VisualTransition, makeEl } from 'visualDOM';",
+	'class VisualDoc {} class VisualRoot {} class VisualState {} class VisualTransition {} function makeEl() {}'
+);
+assert.notEqual(visualEditorWithStubbedDependency, visualEditorSource);
+const {default:VisualEditor} = await import(`data:text/javascript;base64,${Buffer.from(visualEditorWithStubbedDependency).toString('base64')}`);
 
 function makeState(states=[]) {
 	let xywh = [10, 20, 120, 80];
@@ -259,4 +267,46 @@ test('adding a consecutive wayline rebuilds selectors with both handles', () => 
 
 	assert.deepEqual(result.anchors.slice(1, 3).map(anchor => anchor.x), [30, 50]);
 	assert.equal(result.selectorsCreated, 1);
+});
+
+test('setting selected states as initial replaces sibling choices and skips parallel children', () => {
+	const parent1 = {initial: 'oldSibling'};
+	const parent2 = {initial: null};
+	const parallel = {initial: null};
+	const state = (id, parent, isParallelChild=false) => ({
+		id,
+		parent,
+		isState: true,
+		isParallelChild,
+		set isInitial(makeInitial) {
+			if (makeInitial) this.parent.initial = this.id;
+		}
+	});
+	const editor = Object.create(VisualEditor.prototype);
+	editor.selection = [
+		state('newSibling', parent1),
+		state('nestedInitial', parent2),
+		state('parallelChild', parallel, true),
+		{isTransition: true}
+	];
+
+	editor.setInitial();
+
+	assert.equal(parent1.initial, 'newSibling');
+	assert.equal(parent2.initial, 'nestedInitial');
+	assert.equal(parallel.initial, null);
+});
+
+test('changing an initial attribute refreshes immediate child labels', () => {
+	for (const ParentClass of [VisualRoot, VisualState]) {
+		const refreshes = [];
+		const parent = Object.create(ParentClass.prototype);
+		parent.states = [
+			{updateLabel: () => refreshes.push('first')},
+			{updateLabel: () => refreshes.push('second')}
+		];
+
+		assert.equal(parent.updateAttribute(null, 'initial'), true);
+		assert.deepEqual(refreshes, ['first', 'second']);
+	}
 });

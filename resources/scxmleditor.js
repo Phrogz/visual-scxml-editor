@@ -115,6 +115,7 @@ window.addEventListener('message', event => {
 		case 'removeVisualization':
 		case 'addVerticalWayline':
 		case 'addHorizontalWayline':
+		case 'setInitial':
 			if (visualEditor[message.command] instanceof Function) {
 				visualEditor[message.command](message);
 			} else {
