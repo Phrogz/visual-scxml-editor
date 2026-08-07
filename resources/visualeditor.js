@@ -440,6 +440,10 @@ class VisualEditor {
 	}
 
 	onZoomChanged() {
+		const zoomFactor = this.zoomFactor;
+		this.svg.style.setProperty('--transition-label-opacity', Math.max(0, Math.min(0.5, 1 - zoomFactor/2)));
+		this.svg.style.setProperty('--state-label-opacity', Math.max(0, Math.min(1, 2 - zoomFactor/2)));
+
 		// Tell all the child states and transitions
 		this.scxmlDoc.states.forEach(state => state.onZoomChanged());
 		this.scxmlDoc.transitions.forEach(tran => tran.onZoomChanged());

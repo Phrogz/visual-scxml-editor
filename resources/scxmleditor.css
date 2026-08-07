@@ -23,6 +23,9 @@ svg text {
     dominant-baseline:central;
     cursor:default;
 }
+.state text {
+    opacity:var(--state-label-opacity, 1);
+}
 
 .state.parallel .parallel-divider,
 .state.parallel-child .parallel-divider {
@@ -63,7 +66,7 @@ g.transition {
     font-family:Tahoma, 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
     font-size:11px;
     text-anchor:start;
-    opacity:0.5;
+    opacity:var(--transition-label-opacity, 0.5);
 }
 .transition.eventless text {
     display:none;
