@@ -282,7 +282,7 @@ export class VisualState extends SCXMLState {
 			e:  makeEl('rect',   {_dad:ego.editor.selectors, 'class':'e'}),
 		};
 
-		const childStates = this.isParallel && this.states;
+		const childStates = this.isParallel && this.states?.length && this.states;
 		if (childStates) {
 			for (let i=1; i<childStates.length; ++i) {
 				ego.selectors[`divider${i}`] = makeEl('rect', {_dad:ego.editor.selectors, 'class':'divider', 'data-divider-index':i});

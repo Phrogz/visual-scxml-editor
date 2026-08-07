@@ -307,20 +307,17 @@
     "clean": "node ./scripts/clean.js",
     "compile": "npm run clean && tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint && npm run verify:case-sensitive-imports",
+    "test:prepare": "npm run compile && npm run lint && npm run verify:case-sensitive-imports",
     "lint": "eslint src --ext ts",
     "verify:case-sensitive-imports": "node ./scripts/verify-case-sensitive-imports.js",
-    "test": "node ./out/test/runTest.js"
+    "test": "npm run test:prepare && node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/glob": "^8.0.1",
     "@types/node": "^16.18.12",
     "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
-    "@vscode/test-electron": "^2.2.2",
     "eslint": "^8.33.0",
-    "glob": "^8.1.0",
     "typescript": "^4.9.4"
   },
   "overrides": {
