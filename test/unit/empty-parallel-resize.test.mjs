@@ -43,7 +43,7 @@ const visualDOMWithStubbedDependency = visualDOMSource.replace(
 	'class SCXMLDoc {} class SCXMLState { addChild(...args) { return this._addChild(...args); } } class SCXMLTransition {}'
 );
 assert.notEqual(visualDOMWithStubbedDependency, visualDOMSource);
-const {VisualRoot, VisualState, VisualTransition} = await import(`data:text/javascript;base64,${Buffer.from(visualDOMWithStubbedDependency).toString('base64')}`);
+const {VisualRoot, VisualState, VisualTransition, parseRoutingPoints} = await import(`data:text/javascript;base64,${Buffer.from(visualDOMWithStubbedDependency).toString('base64')}`);
 
 const visualEditorSource = fs.readFileSync(new URL('../../resources/visualeditor.js', import.meta.url), 'utf8');
 const visualEditorWithStubbedDependency = visualEditorSource.replace(
@@ -267,6 +267,36 @@ test('adding a consecutive wayline rebuilds selectors with both handles', () => 
 
 	assert.deepEqual(result.anchors.slice(1, 3).map(anchor => anchor.x), [30, 50]);
 	assert.equal(result.selectorsCreated, 1);
+});
+
+test('malformed routing tokens are ignored without producing invalid paths', () => {
+	const makeState = xywh => {
+		const state = Object.create(VisualState.prototype);
+		Object.defineProperty(state, 'xywh', {get:() => xywh});
+		return state;
+	};
+	for (const [pts, invalid] of [
+		['S X100', ['S']],
+		['X100 Y X200', ['Y']]
+	]) {
+		let path;
+		const transition = Object.create(VisualTransition.prototype);
+		transition.source = makeState([0, 80, 120, 50]);
+		transition.target = makeState([0, 0, 120, 50]);
+		transition._vse = {
+			path: {setAttribute: (_, value) => { path = value; }},
+			catcher: {setAttribute() {}}
+		};
+		Object.defineProperties(transition, {
+			event: {get:() => ''},
+			pts: {get:() => pts},
+			radius: {get:() => 100}
+		});
+
+		assert.deepEqual(parseRoutingPoints(pts).invalid, invalid);
+		transition.reroute();
+		assert.doesNotMatch(path, /NaN|undefined/);
+	}
 });
 
 test('setting selected states as initial replaces sibling choices and skips parallel children', () => {

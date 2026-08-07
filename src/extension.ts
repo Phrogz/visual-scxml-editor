@@ -106,10 +106,11 @@ export class SCXMLEditorManager {
 
 	public showErrors(doc: vscode.TextDocument, errors: any[]) {
 		const diags: vscode.Diagnostic[] = errors.map(error => {
+			const warning = error.severity==='warning';
 			return new vscode.Diagnostic(
 				new vscode.Range(error.line-1, error.col-1, error.line-1, error.col),
-				`Error parsing SCXML: ${error.msg}`,
-				vscode.DiagnosticSeverity.Error
+				warning ? error.msg : `Error parsing SCXML: ${error.msg}`,
+				warning ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Error
 			);
 		});
 		this.diagnostics.set(doc.uri, diags);
