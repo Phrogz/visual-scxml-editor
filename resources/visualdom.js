@@ -168,21 +168,61 @@ export class VisualState extends SCXMLState {
 	}
 
 	addChild(...args) {
+		const existingChildren = this.states;
 		const el = super.addChild(...args);
 		el.initialize(this._vse.editor);
 
 		let parentXYWH = this.xywh;
 		if (parentXYWH) {
-			// TODO: this assumes no other children; when they exist, place this child somewhere better
 			const ed = this._vse.editor;
-			el.xywh = [
-				parentXYWH[0] + ed.gridSize,
-				parentXYWH[1] + VisualState.headerHeight + ed.gridSize,
-				VisualState.defaultLeafWidth,
-				VisualState.defaultLeafHeight
-				,
-			];
-			this.expandToFitChildren();
+			if (this.isParallel) {
+				const [parentX, parentY,, parentH] = parentXYWH;
+				const gridSize = ed.gridSize;
+				const ceilToGrid = value => Math.ceil(value/gridSize) * gridSize;
+				const oldWidths = existingChildren.map(child => child.w);
+				const oldWidthTotal = oldWidths.reduce((sum, width) => sum + width, 0);
+				let parentW = ceilToGrid(parentXYWH[2]);
+				let newWidth, siblingWidths, needsMoreWidth;
+
+				do {
+					newWidth = ceilToGrid(parentW / (existingChildren.length + 1));
+					const siblingUnits = (parentW - newWidth) / gridSize;
+					const exactUnits = oldWidths.map(width => siblingUnits * width / oldWidthTotal);
+					const roundedUnits = exactUnits.map(Math.floor);
+					const unitsLeft = siblingUnits - roundedUnits.reduce((sum, width) => sum + width, 0);
+					exactUnits.map((width, i) => ({i, remainder:width - roundedUnits[i]}))
+						.sort((a,b) => b.remainder - a.remainder || a.i - b.i)
+						.slice(0, unitsLeft)
+						.forEach(({i}) => roundedUnits[i]++);
+					siblingWidths = roundedUnits.map(width => width * gridSize);
+					needsMoreWidth = newWidth < VisualState.minWidth || siblingWidths.some(width => width < VisualState.minWidth);
+					if (needsMoreWidth) {
+						parentW += gridSize;
+					}
+				} while (needsMoreWidth);
+
+				if (parentW!==parentXYWH[2]) {
+					parentXYWH[2] = parentW;
+					this.xywh = parentXYWH;
+				}
+
+				let childX = parentX;
+				const childY = parentY + VisualState.headerHeight;
+				const childH = parentH - VisualState.headerHeight;
+				existingChildren.forEach((child, i) => {
+					child.xywh = [childX, childY, siblingWidths[i], childH];
+					childX += siblingWidths[i];
+				});
+				el.xywh = [childX, childY, newWidth, childH];
+			} else {
+				el.xywh = [
+					parentXYWH[0] + ed.gridSize,
+					parentXYWH[1] + VisualState.headerHeight + ed.gridSize,
+					VisualState.defaultLeafWidth,
+					VisualState.defaultLeafHeight
+				];
+				this.expandToFitChildren();
+			}
 		} else {
 			console.log("FIXME: place and size state added to root");
 			// FIXME: need to place and size state if parent is scxml

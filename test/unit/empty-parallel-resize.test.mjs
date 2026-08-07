@@ -40,7 +40,7 @@ globalThis.document = {
 const visualDOMSource = fs.readFileSync(new URL('../../resources/visualdom.js', import.meta.url), 'utf8');
 const visualDOMWithStubbedDependency = visualDOMSource.replace(
 	"import { SCXMLDoc, SCXMLState, SCXMLTransition } from 'scxmlDOM';",
-	'class SCXMLDoc {} class SCXMLState {} class SCXMLTransition {}'
+	'class SCXMLDoc {} class SCXMLState { addChild(...args) { return this._addChild(...args); } } class SCXMLTransition {}'
 );
 assert.notEqual(visualDOMWithStubbedDependency, visualDOMSource);
 const {VisualState, VisualTransition} = await import(`data:text/javascript;base64,${Buffer.from(visualDOMWithStubbedDependency).toString('base64')}`);
@@ -77,6 +77,40 @@ function drag(state, direction, dx) {
 	handlers.handleDrag(dx, 0, sandbox);
 }
 
+function makeChild(xywh) {
+	let bounds = xywh.slice();
+	return {
+		initialize() {},
+		get w() { return bounds[2]; },
+		get xywh() { return bounds.slice(); },
+		set xywh(value) { bounds = value.slice(); }
+	};
+}
+
+function makeParallelForAdding(parentXYWH, childXYWHs=[]) {
+	let bounds = parentXYWH.slice();
+	const children = childXYWHs.map(makeChild);
+	const newChild = makeChild([0, 0, 120, 40]);
+	const state = Object.create(VisualState.prototype);
+	state.isParallel = true;
+	state._vse = {editor:{gridSize:10}};
+	state._addChild = () => {
+		children.push(newChild);
+		return newChild;
+	};
+	Object.defineProperty(state, 'xywh', {
+		get: () => bounds.slice(),
+		set: value => { bounds = value.slice(); }
+	});
+	Object.defineProperty(state, 'states', {get: () => children.slice()});
+	return {
+		state,
+		children,
+		newChild,
+		getParentXYWH: () => bounds.slice()
+	};
+}
+
 test('an empty parallel resizes horizontally without child errors', () => {
 	const eastResize = makeState();
 	assert.doesNotThrow(() => drag(eastResize, 'e', 40));
@@ -97,6 +131,60 @@ test('a populated parallel keeps its children coupled during resize', () => {
 
 	assert.deepEqual(eastResize.getXYWH(), [10, 20, 140, 80]);
 	assert.equal(children[1].w, 80);
+});
+
+test('the first parallel child fills the area below the header', () => {
+	const fixture = makeParallelForAdding([100, 200, 120, 80]);
+	const added = fixture.state.addChild();
+
+	assert.equal(added, fixture.newChild);
+	assert.deepEqual(fixture.getParentXYWH(), [100, 200, 120, 80]);
+	assert.deepEqual(added.xywh, [100, 230, 120, 50]);
+});
+
+test('a new parallel child is appended while existing widths stay proportional', () => {
+	const fixture = makeParallelForAdding([100, 200, 180, 100], [
+		[100, 230, 120, 70],
+		[220, 230, 60, 70]
+	]);
+	fixture.state.addChild();
+
+	assert.deepEqual(fixture.getParentXYWH(), [100, 200, 180, 100]);
+	assert.deepEqual(fixture.children.map(child => child.xywh), [
+		[100, 230, 80, 70],
+		[180, 230, 40, 70],
+		[220, 230, 60, 70]
+	]);
+});
+
+test('fractional proportional widths are apportioned without gaps', () => {
+	const fixture = makeParallelForAdding([0, 0, 200, 100], [
+		[0, 30, 120, 70],
+		[120, 30, 80, 70]
+	]);
+	fixture.state.addChild();
+
+	assert.deepEqual(fixture.children.map(child => child.xywh), [
+		[0, 30, 80, 70],
+		[80, 30, 50, 70],
+		[130, 30, 70, 70]
+	]);
+});
+
+test('the parallel grows only enough to keep every child at minimum width', () => {
+	const fixture = makeParallelForAdding([0, 0, 120, 100], [
+		[0, 30, 30, 70],
+		[30, 30, 90, 70]
+	]);
+	fixture.state.addChild();
+
+	assert.deepEqual(fixture.getParentXYWH(), [0, 0, 150, 100]);
+	assert.deepEqual(fixture.children.map(child => child.xywh), [
+		[0, 30, 30, 70],
+		[30, 30, 70, 70],
+		[100, 30, 50, 70]
+	]);
+	assert.ok(fixture.children.every(child => child.w >= VisualState.minWidth));
 });
 
 function addWayline(anchors, axis) {
