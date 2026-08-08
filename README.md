@@ -23,8 +23,9 @@ in a manner that allows the SCXML to still be used in production.
 * Default visual style matches the current VS Code theme
   * Customization of state colors allows for additional information to be conveyed
 * Inspector palette supports authoring of custom actions ([see below](#authoring-custom-executable-actions) for details)
-* Route transitions around states via waypoints
-  * Currently requires hand-editing the XML attribute to inject waypoints;
+* Route transitions around states via waylines
+  * Add horizontal or vertical waylines from the command palette or visual-editor context menu
+  * Hand-edit the XML attribute when exact wayline ordering is needed;
     see the [documentation on visualization attributes](docs/attributes.md#transitions) for details
 
 
@@ -44,23 +45,30 @@ in a manner that allows the SCXML to still be used in production.
 
 ### Available Commands
 
-* `SCXML Editor: Create Blank State Machine` — Creates a new untitled .
-* `SCXML Editor: Open to Side` — Opens a visual editor tied to the current SCXML document; only
+* `SCXML Editor: Create Blank State Machine` — Creates a new untitled `.scxml` document.
+* `SCXML Editor: Open to the Side` — Opens a visual editor tied to the current SCXML document; only
   available if the language for the active text editor is set to XML.
-* `SCXML Editor: Layout Entire Diagram` — Moves all states to hopefully-useful initial places.
-  Also resets any existing transition routing to the defaults.
-* `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the visual editor will
-  have their placement adjusted to ensure all children fit within them.
-* `SCXML Editor: Add State` (or `Add Child State`) — Creates new state(s) in the state machine.
-  If any state(s) are selected the new states are added as children of them.
-  Also available via context menu in the visual editor.
+* `SCXML Editor: Add State` — Creates a new root state when no state is selected.
+* `SCXML Editor: Add Child State` — Adds a child to each selected state. Both state-creation commands
+  are also available via context menu in the visual editor.
 * `SCXML Editor: Set as Initial` — Marks each eligible selected state as its parent's initial state,
   replacing any previously marked sibling. Direct children of a `<parallel>` state are ignored, and
   the command is unavailable when they are the only selected states.
+* `SCXML Editor: Expand State to Fit Children` — Parent state(s) selected in the visual editor will
+  have their placement adjusted to ensure all children fit within them.
+* `SCXML Editor: Layout Entire Diagram` — Moves all states to hopefully-useful initial places.
+  Also resets any existing transition routing to the defaults.
+* `SCXML Editor: Undo` — Runs Undo in the connected text editor, available as `Ctrl+Z`/`Cmd+Z` while
+  the visual editor has focus.
+* `SCXML Editor: Save` — Saves the connected text document, available as `Ctrl+S`/`Cmd+S` while the
+  visual editor has focus.
 * `SCXML Editor: Add Transition` — Creates new transition(s) in the state machine, starting at the
   selected state(s). (If no states are selected, uses a quick pick to select a state to start from.)
   Quick picks also let you select the target state, and specify an event name and conditional.
   The command is also available via context menu in the visual editor.
+* `SCXML Editor: Add Wayline, Horizontal` (or `SCXML Editor: Add Wayline, Vertical`) — Appends a
+  wayline to each selected transition and immediately shows its drag handle. Also available via
+  context menu in the visual editor.
 * `SCXML Editor: Zoom to Fit` — Fit the entire state machine in the visual editor.
 * `SCXML Editor: Zoom to Selected` — Fit the selected state(s) and transition(s) in the view.
 * `SCXML Editor: Zoom to 100%` — Adjust the zoom to the base size.
@@ -88,7 +96,7 @@ in a manner that allows the SCXML to still be used in production.
 * `Shift-MouseWheel` — pan left/right
 * `Delete` — Delete Selection Only
 * `Shift+Delete` — Delete Selection and References
-* `Ctrl+Alt+Z`/`Cmd+Alt+Z` — Zoom to Fit
+* `Ctrl+Alt+Z`/`Cmd+Alt+Z` — Zoom to Selected when there is a selection; otherwise, Zoom to Fit
 * `Alt+Shift+Z` — Zoom to 100%
 * `e` — Show/Hide Events
 
@@ -166,6 +174,61 @@ Want to help fix bugs or add features? Great! See the [Architecture documentatio
 for core concepts on how the extension works and information flows.
 
 ## Release Notes
+
+### **0.6.0** — 2026-Aug-7
+
+#### New Features
+
+* New `Add Wayline, Horizontal` and `Add Wayline, Vertical` commands let you add routing guidelines graphically,
+  with the new drag handle shown immediately.
+  They're always added as the new last waypoint/line, though; for now, hand-edit the `viz:pts="…"` to change the order.
+  ([Issue #42](https://github.com/Phrogz/visual-scxml-editor/issues/42), [Issue #56](https://github.com/Phrogz/visual-scxml-editor/issues/56))
+
+* Transition routes can omit either endpoint, but use waypoints or waylines, to automatically select an attachment point.
+  ([Issue #7](https://github.com/Phrogz/visual-scxml-editor/issues/7), [Issue #18](https://github.com/Phrogz/visual-scxml-editor/issues/18))
+
+* Added a `Set as Initial` command for graphically changing which child states are the initial to enter.
+  ([Issue #46](https://github.com/Phrogz/visual-scxml-editor/issues/46))
+
+* Transition labels fade out, and then state labels fade later as the diagram is zoomed out.
+  ([Issue #10](https://github.com/Phrogz/visual-scxml-editor/issues/10))
+
+* Transition markers shrink at low zoom levels, so they don't overwhelm the diagram.
+  ([Issue #14](https://github.com/Phrogz/visual-scxml-editor/issues/14)).
+
+* Empty `<parallel>` states can be resized without errors; adding parallel children automatically gives them a reasonable size within the parent.
+  ([Issue #24](https://github.com/Phrogz/visual-scxml-editor/issues/24), [Issue #57](https://github.com/Phrogz/visual-scxml-editor/issues/57))
+
+#### Bug Fixes
+
+* Fixed case-sensitive compiled imports so the extension should work everywhere, including Remote SSH.
+  ([Issue #45](https://github.com/Phrogz/visual-scxml-editor/issues/45))
+
+* Deleting a selected state no longer prevents subsequent visual selections.
+  ([Issue #62](https://github.com/Phrogz/visual-scxml-editor/issues/62))
+
+* Visual edits reconnect correctly after switching away from and back to the text-editor tab.
+  ([Issue #19](https://github.com/Phrogz/visual-scxml-editor/issues/19))
+
+* States created through `Add State` are immediately available as transition targets.
+  ([Issue #40](https://github.com/Phrogz/visual-scxml-editor/issues/40))
+
+* Symmetrical wayline routes now result in symmetrical corner radii.
+  ([Issue #43](https://github.com/Phrogz/visual-scxml-editor/issues/43))
+
+* Malformed `viz:pts` commands are now ignored without breaking the diagram, and are reported as
+  warnings in the Problems panel.
+  ([Issue #44](https://github.com/Phrogz/visual-scxml-editor/issues/44))
+
+* Newly created transitions remain selected in both the visual and text editors
+  ([Issue #41](https://github.com/Phrogz/visual-scxml-editor/issues/41))
+
+* Repeatedly adding new child nodes no longer stacks them atop one another.
+
+* Long state IDs are kept within their state boundaries.
+  ([Issue #55](https://github.com/Phrogz/visual-scxml-editor/issues/55))
+
+* Removed unused test dependencies that introduced security audit findings and added automated tests to the package workflow.
 
 ### **0.5.0** — 2023-Mar-2
 

@@ -20,7 +20,7 @@ between modules.
      * **[`base.css`](../resources/base.css)** layout of the page elements, including the Inspector
      * **[`scxmleditor.css`](../resources/scxmleditor.css)** base style for all diagram pieces
      * **[`theme.css`](../resources/theme.css)** colors the diagram based on the current VS Code theme
-     * **[`mutable.css`](../resources/theme.css)** holds styles to be modified by script at runtime
+     * **[`mutable.css`](../resources/mutable.css)** holds styles to be modified by script at runtime
    * Programmatically, [`scxmleditor.js`](../resources/scxmleditor.js) is the only script loaded directly
      by the HTML; that library then imports other modules. Responsibilities by file:
      * **[`scxmleditor.js`](../resources/scxmleditor.js)** is the glue that pulls everything together:
@@ -63,14 +63,14 @@ _See the implementation of the above objects for the properties and methods they
 
 # Visual DOM
 
-Once the SCXMLDoc is created and passed to [`visualeditor.js](../resources/visualeditor.js),
-MORE prototypes are injected into certain elements, defined in [`visualdom.js`](../resources/visualdom.js).
+Once the SCXMLDoc is created and passed to [`visualeditor.js`](../resources/visualeditor.js),
+more prototypes are injected into certain elements, defined in [`visualdom.js`](../resources/visualdom.js).
 These properties and methods manage the visual state of the diagram, outside the scope of just SCXML.
 
 * **`VisualDoc`** — a simple extension to the XMLDocument which ensures that newly-created elements
   get properly injected with the new prototypes.
 * **`VisualRoot`** — added just to the root `<scxml>` element.
-* **`VisualState`** — added to state elements (other than `<scxml>`.
+* **`VisualState`** — added to state elements (other than `<scxml>`).
 * **`VisualTransition`** — added to `<transition>` elements.
 
 _See the implementation of the above objects for the properties and methods they provide._
@@ -80,7 +80,7 @@ _See the implementation of the above objects for the properties and methods they
 A surprising amount of calculation goes into finding the "right" path for a transition to take.
 This section describes how the path is calculated.
 
-### Tterminology and Basic Concepts
+### Terminology and Basic Concepts
 
 * An "anchor" is a point in space through which the path must pass, including the horizontal/vertical
   orientation of the path as it passes through the point.
@@ -104,7 +104,7 @@ the path to be traveling vertically, with no horizontal wayline specified betwee
 waylines shown in red are inserted, with their Y values computed to evenly distribute the vertical
 changes.
 
-Finally, calculations become tricker still if explicit anchors are omitted from one or both and states.
+Finally, calculations become trickier still if explicit anchors are omitted from one or both states.
 In these situations, we look at the adjacent wayline to select candidate anchors, but must look for
 more information to select which candidate is best. For example:
 

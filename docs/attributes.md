@@ -12,17 +12,24 @@ should be a human-readable and human-editable XML file.
   space, even for states that are children of another state. (Moving the parent state in the visual
   editor updates the x,y coordinates for all descendants.)
 
-  To be visualized correctly children of a parallel must:
+  To be visualized correctly, children of a parallel must:
   * Be arranged left-to-right, in source code order, dividing up the width of the parent.
   * `child.y = parallelParent.y + 30`
   * `child.h = parallelParent.h - 30`
+
+  When a child is added to a parallel in the visual editor, the editor automatically maintains this
+  arrangement. The first child fills the area below the 30-unit header. Each subsequent child is
+  appended on the right while existing child widths are reduced proportionally. If the parallel is
+  too narrow to preserve the minimum child width, the editor grows the parallel before distributing
+  the available width.
 
 * **`viz:rgb="rrggbb"`** — hexadecimal integer values for red, green, and blue fill color
 
 
 ## Transitions
 
-* **`viz:pts="start (wayline+)? end?"`** — route points for the transition line
+* **`viz:pts="[start] [wayline …] [end]"`** — route points for the transition line; square brackets
+  indicate optional values
   * Either endpoint may be omitted; the editor automatically chooses the missing attachment point.
     For example, `viz:pts="N10"` fixes the source on its north edge and automatically attaches the
     other end to the target state.
@@ -36,6 +43,8 @@ should be a human-readable and human-editable XML file.
     must pass through. A wayline of `X10` causes the transition to pass through the closest point on
     the vertical line at `x=10`; a wayline of `Y-100` causes the transition to pass through the
     closest point on the horizontal line at `y=-100`.
+  * Unrecognized routing tokens are ignored so they do not break the visualization, and each is
+    reported as a warning in VS Code's Problems panel.
 * **`viz:r="10"`** — fixed corner radius to use when changing direction
 * **`viz:offset="along"`**, **`viz:offset="along across"`** — distance from the transition start
   point to place text `along` the transition's route, with an optional offset `across`
