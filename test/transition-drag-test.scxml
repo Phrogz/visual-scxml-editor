@@ -1,0 +1,21 @@
+<scxml version="1.0" xmlns="http://www.w3.org/2005/07/scxml" xmlns:viz="http://phrogz.net/visual-scxml">
+	<state id="A" viz:xywh="-50 -40 230 300">
+		<state id="A1" viz:xywh="0 0 120 50">
+			<transition event="e" target="A2"/>
+		</state>
+		<state id="A2" viz:xywh="0 80 120 50">
+			<transition event="e" target="B2" viz:pts="E35 X150 Y145"/>
+			<transition event="inside" target="A1" viz:offset="55" viz:pts="E15 X145 E0"/>
+			<transition event="outside" target="A1" viz:offset="100" viz:pts="X-70 Y15" viz:r="85"/>
+		</state>
+		<transition event="e" target="A2" viz:pts="a Y150 S50"/>
+		<state id="A3" viz:xywh="0 170 120 50">
+			<transition event="e" target="B" viz:pts="X205 Y-60"/>
+			<transition event="t" target="A" viz:pts="S0 Y245 X160 N210"/>
+		</state>
+	</state>
+	<state id="B" viz:xywh="220 -30 160 200">
+		<state id="B1" viz:xywh="240 0 120 50"/>
+		<state id="B2" viz:xywh="240 80 120 50"/>
+	</state>
+</scxml>
