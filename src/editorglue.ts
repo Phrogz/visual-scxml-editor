@@ -76,6 +76,7 @@ export class EditorGlue {
 			['visualDOMJS',    this.webviewURI('visualdom.js')],
 			['visualEditorJS', this.webviewURI('visualeditor.js')],
 			['scxmlEditorJS',  this.webviewURI('scxmleditor.js')],
+			['actionsSchemaJSON', JSON.stringify(fs.readFileSync(this.resourcePath('actions.xml'), 'utf8'))],
 			['baseCSS',        this.webviewURI('base.css')],
 			['scxmlEditorCSS', this.webviewURI('scxmleditor.css')],
 			['mutableCSS',     this.webviewURI('mutable.css')],
@@ -139,7 +140,7 @@ export class EditorGlue {
 		html = html.replace('${cspSource}', this.panel.webview.cspSource);
 
 		// Replace ${resource} placeholders with proper paths
-		this.panel.webview.html = html.replace(/\$\{([^}]+)\}/g, (_, p) => this.resourceMap.get(p) || '');
+		this.panel.webview.html = html.replace(/\$\{([^}]+)\}/g, (_match: string, key: string) => this.resourceMap.get(key) || '');
 	}
 
 	private async _update(): Promise<void> {

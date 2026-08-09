@@ -575,15 +575,28 @@ class VisualEditor {
 	onDocChange(mutationList) {
 		console.info('VisualEditor.onDocChange() invoked due to SCXMLDoc mutation');
 		let interestingChanges = false;
+		const executableStates = new Set();
+		const executableTransitions = new Set();
+
+		const markExecutableOwner = node => {
+			if (!node) return;
+			if (node.nodeName==='transition') {
+				executableTransitions.add(node);
+			} else if ((node.nodeName==='onentry' || node.nodeName==='onexit') && node.parentNode?.isState) {
+				executableStates.add(node.parentNode);
+			} else if (node.isState) {
+				executableStates.add(node);
+			}
+		};
+
 		mutationList.forEach(m => {
 			switch (m.type) {
 				case 'childList':
 					interestingChanges = true;
-					let anyScripts = false;
 					let anyStates  = false;
+					markExecutableOwner(m.target);
 					m.removedNodes.forEach(n => {
 						if (!n.parentNode && n.deleteGraphics) n.deleteGraphics();
-						anyScripts |= n.nodeName==='script';
 						anyStates  |= n.isState;
 					});
 
@@ -606,19 +619,7 @@ class VisualEditor {
 							break;
 
 							case 'script':
-								const parent = n.parentNode;
-								switch (parent?.nodeName) {
-									case 'transition':
-										parent.updateStyleForExecutable();
-									break;
-									case 'onentry':
-									case 'onexit':
-										parent.parentNode.updateStyleForExecutable();
-									break;
-									case null:
-										console.error(`Trying to add script node, but there's no parentNode for ${n}`);
-									break;
-								}
+								if (!n.parentNode) console.error(`Trying to add script node, but there's no parentNode for ${n}`);
 							break;
 
 							case '#text':
@@ -628,11 +629,11 @@ class VisualEditor {
 							break;
 
 							default:
-								console.warn(`Visual SCXML Editor is ignoring added ${n.nodeName} node:`, n);
+								if (!(n.parentNode?.nodeName==='transition' || n.parentNode?.nodeName==='onentry' || n.parentNode?.nodeName==='onexit')) {
+									console.warn(`Visual SCXML Editor is ignoring added ${n.nodeName} node:`, n);
+								}
 						}
 					});
-
-					if (anyScripts) this.scxmlDoc.states.forEach(s => s.updateStyleForExecutable());
 					if (anyStates)  this.scxmlDoc.states.forEach(s => s.updateStyleForDescendants());
 				break;
 
@@ -643,6 +644,10 @@ class VisualEditor {
 				break;
 			}
 		});
+
+		executableTransitions.forEach(t => t.updateStyleForExecutable?.());
+		executableStates.forEach(s => s.updateStyleForExecutable?.());
+
 		if (interestingChanges) {
 			if (this.draggingActive) {
 				this.notifyWhenDoneDragging = true;

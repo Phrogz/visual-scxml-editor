@@ -175,6 +175,22 @@ for core concepts on how the extension works and information flows.
 
 ## Release Notes
 
+### **(pending)**
+
+#### New Features
+
+* The Inspector can now create and edit common executable actions out of the box, including `script`, `assign`, `log`, `raise`, `send`, and `cancel`.
+
+#### Bug Fixes
+
+* Fixed action editing to refresh immediately after user changes.
+* Fixed executable presence markers on states/transitions to show when a first action is added, and hide when the last action is removed.
+* Fixed action attribute handling so empty fields stay empty and no longer get saved as invalid placeholder values.
+
+#### Changes
+
+* Improved action type conversion so compatible values are preserved when switching one action kind to another.
+
 ### **0.6.0** — 2026-Aug-7
 
 #### New Features

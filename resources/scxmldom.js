@@ -461,6 +461,17 @@ export class SCXMLScript extends Element {
 		if (code.trim()) this.textContent = code;
 		else             this.delete();
 	}
+
+	// Replace this element with a new one, maintaining attribute values where possible
+	mutateInto(newNS, newName, newAttrs, newText=null) {
+		const doc = this.ownerDocument;
+		const el = doc.createElementNS(newNS, newName);
+		for (const k of Object.keys(newAttrs)){
+			el.setAttribute(k, newAttrs[k]);
+		}
+		if (newText!==null) el.textContent = newText;
+		this.replaceWith(el);
+	}
 }
 
 // Prototype injected into unrecognized elements
@@ -481,12 +492,13 @@ export class SCXMLCustom extends Element {
 	}
 
 	// Replace this element with a new one, maintaining attribute values where possible
-	mutateInto(newNS, newName, newAttrs) {
+	mutateInto(newNS, newName, newAttrs, newText=null) {
 		const doc = this.ownerDocument;
 		const el = doc.createElementNS(newNS, newName);
 		for (const k of Object.keys(newAttrs)){
 			el.setAttribute(k, newAttrs[k]);
 		}
+		if (newText!==null) el.textContent = newText;
 		this.replaceWith(el);
 	}
 

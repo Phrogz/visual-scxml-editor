@@ -48,6 +48,7 @@ insAddExit.addEventListener('click', _ => addNewAction('exit'));
 insAddTransitionExecutable.addEventListener('click', _ => addNewAction('transition'));
 
 let actionSchema;
+const baseActionSchemaText = JSON.parse(document.getElementById('baseActionSchemaText')?.textContent || '""');
 
 // Wait a short time before updating the document once only, so that quick changes (e.g. dragging) do not keep dirtying the document until done
 const serializationOptions = {strip:true, indent:'\t', sort:true, cdata:true, tightcdata:true};
@@ -170,46 +171,63 @@ function watchInput(input, propertyName) {
 }
 
 function readActionSchema(scxmlDoc) {
-	const wrapper = scxmlDoc.querySelector('actions');
-	if (wrapper?.namespaceURI === visualNS) {
-		return Array.from(wrapper.children).map(el => {
-			const action = {
-				ns:    el.namespaceURI,
-				name:  el.localName,
-				attrs: Array.from(el.querySelectorAll('attribute'))
-				            .filter(a => a.namespaceURI === visualNS)
-				            .map(a => Object.fromEntries(Array.from(a.attributes)
-				                                              .map(n => [n.name, n.value])))
-			};
-			action.attrs.forEach(a => {
-				let defaultValue;
-				switch (a.type) {
-					case 'int':
-						defaultValue = 0;
-						if (defaultValue < a.max) defaultValue = a.max;
-						if (defaultValue > a.min) defaultValue = a.min;
-					break;
-					case 'float':
-						defaultValue = 0;
-						if (defaultValue < a.max) defaultValue = a.max;
-						if (defaultValue > a.min) defaultValue = a.min;
-					break;
-					case 'boolean':
-						defaultValue = false;
-					break;
-					case 'choice':
-						defaultValue = a.values?.split(/,\s*/)[0];
-					break;
-				}
-				a.defaultValue = defaultValue;
-			});
-			return action;
-		}).concat([
-			{ns:NS, name:'assign', attrs:[{name:'location', type:'string'},{name:'expr', type:'string'}]},
-			{ns:NS, name:'raise', attrs:[{name:'event', type:'string'}]},
-			{ns:NS, name:'log', attrs:[{name:'label', type:'string'}, {name:'expr', type:'string'}]},
-		]);
+	const schemaByKey = new Map();
+
+	for (const action of parseActionSchemaDoc(parseXMLString(baseActionSchemaText))) {
+		schemaByKey.set(`${action.ns}|${action.name}`, action);
 	}
+
+	for (const action of parseActionSchemaDoc(scxmlDoc)) {
+		schemaByKey.set(`${action.ns}|${action.name}`, action);
+	}
+
+	return Array.from(schemaByKey.values());
+}
+
+function parseXMLString(str) {
+	if (!str) return null;
+	const xmldoc = (new DOMParser).parseFromString(str, 'text/xml');
+	return xmldoc.querySelector('parsererror') ? null : xmldoc;
+}
+
+function parseActionSchemaDoc(scxmlDoc) {
+	const wrapper = scxmlDoc?.querySelector?.('actions');
+	if (wrapper?.namespaceURI !== visualNS) return [];
+
+	return Array.from(wrapper.children).map(el => {
+		const action = {
+			ns:    el.namespaceURI,
+			name:  el.localName,
+			cdata: el.getAttributeNS(visualNS, 'cdata') === 'true',
+			attrs: Array.from(el.querySelectorAll('attribute'))
+			            .filter(a => a.namespaceURI === visualNS)
+			            .map(a => Object.fromEntries(Array.from(a.attributes)
+			                                      .map(n => [n.name, n.value])))
+		};
+		action.attrs.forEach(a => {
+			let defaultValue;
+			switch (a.type) {
+				case 'int':
+					defaultValue = 0;
+					if (a.max!==undefined && defaultValue > +a.max) defaultValue = +a.max;
+					if (a.min!==undefined && defaultValue < +a.min) defaultValue = +a.min;
+				break;
+				case 'float':
+					defaultValue = 0;
+					if (a.max!==undefined && defaultValue > +a.max) defaultValue = +a.max;
+					if (a.min!==undefined && defaultValue < +a.min) defaultValue = +a.min;
+				break;
+				case 'boolean':
+					defaultValue = false;
+				break;
+				case 'choice':
+					defaultValue = a.values?.split(/,\s*/)[0];
+				break;
+			}
+			a.defaultValue = defaultValue;
+		});
+		return action;
+	});
 }
 
 function updateInspectorForSelection(sel) {
@@ -336,7 +354,10 @@ function updateInspectorForSelection(sel) {
 				_text:   '×',
 				title:   'remove action'
 			});
-			del.addEventListener('click', _ => ex.delete());
+			del.addEventListener('click', _ => {
+				ex.delete();
+				updateInspectorForSelection(visualEditor.selection);
+			});
 		});
 
 		function populateType(sel, el=null) {
@@ -348,6 +369,15 @@ function updateInspectorForSelection(sel) {
 
 		function populateAttributes(td, schema, executable) {
 			td.innerHTML = '';
+			if (schema.cdata) {
+				const label = addEl('label', td, {_text:'content '});
+				const inp = addEl('textarea', label, {name:'content', rows:'3'});
+				inp.value = executable.textContent || '';
+				inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
+				inp.addEventListener('input', _ => {
+					executable.textContent = inp.value;
+				});
+			}
 			schema.attrs.forEach(attr => {
 				const label = addEl('label', td, {_text:`${attr.name} `});
 				const val = executable.getAttribute(attr.name);
@@ -389,11 +419,20 @@ function updateInspectorForSelection(sel) {
 						});
 					break;
 					case 'string':
-						var inp = addEl('input', label, {type:'text', name:attr.name, value:val || ""});
+						var inp = addEl('input', label, {type:'text', name:attr.name, value:val ?? ""});
 						inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
 					break;
 				}
-				inp.addEventListener('change', _ => executable.setAttribute(attr.name, inp.type==='checkbox' ? inp.checked : inp.value));
+				inp.addEventListener('change', _ => {
+					if (inp.type==='checkbox') {
+						executable.setAttribute(attr.name, inp.checked);
+					} else {
+						const value = inp.value;
+						if (attr.type==='string' && value==='') executable.removeAttribute(attr.name);
+						else if (value==='')                   executable.removeAttribute(attr.name);
+						else                                   executable.setAttribute(attr.name, value);
+					}
+				});
 			});
 		}
 	}
@@ -408,7 +447,7 @@ function changeAction(oldExec, actionNS, actionName) {
 		let value = oldValues[attr.name];
 		switch (attr.type) {
 			case 'int':
-				value ||= attr.defaultValue;
+				if (value===undefined) value = attr.defaultValue;
 				if (attr.max < value) value = attr.max;
 				if (attr.min > value) value = attr.min;
 			break;
@@ -416,13 +455,12 @@ function changeAction(oldExec, actionNS, actionName) {
 				const legal = attr.values?.split(/,\s*/);
 				if (!legal.includes(value)) value = legal[0] || '';
 			break;
-			case 'string':
-				value ||= '';
-			break;
 		}
 		return [attr.name, value];
-	}));
-	oldExec.mutateInto(actionNS, actionName, newValues);
+	}).filter(([,value]) => value!==undefined && value!==''));
+	const cdata = schema.cdata ? oldExec.textContent || '' : null;
+	oldExec.mutateInto(actionNS, actionName, newValues, cdata);
+	updateInspectorForSelection(visualEditor.selection);
 }
 
 function notifyDocumentOfSelection(sel) {
@@ -460,20 +498,26 @@ function addEl(name, parent, opts={}) {
 function addNewAction(location) {
 	const firstAction = actionSchema?.[0];
 	if (!firstAction) return;
-	const attrs = Object.fromEntries(firstAction.attrs.map(attr => [attr.name, attr.defaultValue]));
+	const attrs = Object.fromEntries(firstAction.attrs
+		.map(attr => [attr.name, attr.defaultValue])
+		.filter(([,value]) => value!==undefined && value!==''));
+	let anyAdded = false;
 	visualEditor.selection.forEach(o => {
 		switch (location) {
 			case 'entry':
 			case 'exit':
 				if (o.isState) {
 					o.addExecutable(location==='exit', firstAction.ns, firstAction.name, attrs);
+					anyAdded = true;
 				}
 			break;
 			case 'transition':
 				if (o.isTransition) {
 					o.addExecutable(firstAction.ns, firstAction.name, attrs);
+					anyAdded = true;
 				}
 			break;
 		}
 	});
+	if (anyAdded) updateInspectorForSelection(visualEditor.selection);
 }

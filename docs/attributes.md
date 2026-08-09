@@ -1,3 +1,5 @@
+# Visualization Attributes
+
 This file documents the custom attributes added for visualization.
 All attributes are in the namespace `http://phrogz.net/visual-scxml`,
 usually denoted with the namespace prefix `viz`.
@@ -24,7 +26,6 @@ should be a human-readable and human-editable XML file.
   the available width.
 
 * **`viz:rgb="rrggbb"`** — hexadecimal integer values for red, green, and blue fill color
-
 
 ## Transitions
 

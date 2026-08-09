@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml"
+       xmlns:viz="http://phrogz.net/visual-scxml"
+       version="1.0">
+	<viz:actions>
+        <script viz:cdata="true"/>
+		<assign>
+			<viz:attribute name="location" type="string"/>
+			<viz:attribute name="expr" type="string"/>
+		</assign>
+		<log>
+            <viz:attribute name="label" type="string"/>
+			<viz:attribute name="expr" type="string"/>
+		</log>
+        <raise>
+            <viz:attribute name="event" type="string"/>
+        </raise>
+        <send>
+            <viz:attribute name="event" type="string"/>
+            <viz:attribute name="id" type="string"/>
+            <viz:attribute name="delay" type="string"/>
+            <viz:attribute name="namelist" type="string"/>
+        </send>
+        <cancel>
+            <viz:attribute name="sendid" type="string"/>
+        </cancel>
+	</viz:actions>
+</scxml>

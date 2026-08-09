@@ -1462,7 +1462,7 @@ function svgPathFromAnchors(anchors, maxRadius=Infinity) {
 		const prev = anchors[i-1];
 		const next = anchors[i];
 		const mainAxis = prev.horiz ? 'y' : 'x';
-		if (prev.horiz == next.horiz && next[mainAxis] !== prev[mainAxis]) {
+		if (prev.horiz === next.horiz && next[mainAxis] !== prev[mainAxis]) {
 			anchors.splice(i--, 0, {horiz:!prev.horiz, injected:true});
 		}
 	}
@@ -1563,7 +1563,7 @@ function findCorners(anchors) {
 				for (let j=i+1; j<anchors.length && nextValidValue===undefined; j++) {
 					const anchor = anchors[j];
 					if (crosAxis in anchor) nextValidValue = anchor[crosAxis];
-					else if (anchor.horiz==next.horiz) crosAnchors.push(anchor);
+					else if (anchor.horiz===next.horiz) crosAnchors.push(anchor);
 				}
 
 				// there is ~no chance nextValidValue will be undefined, as the final anchor should/must have x/y values after `resolveStateAnchor`
