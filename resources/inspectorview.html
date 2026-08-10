@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset='utf-8'>
+	<title>SCXML Inspector</title>
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource}; script-src 'nonce-${nonce}'">
+	<link href="${inspectorViewCSS}" rel="stylesheet">
+</head><body>
+	<header>
+		<h2>SCXML Inspector</h2>
+		<p id="docLabel">No active SCXML visual editor</p>
+	</header>
+	<section>
+		<h3>Selection</h3>
+		<p id="selectionSummary">Nothing selected</p>
+		<ul id="selectionItems"></ul>
+	</section>
+	<section id="editSection" hidden>
+		<h3>Edit</h3>
+		<p id="editHint" hidden></p>
+		<div class="fieldGrid">
+			<label id="idRow">ID <input id="editId" type="text"></label>
+			<label id="stateParentRow" hidden>Parent <select id="editParentId"></select></label>
+			<label id="stateColorRow" hidden>Color <input id="editColor" type="color"></label>
+			<label id="stateWidthRow" hidden>Width <input id="editWidth" type="number" step="10" min="20"></label>
+			<label id="stateHeightRow" hidden>Height <input id="editHeight" type="number" step="10" min="20"></label>
+			<label id="transSourceRow" hidden>Source <select id="editSourceId"></select></label>
+			<label id="transSourceAnchorSideRow" hidden>Source Anchor Side <select id="editSourceAnchorSide"><option value="">(auto)</option><option>N</option><option>S</option><option>E</option><option>W</option></select></label>
+			<label id="transSourceAnchorOffsetRow" hidden>Source Anchor Offset <input id="editSourceAnchorOffset" type="number" step="5" min="0"></label>
+			<label id="transKindRow" hidden>Transition Kind <select id="editTransitionKind"><option value="false">external</option><option value="true">internal</option></select></label>
+			<label id="transEventRow" hidden>Event <input id="editEvent" type="text"></label>
+			<label id="transLabelAlignRow" hidden>Label Align <select id="editLabelAlign"><option value="">(auto)</option><option>NE</option><option>SE</option><option>NW</option><option>SW</option><option>N</option><option>S</option><option>E</option><option>W</option><option value="C">center</option></select></label>
+			<label id="transLabelOffsetRow" hidden>Label Offset <input id="editLabelOffset" type="number" step="5"></label>
+			<label id="transLabelCrossOffsetRow" hidden>Label Cross Offset <input id="editLabelCrossOffset" type="number" step="5"></label>
+			<label id="transCondRow" hidden>Condition <input id="editCondition" type="text"></label>
+			<label id="transTargetRow" hidden>Target <select id="editTargetId"></select></label>
+			<label id="transTargetAnchorSideRow" hidden>Target Anchor Side <select id="editTargetAnchorSide"><option value="">(auto)</option><option>N</option><option>S</option><option>E</option><option>W</option></select></label>
+			<label id="transTargetAnchorOffsetRow" hidden>Target Anchor Offset <input id="editTargetAnchorOffset" type="number" step="5" min="0"></label>
+			<label id="transRadiusRow" hidden>Radius <input id="editRadius" type="number" min="5" step="5"></label>
+		</div>
+
+		<div id="stateActionsSection" hidden>
+			<h4>On Entry</h4>
+			<div id="entryActions"></div>
+			<button id="addEntryAction" type="button">+ Add Entry Action</button>
+			<h4>On Exit</h4>
+			<div id="exitActions"></div>
+			<button id="addExitAction" type="button">+ Add Exit Action</button>
+		</div>
+
+		<div id="transitionActionsSection" hidden>
+			<h4>Transition Actions</h4>
+			<div id="transitionActions"></div>
+			<button id="addTransitionAction" type="button">+ Add Transition Action</button>
+		</div>
+	</section>
+	<script src="${inspectorViewJS}"></script>
+</body></html>

@@ -22,12 +22,11 @@ in a manner that allows the SCXML to still be used in production.
   hand-editing or detailed inspection
 * Default visual style matches the current VS Code theme
   * Customization of state colors allows for additional information to be conveyed
-* Inspector palette supports authoring of custom actions ([see below](#authoring-custom-executable-actions) for details)
+* Sidebar Inspector supports authoring of custom actions ([see below](#authoring-custom-executable-actions) for details)
 * Route transitions around states via waylines
   * Add horizontal or vertical waylines from the command palette or visual-editor context menu
   * Hand-edit the XML attribute when exact wayline ordering is needed;
     see the [documentation on visualization attributes](docs/attributes.md#transitions) for details
-
 
 ## Instructions
 
@@ -39,9 +38,8 @@ in a manner that allows the SCXML to still be used in production.
      a new text editor, fill it out with the minimum needed for a state machine, and
      open a visual editor connected to it.
 2. Drag states to impose order and clarity.
-3. Select states or transitions and edit some aspects of them in the Inspector palette
-   that appears.
-
+3. Select states or transitions and edit them in the `SCXML Inspector` sidebar view
+   in the Explorer area.
 
 ### Available Commands
 
@@ -100,7 +98,6 @@ in a manner that allows the SCXML to still be used in production.
 * `Alt+Shift+Z` — Zoom to 100%
 * `e` — Show/Hide Events
 
-
 ### Authoring Custom Executable Actions
 
 In addition to the [`<send>` element](https://www.w3.org/TR/scxml/#send) allowing the state machine to
@@ -108,7 +105,7 @@ communicate with the owning program—given interpreter support—the SCXML spec
 [custom action elements](https://www.w3.org/TR/scxml/#extensibility) in custom namespaces where other
 executable content would be present.
 
-When these custom actions are present onentry, onexit, or within a transition, the Inspector palette
+When these custom actions are present onentry, onexit, or within a transition, the Sidebar Inspector
 will show the actions and their attributes, and allow them to be deleted. It does not support editing
 them or creating new custom actions from the palette, however, unless you provide information about the
 schema.
@@ -167,7 +164,6 @@ All issues and planned features are tracked using [GitHub Issues](https://github
 * [Major bugs](https://github.com/Phrogz/visual-scxml-editor/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Ahigh-value) are labeled with `bug` && `high-value`; alternatively, see [all bugs](https://github.com/Phrogz/visual-scxml-editor/issues?q=is%3Aissue+is%3Aopen+label%3Abug).
 * [Major features](https://github.com/Phrogz/visual-scxml-editor/issues?q=is%3Aissue+is%3Aopen+label%3Afeature+label%3Ahigh-value) are similarly labeled `feature` and `high-value`; alternatively, see [all features](https://github.com/Phrogz/visual-scxml-editor/issues?q=is%3Aissue+is%3Aopen+label%3Afeature).
 
-
 ## Contributing
 
 Want to help fix bugs or add features? Great! See the [Architecture documentation](docs/architecture.md)
@@ -177,15 +173,18 @@ for core concepts on how the extension works and information flows.
 
 ### **(pending)**
 
-#### New Features
+#### New Features (0.6.0)
 
 * The Inspector can now create and edit common executable actions out of the box, including `script`, `assign`, `log`, `raise`, `send`, and `cancel`.
+* The Inspector has moved from an overlay in the diagram to a dedicated `SCXML Inspector` sidebar view.
+* Sidebar editing now supports bulk updates for same-type multi-selection (states-only or transitions-only).
 
-#### Bug Fixes
+#### Bug Fixes (0.6.0)
 
 * Fixed action editing to refresh immediately after user changes.
 * Fixed executable presence markers on states/transitions to show when a first action is added, and hide when the last action is removed.
 * Fixed action attribute handling so empty fields stay empty and no longer get saved as invalid placeholder values.
+* Fixed inspector lifecycle syncing when switching between open SCXML documents.
 
 #### Changes
 

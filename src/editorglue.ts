@@ -6,21 +6,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { Disposable, TextEditor, WebviewPanel} from 'vscode';
 import { window, ViewColumn } from 'vscode';
-import { SCXMLEditorManager, SelectionTypes } from './extension';
-
-interface SelectedItem {
-	name          : string,
-	id            : string,
-	parentName    : string,
-	parentId      : string,
-	indexInParent : number,
-	hasChildren   : boolean
-}
+import { SCXMLEditorManager, SelectedItem, SelectionTypes } from './extension';
 
 export class EditorGlue {
 	public panel: WebviewPanel;
 	public selectedTypes: SelectionTypes;
 	public selectedItems: SelectedItem[] = [];
+	public inspectorData: any = {items:[]};
 	public stateIDs: string[] = [];
 	public readonly editor: TextEditor;
 	private readonly resourceMap: Map<string, string> = new Map();
@@ -127,6 +119,11 @@ export class EditorGlue {
 
 				case 'selectedItems':
 					this.showSelection(message.selection);
+				break;
+
+				case 'inspectorData':
+					this.inspectorData = message.payload || {items:[]};
+					this.manager.updateInspectorSelection(this);
 				break;
 			}
 		});
@@ -283,9 +280,11 @@ export class EditorGlue {
 		}
 
 		this.manager.updateSelectionScopes(this);
+		this.manager.updateInspectorSelection(this);
 	}
 
 	public dispose() {
+		if (this.manager.activeGlue===this) this.manager.activeGlue = null;
 		this.disposables.forEach(disposable => disposable && disposable.dispose());
 		this.disposables = [];
 		this.disposed = true;

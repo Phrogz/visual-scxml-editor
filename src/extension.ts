@@ -4,6 +4,7 @@
 import * as vscode from 'vscode';
 
 import { EditorGlue } from './editorglue';
+import { InspectorViewProvider } from './inspectorview';
 
 export interface SelectionTypes {
 	anySelected: Boolean,
@@ -12,6 +13,15 @@ export interface SelectionTypes {
 	parentStateSelected: Boolean,
 	parallelSelected: Boolean,
 	initialCandidateSelected: Boolean
+}
+
+export interface SelectedItem {
+	name          : string,
+	id            : string,
+	parentName    : string,
+	parentId      : string,
+	indexInParent : number,
+	hasChildren   : boolean
 }
 
 const BlankSCXML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -35,13 +45,27 @@ export class SCXMLEditorManager {
 	private _glueWithActiveWebView: EditorGlue | null = null;
 	public context: vscode.ExtensionContext;
 	public diagnostics: vscode.DiagnosticCollection;
+	private inspectorView: InspectorViewProvider;
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context;
+		this.inspectorView = new InspectorViewProvider(context);
+		this.inspectorView.onMessage(this.handleInspectorMessage.bind(this));
+		context.subscriptions.push(vscode.window.registerWebviewViewProvider(InspectorViewProvider.viewType, this.inspectorView));
 		vscode.workspace.onDidChangeTextDocument((evt: vscode.TextDocumentChangeEvent) => {
 			const glue = this.glueByURI.get(evt.document.uri);
 			glue?.maybeUpdateVisualsFromText();
 		});
+
+		context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
+			if (!editor) {
+				this.activeGlue = null;
+				return;
+			}
+
+			const glue = this.glueByURI.get(editor.document.uri) || null;
+			this.activeGlue = glue;
+		}));
 
 		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.createBlank', () => {
 			vscode.commands.executeCommand('workbench.action.files.newUntitledFile').then(() => {
@@ -102,6 +126,7 @@ export class SCXMLEditorManager {
 		// Need to track when editor views gain and lose focus
 		vscode.commands.executeCommand('setContext', 'visual-scxml-editor.editorActive', !!this.activeGlue);
 		this.updateSelectionScopes(newValue);
+		this.updateInspectorSelection(newValue);
 	}
 
 	public showErrors(doc: vscode.TextDocument, errors: any[]) {
@@ -155,6 +180,79 @@ export class SCXMLEditorManager {
 		};
 		for (const [scope, active] of Object.entries(selectedTypes)) {
 			vscode.commands.executeCommand('setContext', `visual-scxml-editor.${scope}`, active);
+		}
+	}
+
+	public updateInspectorSelection(glue: EditorGlue | null) {
+		if (!glue) {
+			this.inspectorView.setSelection(null);
+			return;
+		}
+
+		this.inspectorView.setSelection({
+			documentLabel: glue.editor.document.fileName.split('/').pop() || glue.editor.document.fileName,
+			documentUri: glue.editor.document.uri.toString(),
+			selectedTypes: glue.selectedTypes,
+			selectedItems: glue.selectedItems,
+			inspectorData: glue.inspectorData
+		});
+	}
+
+	private handleInspectorMessage(message: any) {
+		if (!this.activeGlue) return;
+
+		switch (message.command) {
+			case 'setProperty':
+				this.activeGlue.panel.webview.postMessage({
+					command: 'inspectorSetProperty',
+					property: message.property,
+					value: message.value
+				});
+			break;
+
+			case 'addAction':
+				this.activeGlue.panel.webview.postMessage({
+					command: 'inspectorAddAction',
+					location: message.location
+				});
+			break;
+
+			case 'deleteAction':
+				this.activeGlue.panel.webview.postMessage({
+					command: 'inspectorDeleteAction',
+					location: message.location,
+					index: message.index
+				});
+			break;
+
+			case 'setActionType':
+				this.activeGlue.panel.webview.postMessage({
+					command: 'inspectorSetActionType',
+					location: message.location,
+					index: message.index,
+					ns: message.ns,
+					name: message.name
+				});
+			break;
+
+			case 'setActionAttr':
+				this.activeGlue.panel.webview.postMessage({
+					command: 'inspectorSetActionAttr',
+					location: message.location,
+					index: message.index,
+					name: message.name,
+					value: message.value
+				});
+			break;
+
+			case 'setActionText':
+				this.activeGlue.panel.webview.postMessage({
+					command: 'inspectorSetActionText',
+					location: message.location,
+					index: message.index,
+					text: message.text
+				});
+			break;
 		}
 	}
 
