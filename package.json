@@ -22,11 +22,21 @@
   "keywords": ["SCXML", "statechart", "statemachine"],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "visual-scxml-editor",
+          "title": "SCXML",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "visual-scxml-editor": [
         {
           "id": "visual-scxml-editor.inspectorView",
-          "name": "SCXML Inspector"
+          "name": "SCXML Inspector",
+          "type": "webview"
         }
       ]
     },

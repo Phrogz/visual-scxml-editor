@@ -2,6 +2,7 @@
 'use strict';
 
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 import { EditorGlue } from './editorglue';
 import { InspectorViewProvider } from './inspectorview';
@@ -52,6 +53,15 @@ export class SCXMLEditorManager {
 		this.inspectorView = new InspectorViewProvider(context);
 		this.inspectorView.onMessage(this.handleInspectorMessage.bind(this));
 		context.subscriptions.push(vscode.window.registerWebviewViewProvider(InspectorViewProvider.viewType, this.inspectorView));
+		context.subscriptions.push(vscode.workspace.onDidCreateFiles(() => {
+			void this.refreshInspectorScxmlFiles(vscode.window.activeTextEditor?.document.uri || null);
+		}));
+		context.subscriptions.push(vscode.workspace.onDidDeleteFiles(() => {
+			void this.refreshInspectorScxmlFiles(vscode.window.activeTextEditor?.document.uri || null);
+		}));
+		context.subscriptions.push(vscode.workspace.onDidRenameFiles(() => {
+			void this.refreshInspectorScxmlFiles(vscode.window.activeTextEditor?.document.uri || null);
+		}));
 		vscode.workspace.onDidChangeTextDocument((evt: vscode.TextDocumentChangeEvent) => {
 			const glue = this.glueByURI.get(evt.document.uri);
 			glue?.maybeUpdateVisualsFromText();
@@ -60,11 +70,17 @@ export class SCXMLEditorManager {
 		context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
 			if (!editor) {
 				this.activeGlue = null;
+				void this.refreshInspectorScxmlFiles(null);
 				return;
 			}
 
 			const glue = this.glueByURI.get(editor.document.uri) || null;
 			this.activeGlue = glue;
+			void this.refreshInspectorScxmlFiles(this.activeScxmlUriFromEditor(editor));
+		}));
+
+		context.subscriptions.push(vscode.window.tabGroups.onDidChangeTabs(() => {
+			void this.refreshInspectorScxmlFiles(this.inspectorActiveScxmlUri());
 		}));
 
 		context.subscriptions.push(vscode.commands.registerCommand('visual-scxml-editor.createBlank', () => {
@@ -184,6 +200,9 @@ export class SCXMLEditorManager {
 	}
 
 	public updateInspectorSelection(glue: EditorGlue | null) {
+		const activeUri = this.activeScxmlUriFromEditor(vscode.window.activeTextEditor)
+			|| this.activeScxmlUri(glue?.editor.document.uri || null);
+		void this.refreshInspectorScxmlFiles(activeUri);
 		if (!glue) {
 			this.inspectorView.setSelection(null);
 			return;
@@ -198,8 +217,137 @@ export class SCXMLEditorManager {
 		});
 	}
 
+	private async refreshInspectorScxmlFiles(activeUri: vscode.Uri | null): Promise<void> {
+		const diskFiles = await vscode.workspace.findFiles('**/*.scxml', '**/{node_modules,.git,out,dist}/**');
+		const openFiles = vscode.workspace.textDocuments
+			.map(doc => doc.uri)
+			.filter(uri => uri.scheme==='file' && uri.fsPath.toLowerCase().endsWith('.scxml'));
+
+		const byUri = new Map<string, vscode.Uri>();
+		for (const uri of [...diskFiles, ...openFiles]) {
+			byUri.set(uri.toString(), uri);
+		}
+
+		const files = [...byUri.values()]
+			.sort((a, b) => a.fsPath.localeCompare(b.fsPath))
+			.map(uri => ({
+				uri: uri.toString(),
+				label: this.scxmlFileLabel(uri)
+			}));
+
+		const diagramActiveUri = this.activeDiagramUri();
+		this.inspectorView.setScxmlFiles(files, activeUri?.toString() || null, diagramActiveUri?.toString() || null);
+	}
+
+	private activeDiagramUri(): vscode.Uri | null {
+		for (const glue of this.glueByURI.values()) {
+			if (glue.panel.active) {
+				return glue.editor.document.uri;
+			}
+		}
+
+		if (this._glueWithActiveWebView?.panel.active) {
+			return this._glueWithActiveWebView.editor.document.uri;
+		}
+
+		return null;
+	}
+
+	private inspectorActiveScxmlUri(): vscode.Uri | null {
+		return this.activeScxmlUriFromEditor(vscode.window.activeTextEditor)
+			|| this.activeScxmlUriFromActiveTab()
+			|| this.activeScxmlUri(this.activeGlue?.editor.document.uri || null);
+	}
+
+	private activeScxmlUriFromActiveTab(): vscode.Uri | null {
+		const activeTab = vscode.window.tabGroups.activeTabGroup?.activeTab;
+		if (!activeTab) {
+			return null;
+		}
+
+		const input = activeTab.input;
+		if (!(input instanceof vscode.TabInputText)) {
+			return null;
+		}
+
+		return this.activeScxmlUri(input.uri);
+	}
+
+	private activeScxmlUri(uri: vscode.Uri | null | undefined): vscode.Uri | null {
+		if (!uri) {
+			return null;
+		}
+		if (uri.scheme!=='file') {
+			return null;
+		}
+		if (!uri.fsPath.toLowerCase().endsWith('.scxml')) {
+			return null;
+		}
+		return uri;
+	}
+
+	private activeScxmlUriFromEditor(editor: vscode.TextEditor | null | undefined): vscode.Uri | null {
+		return this.activeScxmlUri(editor?.document.uri || null);
+	}
+
+	private scxmlFileLabel(uri: vscode.Uri): string {
+		const folder = vscode.workspace.getWorkspaceFolder(uri);
+		if (folder) {
+			const rel = path.relative(folder.uri.fsPath, uri.fsPath);
+			if (rel && !rel.startsWith('..')) {
+				return rel.split(path.sep).join('/');
+			}
+		}
+
+		return path.basename(uri.fsPath) || uri.toString();
+	}
+
+	private async openScxmlInVisualEditor(uriText: string): Promise<void> {
+		try {
+			const uri = vscode.Uri.parse(uriText, true);
+			const doc = await vscode.workspace.openTextDocument(uri);
+			const viewColumn = this.getPreferredTextEditorColumn();
+			await vscode.window.showTextDocument(doc, {preserveFocus: false, preview: false, viewColumn});
+			if (doc.languageId !== 'xml') {
+				await vscode.languages.setTextDocumentLanguage(doc, 'xml');
+			}
+			this.showEditor();
+			await this.refreshInspectorScxmlFiles(doc.uri);
+		} catch (error) {
+			vscode.window.showErrorMessage(`Could not open SCXML visual editor: ${String(error)}`);
+		}
+	}
+
+	private getPreferredTextEditorColumn(): vscode.ViewColumn {
+		if (vscode.window.activeTextEditor?.viewColumn) {
+			return vscode.window.activeTextEditor.viewColumn;
+		}
+
+		for (const group of vscode.window.tabGroups.all) {
+			if (group.tabs.some(tab => tab.input instanceof vscode.TabInputText)) {
+				return group.viewColumn;
+			}
+		}
+
+		return vscode.ViewColumn.One;
+	}
+
 	private handleInspectorMessage(message: any) {
-		if (!this.activeGlue) return;
+		switch (message.command) {
+			case 'requestScxmlFiles':
+				void this.refreshInspectorScxmlFiles(this.inspectorActiveScxmlUri());
+			return;
+
+			case 'openScxmlInVisualEditor':
+				if (typeof message.uri==='string' && message.uri.length) {
+					void this.openScxmlInVisualEditor(message.uri);
+				}
+			return;
+		}
+
+		if (!this.activeGlue) {
+			return;
+		}
 
 		switch (message.command) {
 			case 'setProperty':

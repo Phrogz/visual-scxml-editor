@@ -23,7 +23,7 @@ let actionSchema;
 const baseActionSchemaText = JSON.parse(document.getElementById('baseActionSchemaText')?.textContent || '""');
 
 // Wait a short time before updating the document once only, so that quick changes (e.g. dragging) do not keep dirtying the document until done
-const serializationOptions = {strip:true, indent:'\t', sort:true, cdata:true, tightcdata:true};
+const serializationOptions = {strip:true, indent:'\t', sort:true, cdata:true, tightcdata:false};
 let handleChangeTimer;
 const changeDelayMS = 250;
 function onSCXMLDocChanged() {
@@ -120,6 +120,7 @@ window.addEventListener('message', event => {
 });
 
 function applyInspectorPropertyChange(property, value) {
+	let anyChanged = false;
 	for (const o of visualEditor.selection) {
 		if (!(property in o)) continue;
 		let v = value;
@@ -128,7 +129,12 @@ function applyInspectorPropertyChange(property, value) {
 		if (property==='w' || property==='h' || property==='radius' || property==='sourceAnchorOffset' || property==='targetAnchorOffset' || property==='labelMainOffset' || property==='labelCrossOffset') {
 			v = (v==='') ? '' : Number(v);
 		}
+		anyChanged = true;
 		o[property] = v;
+	}
+	if (anyChanged && visualEditor.selection.length) {
+		// Reapply the same selection to force selector handles to recompute geometry.
+		visualEditor.setSelection(visualEditor.selection.concat());
 	}
 	notifyInspectorData(visualEditor.selection);
 }
@@ -167,14 +173,18 @@ function applyInspectorSetActionAttr(location, index, attrName, value) {
 		if (normalized===undefined || normalized==='') ex.removeAttribute(attrName);
 		else ex.setAttribute(attrName, normalized);
 	}
-	notifyInspectorData(visualEditor.selection);
 }
 
 function applyInspectorSetActionText(location, index, text) {
 	const ex = getInspectorExecutable(location, index);
 	if (!ex) return;
-	ex.textContent = text || '';
-	notifyInspectorData(visualEditor.selection);
+	const normalized = normalizeActionText(text);
+	ex.textContent = normalized;
+}
+
+function normalizeActionText(text) {
+	if (text===undefined || text===null) return '';
+	return String(text).trim();
 }
 
 function getInspectorExecutable(location, index) {
@@ -330,7 +340,7 @@ function changeAction(oldExec, actionNS, actionName) {
 		}
 		return [attr.name, value];
 	}).filter(([,value]) => value!==undefined && value!==''));
-	const cdata = schema.cdata ? oldExec.textContent || '' : null;
+	const cdata = schema.cdata ? normalizeActionText(oldExec.textContent || '') : null;
 	oldExec.mutateInto(actionNS, actionName, newValues, cdata);
 }
 
@@ -418,7 +428,7 @@ function serializeExecutable(ex) {
 		namespaceURI: ex.namespaceURI,
 		localName: ex.localName,
 		attrs: Object.fromEntries(Array.from(ex.attributes).map(a => [a.name, a.value])),
-		textContent: ex.textContent || ''
+		textContent: normalizeActionText(ex.textContent || '')
 	};
 }
 

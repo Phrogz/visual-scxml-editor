@@ -39,7 +39,7 @@ in a manner that allows the SCXML to still be used in production.
      open a visual editor connected to it.
 2. Drag states to impose order and clarity.
 3. Select states or transitions and edit them in the `SCXML Inspector` sidebar view
-   in the Explorer area.
+  in the SCXML Activity Bar view.
 
 ### Available Commands
 

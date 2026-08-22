@@ -23,10 +23,18 @@ interface InspectorPayload {
 	inspectorData?: any
 }
 
+interface ScxmlFileItem {
+	uri: string,
+	label: string
+}
+
 export class InspectorViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'visual-scxml-editor.inspectorView';
 	private view: vscode.WebviewView | null = null;
 	private payload: InspectorPayload | null = null;
+	private scxmlFiles: ScxmlFileItem[] = [];
+	private scxmlActiveUri: string | null = null;
+	private scxmlDiagramActiveUri: string | null = null;
 	private messageHandler: ((message: any) => void) | null = null;
 
 	public constructor(private readonly context: vscode.ExtensionContext) {}
@@ -41,6 +49,7 @@ export class InspectorViewProvider implements vscode.WebviewViewProvider {
 		webview.html = this.buildHtml(webview);
 
 		if (this.payload) this.postPayload(this.payload);
+		this.postScxmlFiles();
 
 		webview.onDidReceiveMessage(message => {
 			this.messageHandler?.(message);
@@ -61,8 +70,24 @@ export class InspectorViewProvider implements vscode.WebviewViewProvider {
 		else this.view?.webview.postMessage({command:'clearSelection'});
 	}
 
+	public setScxmlFiles(files: ScxmlFileItem[], activeUri: string | null, diagramActiveUri: string | null): void {
+		this.scxmlFiles = files;
+		this.scxmlActiveUri = activeUri;
+		this.scxmlDiagramActiveUri = diagramActiveUri;
+		this.postScxmlFiles();
+	}
+
 	private postPayload(payload: InspectorPayload): void {
 		this.view?.webview.postMessage({command:'updateSelection', payload});
+	}
+
+	private postScxmlFiles(): void {
+		this.view?.webview.postMessage({
+			command: 'updateScxmlFiles',
+			files: this.scxmlFiles,
+			activeUri: this.scxmlActiveUri,
+			diagramActiveUri: this.scxmlDiagramActiveUri
+		});
 	}
 
 	private buildHtml(webview: vscode.Webview): string {

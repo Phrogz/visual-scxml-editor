@@ -32,7 +32,11 @@ svg text {
 .state .exit { stroke:var(--vscode-editor-foreground) }
 path.line { stroke:var(--vscode-editor-foreground) }
 
-#guides line { stroke:var(--vscode-editorIndentGuide-background) }
+#guides line { stroke:var(--vscode-focusBorder) }
+#guides text {
+    fill:var(--vscode-focusBorder);
+    opacity:1;
+}
 
 body.vscode-dark #inspector { background:#222; border-color:rgba(255,255,255,0.5); color:#ccc }
 body.vscode-dark #inspector tr > * { border-top-color:#333 }

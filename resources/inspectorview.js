@@ -2,15 +2,18 @@
 
 const vscode = acquireVsCodeApi();
 
-const docLabel = document.getElementById('docLabel');
+const scxmlFileSelect = document.getElementById('scxmlFileSelect');
+const openScxmlFileButton = document.getElementById('openScxmlFileButton');
 const selectionSummary = document.getElementById('selectionSummary');
-const selectionItems = document.getElementById('selectionItems');
 const editSection = document.getElementById('editSection');
 const editHint = document.getElementById('editHint');
+const stateKindRow = document.getElementById('stateKindRow');
+const editStateKind = document.getElementById('editStateKind');
 const idRow = document.getElementById('idRow');
 const editId = document.getElementById('editId');
 const editParentId = document.getElementById('editParentId');
 const editColor = document.getElementById('editColor');
+const clearColorButton = document.getElementById('clearColorButton');
 const editWidth = document.getElementById('editWidth');
 const editHeight = document.getElementById('editHeight');
 const editSourceId = document.getElementById('editSourceId');
@@ -27,39 +30,42 @@ const editTargetAnchorSide = document.getElementById('editTargetAnchorSide');
 const editTargetAnchorOffset = document.getElementById('editTargetAnchorOffset');
 const editRadius = document.getElementById('editRadius');
 const stateParentRow = document.getElementById('stateParentRow');
+const stateEntryRow = document.getElementById('stateEntryRow');
+const stateEntryActionsRow = document.getElementById('stateEntryActionsRow');
+const stateExitRow = document.getElementById('stateExitRow');
+const stateExitActionsRow = document.getElementById('stateExitActionsRow');
 const stateColorRow = document.getElementById('stateColorRow');
-const stateWidthRow = document.getElementById('stateWidthRow');
-const stateHeightRow = document.getElementById('stateHeightRow');
+const stateDimensionsRow = document.getElementById('stateDimensionsRow');
 const transSourceRow = document.getElementById('transSourceRow');
-const transSourceAnchorSideRow = document.getElementById('transSourceAnchorSideRow');
-const transSourceAnchorOffsetRow = document.getElementById('transSourceAnchorOffsetRow');
+const transSourceAnchorRow = document.getElementById('transSourceAnchorRow');
 const transKindRow = document.getElementById('transKindRow');
 const transEventRow = document.getElementById('transEventRow');
-const transLabelAlignRow = document.getElementById('transLabelAlignRow');
-const transLabelOffsetRow = document.getElementById('transLabelOffsetRow');
-const transLabelCrossOffsetRow = document.getElementById('transLabelCrossOffsetRow');
+const transPlacementRow = document.getElementById('transPlacementRow');
 const transCondRow = document.getElementById('transCondRow');
 const transTargetRow = document.getElementById('transTargetRow');
-const transTargetAnchorSideRow = document.getElementById('transTargetAnchorSideRow');
-const transTargetAnchorOffsetRow = document.getElementById('transTargetAnchorOffsetRow');
+const transTargetAnchorRow = document.getElementById('transTargetAnchorRow');
+const transActionsRow = document.getElementById('transActionsRow');
+const transitionActionsRow = document.getElementById('transitionActionsRow');
 const transRadiusRow = document.getElementById('transRadiusRow');
-const stateActionsSection = document.getElementById('stateActionsSection');
-const transitionActionsSection = document.getElementById('transitionActionsSection');
 const entryActions = document.getElementById('entryActions');
 const exitActions = document.getElementById('exitActions');
 const transitionActions = document.getElementById('transitionActions');
 const addEntryAction = document.getElementById('addEntryAction');
 const addExitAction = document.getElementById('addExitAction');
 const addTransitionAction = document.getElementById('addTransitionAction');
+let activeDiagramUri = null;
 
 window.addEventListener('message', event => {
 	const message = event.data;
 	switch (message.command) {
 		case 'clearSelection':
-			docLabel.textContent = 'No active SCXML visual editor';
-			selectionSummary.textContent = 'Nothing selected';
-			selectionItems.innerHTML = '';
+				selectionSummary.textContent = '';
+				selectionSummary.hidden = true;
 			editSection.hidden = true;
+		break;
+
+		case 'updateScxmlFiles':
+			renderScxmlFileList(message.files || [], message.activeUri || null, message.diagramActiveUri || null);
 		break;
 
 		case 'updateSelection':
@@ -68,32 +74,114 @@ window.addEventListener('message', event => {
 	}
 });
 
+sendInspectorCommand('requestScxmlFiles', {});
+
 function renderSelection(payload) {
-	docLabel.textContent = payload.documentLabel || payload.documentUri;
+	setActiveScxmlFile(payload.documentUri || null);
 	const detailedItems = payload.inspectorData?.items || [];
-	const count = detailedItems.length || payload.selectedItems?.length || 0;
+	const items = detailedItems.length ? detailedItems : (payload.selectedItems || []);
+	const count = items.length;
 	if (!count) {
-		selectionSummary.textContent = 'Nothing selected';
-		selectionItems.innerHTML = '';
+		selectionSummary.textContent = '';
+		selectionSummary.hidden = true;
 		editSection.hidden = true;
 		return;
 	}
-	selectionSummary.textContent = `${count} item${count===1 ? '' : 's'} selected`;
-	selectionItems.innerHTML = '';
-	for (const item of (detailedItems.length ? detailedItems : payload.selectedItems)) {
-		const li = document.createElement('li');
-		const label = item.id ? `${item.tagName || item.name} #${item.id}` : (item.tagName || item.name);
-		let details = '';
-		if (item.type==='transition') {
-			details = `event="${item.event || ''}" target="${item.targetId || ''}" actions=${item.executables?.length || 0}`;
-		} else if (item.type==='state') {
-			details = `size=${item.w || '?'}x${item.h || '?'} entryActions=${item.enterExecutables?.length || 0} exitActions=${item.exitExecutables?.length || 0}`;
-		}
-		li.textContent = details ? `${label} — ${details}` : label;
-		selectionItems.appendChild(li);
+	if (count >= 2) {
+		selectionSummary.textContent = multiSelectionSummary(items);
+		selectionSummary.hidden = false;
+	} else {
+		selectionSummary.textContent = '';
+		selectionSummary.hidden = true;
 	}
 
 	renderEditor(payload, detailedItems);
+}
+
+function multiSelectionSummary(items) {
+	let stateCount = 0;
+	let transitionCount = 0;
+
+	for (const item of items) {
+		if (isTransitionSelectionItem(item)) {
+			transitionCount += 1;
+		} else if (isStateSelectionItem(item)) {
+			stateCount += 1;
+		}
+	}
+
+	if (stateCount && !transitionCount) {
+		return `${stateCount} state${stateCount===1 ? '' : 's'} selected`;
+	}
+
+	if (transitionCount && !stateCount) {
+		return `${transitionCount} transition${transitionCount===1 ? '' : 's'} selected`;
+	}
+
+	if (stateCount && transitionCount) {
+		return `${stateCount} state${stateCount===1 ? '' : 's'}, ${transitionCount} transition${transitionCount===1 ? '' : 's'} selected`;
+	}
+
+	return `${stateCount} states, ${transitionCount} transitions selected`;
+}
+
+function isTransitionSelectionItem(item) {
+	const kind = String(item?.tagName || item?.name || '').toLowerCase();
+	return item?.type==='transition' || kind==='transition';
+}
+
+function isStateSelectionItem(item) {
+	const kind = String(item?.tagName || item?.name || '').toLowerCase();
+	if (item?.type==='state') {
+		return true;
+	}
+
+	return kind==='state' || kind==='parallel' || kind==='history' || kind==='final';
+}
+
+function renderScxmlFileList(files, activeUri, diagramActiveUri) {
+	const previousValue = scxmlFileSelect.value;
+	activeDiagramUri = diagramActiveUri;
+	scxmlFileSelect.innerHTML = '';
+
+	if (!files.length) {
+		const opt = document.createElement('option');
+		opt.value = '';
+		opt.textContent = '(no .scxml files found)';
+		scxmlFileSelect.appendChild(opt);
+		scxmlFileSelect.disabled = true;
+		updateOpenDiagramButtonState();
+		return;
+	}
+
+	for (const file of files) {
+		const opt = document.createElement('option');
+		opt.value = file.uri;
+		opt.textContent = file.label;
+		scxmlFileSelect.appendChild(opt);
+	}
+
+	scxmlFileSelect.disabled = false;
+	setActiveScxmlFile(activeUri || previousValue || null);
+	updateOpenDiagramButtonState();
+}
+
+function setActiveScxmlFile(uri) {
+	if (!uri) {
+		updateOpenDiagramButtonState();
+		return;
+	}
+	const option = [...scxmlFileSelect.options].find(opt => opt.value===uri);
+	if (option) {
+		scxmlFileSelect.value = uri;
+	}
+	updateOpenDiagramButtonState();
+}
+
+function updateOpenDiagramButtonState() {
+	const hasSelection = !!scxmlFileSelect.value;
+	const alreadyFocusedDiagram = hasSelection && !!activeDiagramUri && scxmlFileSelect.value===activeDiagramUri;
+	openScxmlFileButton.disabled = !hasSelection || alreadyFocusedDiagram;
 }
 
 function renderEditor(payload, items) {
@@ -113,26 +201,26 @@ function renderEditor(payload, items) {
 	if (!single && !(allStates || allTransitions)) {
 		editHint.hidden = false;
 		editHint.textContent = 'Mixed state/transition selection. Use the canvas inspector for mixed-type bulk edits.';
+		stateKindRow.hidden = true;
 		idRow.hidden = true;
 		stateParentRow.hidden = true;
+		stateEntryRow.hidden = true;
+		stateEntryActionsRow.hidden = true;
+		stateExitRow.hidden = true;
+		stateExitActionsRow.hidden = true;
 		stateColorRow.hidden = true;
-		stateWidthRow.hidden = true;
-		stateHeightRow.hidden = true;
+		stateDimensionsRow.hidden = true;
 		transSourceRow.hidden = true;
-		transSourceAnchorSideRow.hidden = true;
-		transSourceAnchorOffsetRow.hidden = true;
+		transSourceAnchorRow.hidden = true;
 		transKindRow.hidden = true;
 		transEventRow.hidden = true;
-		transLabelAlignRow.hidden = true;
-		transLabelOffsetRow.hidden = true;
-		transLabelCrossOffsetRow.hidden = true;
+		transPlacementRow.hidden = true;
 		transCondRow.hidden = true;
 		transTargetRow.hidden = true;
-		transTargetAnchorSideRow.hidden = true;
-		transTargetAnchorOffsetRow.hidden = true;
+		transTargetAnchorRow.hidden = true;
+		transActionsRow.hidden = true;
+		transitionActionsRow.hidden = true;
 		transRadiusRow.hidden = true;
-		stateActionsSection.hidden = true;
-		transitionActionsSection.hidden = true;
 		return;
 	}
 
@@ -141,6 +229,7 @@ function renderEditor(payload, items) {
 	editId.value = single ? (item.id || '') : '';
 
 	const isTransition = allTransitions;
+	const isState = allStates;
 	const stateIds = payload?.inspectorData?.stateIds || [];
 	const parentValue = single ? (item.parentId || '(scxml)') : commonValue(items, 'parentId');
 	const sourceValue = single ? (item.sourceId || '(scxml)') : commonValue(items, 'sourceId');
@@ -154,29 +243,30 @@ function renderEditor(payload, items) {
 		editHint.textContent = 'Bulk editing is active. Fields showing "-" have mixed values.';
 	}
 
+	stateKindRow.hidden = isTransition;
+	editStateKind.value = isState ? (single ? stateKind(item) : commonStateKind(items)) : '';
 	stateParentRow.hidden = isTransition;
+	stateEntryRow.hidden = isTransition;
+	stateExitRow.hidden = isTransition;
 	stateColorRow.hidden = isTransition;
-	stateWidthRow.hidden = isTransition;
-	stateHeightRow.hidden = isTransition;
+	stateDimensionsRow.hidden = isTransition;
 	transSourceRow.hidden = !isTransition;
-	transSourceAnchorSideRow.hidden = !isTransition;
-	transSourceAnchorOffsetRow.hidden = !isTransition;
+	transSourceAnchorRow.hidden = !isTransition;
 	transKindRow.hidden = !isTransition;
 	transEventRow.hidden = !isTransition;
-	transLabelAlignRow.hidden = !isTransition;
-	transLabelOffsetRow.hidden = !isTransition;
-	transLabelCrossOffsetRow.hidden = !isTransition;
 	transCondRow.hidden = !isTransition;
 	transTargetRow.hidden = !isTransition;
-	transTargetAnchorSideRow.hidden = !isTransition;
-	transTargetAnchorOffsetRow.hidden = !isTransition;
+	transTargetAnchorRow.hidden = !isTransition;
+	transActionsRow.hidden = !isTransition;
 	transRadiusRow.hidden = !isTransition;
 
 	if (isTransition) {
+		clearColorButton.disabled = true;
 		setSelectValue(editSourceAnchorSide, single ? (item.sourceAnchorSide || '') : commonValue(items, 'sourceAnchorSide'));
 		setScalar(editSourceAnchorOffset, single ? (item.sourceAnchorOffset || '') : commonValue(items, 'sourceAnchorOffset'));
 		setSelectValue(editTransitionKind, single ? String(!!item.isInternal) : (commonValue(items, 'isInternal')===undefined ? undefined : String(!!commonValue(items, 'isInternal'))));
 		setScalar(editEvent, single ? (item.event || '') : commonValue(items, 'event'));
+		transPlacementRow.hidden = !hasAnyValidEvents(editEvent.value);
 		setSelectValue(editLabelAlign, single ? (item.align || '') : commonValue(items, 'align'));
 		setScalar(editLabelOffset, single ? (item.labelMainOffset || '') : commonValue(items, 'labelMainOffset'));
 		setScalar(editLabelCrossOffset, single ? (item.labelCrossOffset || '') : commonValue(items, 'labelCrossOffset'));
@@ -184,20 +274,41 @@ function renderEditor(payload, items) {
 		setSelectValue(editTargetAnchorSide, single ? (item.targetAnchorSide || '') : commonValue(items, 'targetAnchorSide'));
 		setScalar(editTargetAnchorOffset, single ? (item.targetAnchorOffset || '') : commonValue(items, 'targetAnchorOffset'));
 		setScalar(editRadius, single ? (item.radius || '') : commonValue(items, 'radius'));
-		stateActionsSection.hidden = true;
-		transitionActionsSection.hidden = !single;
-		if (single) renderActions(payload, 'transition', item.executables || [], transitionActions);
+		stateEntryActionsRow.hidden = true;
+		stateExitActionsRow.hidden = true;
+		transitionActionsRow.hidden = !single;
+		if (single) {
+			renderActions(payload, 'transition', item.executables || [], transitionActions);
+		}
 	} else {
-		setColor(editColor, single ? (item.rgbhex || '#808080') : commonValue(items, 'rgbhex'));
+		transPlacementRow.hidden = true;
+		setColor(editColor, single ? (item.rgbhex || '') : commonValue(items, 'rgbhex'));
+		clearColorButton.disabled = false;
 		setScalar(editWidth, single ? (item.w || 0) : commonValue(items, 'w'));
 		setScalar(editHeight, single ? (item.h || 0) : commonValue(items, 'h'));
-		stateActionsSection.hidden = !single;
-		transitionActionsSection.hidden = true;
+		stateEntryActionsRow.hidden = !single;
+		stateExitActionsRow.hidden = !single;
+		transitionActionsRow.hidden = true;
 		if (single) {
 			renderActions(payload, 'entry', item.enterExecutables || [], entryActions);
 			renderActions(payload, 'exit', item.exitExecutables || [], exitActions);
 		}
 	}
+}
+
+function stateKind(item) {
+	if (item.tagName==='history') return item.isDeep ? 'deep history' : 'shallow history';
+	return item.tagName || 'state';
+}
+
+function commonStateKind(items) {
+	let value;
+	for (const item of items) {
+		const kind = stateKind(item);
+		if (value===undefined) value = kind;
+		else if (value!==kind) return '-';
+	}
+	return value || 'state';
 }
 
 function populateStateOptions(selectEl, values, selected) {
@@ -265,12 +376,33 @@ function commonValue(items, key) {
 	return first;
 }
 
+function hasAnyValidEvents(rawValue) {
+	if (typeof rawValue !== 'string') {
+		return false;
+	}
+	const tokens = rawValue.split(/\s+/).map(s => s.trim()).filter(Boolean);
+	if (!tokens.length) {
+		return false;
+	}
+	const eventToken = /^[A-Za-z0-9_.*-]+$/;
+	return tokens.some(token => eventToken.test(token));
+}
+
+function refreshPlacementVisibilityFromEventInput() {
+	if (transEventRow.hidden) {
+		transPlacementRow.hidden = true;
+		return;
+	}
+	transPlacementRow.hidden = !hasAnyValidEvents(editEvent.value);
+}
+
 function renderActions(payload, location, actions, container) {
 	container.innerHTML = '';
 	const actionTypes = payload?.inspectorData?.actionTypes || [];
 
 	for (let i = 0; i < actions.length; ++i) {
 		const action = actions[i];
+		const schema = actionTypes.find(t => t.ns===action.namespaceURI && t.name===action.localName);
 		const card = document.createElement('div');
 		card.className = 'actionCard';
 
@@ -278,41 +410,69 @@ function renderActions(payload, location, actions, container) {
 		header.className = 'actionHeader';
 		card.appendChild(header);
 
-		const typeLabel = document.createElement('label');
-		typeLabel.textContent = 'Type';
-		header.appendChild(typeLabel);
+		if (schema) {
+			const typeLabel = document.createElement('label');
+			typeLabel.textContent = 'Type';
+			header.appendChild(typeLabel);
 
-		const typeSelect = document.createElement('select');
-		typeLabel.appendChild(typeSelect);
-		for (const t of actionTypes) {
-			const opt = document.createElement('option');
-			opt.value = `${t.ns}|${t.name}`;
-			opt.textContent = t.name;
-			if (t.ns===action.namespaceURI && t.name===action.localName) opt.selected = true;
-			typeSelect.appendChild(opt);
+			const typeSelect = document.createElement('select');
+			typeLabel.appendChild(typeSelect);
+			for (const t of actionTypes) {
+				const opt = document.createElement('option');
+				opt.value = `${t.ns}|${t.name}`;
+				opt.textContent = t.name;
+				if (t.ns===action.namespaceURI && t.name===action.localName) opt.selected = true;
+				typeSelect.appendChild(opt);
+			}
+			typeSelect.addEventListener('change', () => {
+				const [ns, name] = typeSelect.value.split('|');
+				sendInspectorCommand('setActionType', {location, index:i, ns, name});
+			});
+		} else {
+			const summary = document.createElement('div');
+			summary.className = 'actionReadonlySummary';
+			summary.textContent = serializeUnknownActionSummary(action);
+			summary.title = action.namespaceURI || '';
+			header.appendChild(summary);
 		}
-		typeSelect.addEventListener('change', () => {
-			const [ns, name] = typeSelect.value.split('|');
-			sendInspectorCommand('setActionType', {location, index:i, ns, name});
-		});
 
 		const del = document.createElement('button');
 		del.type = 'button';
 		del.className = 'deleteButton';
-		del.textContent = 'Delete';
+		del.textContent = '×';
+		del.title = 'Delete action';
+		del.setAttribute('aria-label', 'Delete action');
 		del.addEventListener('click', () => {
 			sendInspectorCommand('deleteAction', {location, index:i});
 		});
 		header.appendChild(del);
 
-		const schema = actionTypes.find(t => t.ns===action.namespaceURI && t.name===action.localName);
-		if (schema?.cdata) {
+		if (!schema) {
+			if ((action.textContent || '').trim()) {
+				const textContent = document.createElement('div');
+				textContent.className = 'actionReadonlyContent';
+				textContent.textContent = action.textContent || '';
+				card.appendChild(textContent);
+			}
+
+			if (!Object.keys(action.attrs || {}).length && !(action.textContent || '').trim()) {
+				const hint = document.createElement('div');
+				hint.className = 'hint';
+				hint.textContent = 'No editable schema for this action type.';
+				card.appendChild(hint);
+			}
+
+			container.appendChild(card);
+			continue;
+		}
+
+		if (schema.cdata) {
 			const textLabel = document.createElement('label');
 			textLabel.textContent = 'Content';
 			const ta = document.createElement('textarea');
 			ta.rows = 3;
 			ta.value = action.textContent || '';
-			ta.addEventListener('change', () => {
+			ta.addEventListener('input', () => {
 				sendInspectorCommand('setActionText', {location, index:i, text:ta.value});
 			});
 			textLabel.appendChild(ta);
@@ -352,7 +512,7 @@ function renderActions(payload, location, actions, container) {
 				if (attr.max!==undefined) inp.max = attr.max;
 				if (attr.type==='float' && attr.step) inp.step = attr.step;
 				inp.value = value;
-				inp.addEventListener('change', () => {
+				inp.addEventListener('input', () => {
 					sendInspectorCommand('setActionAttr', {location, index:i, name:attr.name, value:inp.value});
 				});
 				label.appendChild(inp);
@@ -365,6 +525,14 @@ function renderActions(payload, location, actions, container) {
 	}
 }
 
+function serializeUnknownActionSummary(action) {
+	const name = action.localName || '(unknown)';
+	const attrs = Object.entries(action.attrs || {})
+		.map(([k, v]) => `${k}="${v ?? ''}"`)
+		.join(' ');
+	return attrs ? `${name} ${attrs}` : name;
+}
+
 function setProperty(property, value) {
 	if (value==='-') return;
 	sendInspectorCommand('setProperty', {property, value});
@@ -374,25 +542,43 @@ function sendInspectorCommand(command, payload) {
 	vscode.postMessage({command, ...payload});
 }
 
-editId.addEventListener('change', () => setProperty('id', editId.value));
+editId.addEventListener('input', () => setProperty('id', editId.value));
 editParentId.addEventListener('change', () => setProperty('parentId', editParentId.value));
-editColor.addEventListener('change', () => setProperty('rgbhex', editColor.value));
-editWidth.addEventListener('change', () => setProperty('w', editWidth.value));
-editHeight.addEventListener('change', () => setProperty('h', editHeight.value));
+const applyColorFromPicker = () => setProperty('rgbhex', editColor.value);
+editColor.addEventListener('input', applyColorFromPicker);
+editColor.addEventListener('change', applyColorFromPicker);
+clearColorButton.addEventListener('click', () => {
+	setProperty('rgbhex', '');
+	setColor(editColor, '');
+});
+editWidth.addEventListener('input', () => setProperty('w', editWidth.value));
+editHeight.addEventListener('input', () => setProperty('h', editHeight.value));
 editSourceId.addEventListener('change', () => setProperty('sourceId', editSourceId.value));
 editSourceAnchorSide.addEventListener('change', () => setProperty('sourceAnchorSide', editSourceAnchorSide.value));
-editSourceAnchorOffset.addEventListener('change', () => setProperty('sourceAnchorOffset', editSourceAnchorOffset.value));
+editSourceAnchorOffset.addEventListener('input', () => setProperty('sourceAnchorOffset', editSourceAnchorOffset.value));
 editTransitionKind.addEventListener('change', () => setProperty('isInternal', editTransitionKind.value));
-editEvent.addEventListener('change', () => setProperty('event', editEvent.value));
+editEvent.addEventListener('input', () => {
+	setProperty('event', editEvent.value);
+	refreshPlacementVisibilityFromEventInput();
+});
 editLabelAlign.addEventListener('change', () => setProperty('align', editLabelAlign.value));
-editLabelOffset.addEventListener('change', () => setProperty('labelMainOffset', editLabelOffset.value));
-editLabelCrossOffset.addEventListener('change', () => setProperty('labelCrossOffset', editLabelCrossOffset.value));
-editCondition.addEventListener('change', () => setProperty('condition', editCondition.value));
+editLabelOffset.addEventListener('input', () => setProperty('labelMainOffset', editLabelOffset.value));
+editLabelCrossOffset.addEventListener('input', () => setProperty('labelCrossOffset', editLabelCrossOffset.value));
+editCondition.addEventListener('input', () => setProperty('condition', editCondition.value));
 editTargetId.addEventListener('change', () => setProperty('targetId', editTargetId.value));
 editTargetAnchorSide.addEventListener('change', () => setProperty('targetAnchorSide', editTargetAnchorSide.value));
-editTargetAnchorOffset.addEventListener('change', () => setProperty('targetAnchorOffset', editTargetAnchorOffset.value));
-editRadius.addEventListener('change', () => setProperty('radius', editRadius.value));
+editTargetAnchorOffset.addEventListener('input', () => setProperty('targetAnchorOffset', editTargetAnchorOffset.value));
+editRadius.addEventListener('input', () => setProperty('radius', editRadius.value));
 
 addEntryAction.addEventListener('click', () => sendInspectorCommand('addAction', {location:'entry'}));
 addExitAction.addEventListener('click', () => sendInspectorCommand('addAction', {location:'exit'}));
 addTransitionAction.addEventListener('click', () => sendInspectorCommand('addAction', {location:'transition'}));
+scxmlFileSelect.addEventListener('change', () => {
+	updateOpenDiagramButtonState();
+});
+openScxmlFileButton.addEventListener('click', () => {
+	if (!scxmlFileSelect.value) {
+		return;
+	}
+	sendInspectorCommand('openScxmlInVisualEditor', {uri: scxmlFileSelect.value});
+});
