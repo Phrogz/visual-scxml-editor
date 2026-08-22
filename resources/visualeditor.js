@@ -196,27 +196,69 @@ class VisualEditor {
 
 	makeDraggable(el, obj) {
 		el.addEventListener('mousedown', evt => {
-			if (evt.button) return; // Only drag when button is 0, i.e. left button
+			if (evt.button) return;
 			evt.stopPropagation();
+
 			const startLoc = this.pointFromScreen(evt.clientX, evt.clientY);
-			const sandbox={};
-			this.draggingActive=false;
+			const sandbox = {};
+			this.draggingActive = false;
+
+			let selectionPool = [];
+
+			if (evt.shiftKey) {
+				if (this.selection && this.selection.includes(obj)) {
+					selectionPool = this.selection.filter(item => item !== obj);
+				} else {
+					selectionPool = this.selection ? [...this.selection, obj] : [obj];
+				}
+			} else {
+				selectionPool = (this.selection && this.selection.includes(obj))
+					? this.selection
+					: [obj];
+			}
+
+			selectionPool.forEach(item => {
+				if (item.startDragging) {
+					sandbox[item.id || item] = {};
+					item.startDragging(sandbox[item.id || item]);
+				}
+			});
+
 			const onmove = evt => {
 				const mouseLoc = this.pointFromScreen(evt.clientX, evt.clientY);
 				evt.stopPropagation();
-				if (!this.draggingActive && (this.draggingActive=true) && obj.startDragging) obj.startDragging(sandbox);
-				if (obj.handleDrag) obj.handleDrag(mouseLoc.x-startLoc.x, mouseLoc.y-startLoc.y, sandbox);
+
+				const dx = mouseLoc.x - startLoc.x;
+				const dy = mouseLoc.y - startLoc.y;
+
+				if (!this.draggingActive) {
+					this.draggingActive = true;
+				}
+
+				selectionPool.forEach(item => {
+					if (item.handleDrag) {
+						item.handleDrag(dx, dy, sandbox[item.id || item]);
+					}
+				});
 			};
+
 			document.body.addEventListener('mousemove', onmove);
-			document.body.addEventListener('mouseup',() => {
+
+			document.body.addEventListener('mouseup', () => {
 				document.body.removeEventListener('mousemove', onmove);
-				if (obj.finishDragging) obj.finishDragging(sandbox);
+
+				selectionPool.forEach(item => {
+					if (item.finishDragging) {
+						item.finishDragging(sandbox[item.id || item]);
+					}
+				});
+
 				this.draggingActive = false;
 				if (this.notifyWhenDoneDragging) {
 					this.scxmlDoc.dispatchEvent(new CustomEvent('changed'));
 					this.notifyWhenDoneDragging = false;
 				}
-			});
+			}, { once: true });
 		});
 	}
 
