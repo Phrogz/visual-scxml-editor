@@ -147,8 +147,13 @@ export class VisualState extends SCXMLState {
 	}
 
 	visuallySelect() {
-		if (!this._vse.main.classList.contains('selected')) {
-			this._vse.main.classList.add('selected');
+		const main = this._vse?.main;
+		if (!main) {
+			return;
+		}
+
+		if (!main.classList.contains('selected')) {
+			main.classList.add('selected');
 			if (!this.isParallelChild) this.createSelectors();
 			else {
 				// TODO: draw selectors for a parallel child
@@ -157,7 +162,12 @@ export class VisualState extends SCXMLState {
 	}
 
 	visuallyDeselect() {
-		this._vse.main.classList.remove('selected');
+		const main = this._vse?.main;
+		if (!main) {
+			return;
+		}
+
+		main.classList.remove('selected');
 		if (!this.isParallelChild) this.removeSelectors();
 	}
 
@@ -506,7 +516,7 @@ export class VisualState extends SCXMLState {
 	}
 
 	removeSelectors() {
-		if (!this._vse.selectors) return;
+		if (!this._vse?.selectors) return;
 		Object.values(this._vse.selectors).forEach(el => el.parentNode.removeChild(el));
 		delete this._vse.selectors;
 	}
@@ -846,14 +856,23 @@ export class VisualTransition extends SCXMLTransition {
 	}
 
 	visuallySelect() {
-		const main = this._vse.main;
+		const main = this._vse?.main;
+		if (!main) {
+			return;
+		}
+
 		main.parentNode.appendChild(main);
 		main.classList.add('selected');
 		this.createSelectors();
 	}
 
 	visuallyDeselect() {
-		this._vse.main.classList.remove('selected');
+		const main = this._vse?.main;
+		if (!main) {
+			return;
+		}
+
+		main.classList.remove('selected');
 		this.removeSelectors();
 	}
 
