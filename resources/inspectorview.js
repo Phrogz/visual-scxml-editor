@@ -55,12 +55,40 @@ const addExitAction = document.getElementById('addExitAction');
 const addTransitionAction = document.getElementById('addTransitionAction');
 let activeDiagramUri = null;
 
+const staticFieldTooltips = new Map([
+	[scxmlFileSelect, 'Choose which SCXML file this inspector controls.'],
+	[openScxmlFileButton, 'Open the selected SCXML in the visual diagram editor.'],
+	[editStateKind, 'State type. Toggle between state and parallel when allowed.'],
+	[editId, 'Identifier for the selected item. Example: cooking'],
+	[editParentId, 'Parent state for this state. Use (scxml) for top-level.'],
+	[addEntryAction, 'Add an action that runs when entering this state.'],
+	[addExitAction, 'Add an action that runs when exiting this state.'],
+	[editColor, 'Custom state color. Example: choose a color used by related states.'],
+	[clearColorButton, 'Remove custom color and use the default theme color.'],
+	[editWidth, 'State width in pixels. Example: 160'],
+	[editHeight, 'State height in pixels. Example: 80'],
+	[editTransitionKind, 'External exits/re-enters target; internal stays within source.'],
+	[editSourceId, 'Transition source state id.'],
+	[editSourceAnchorSide, 'Preferred side where the transition leaves the source state.'],
+	[editSourceAnchorOffset, 'Source-anchor offset in pixels. Example: 20'],
+	[editEvent, 'Space-separated event names. Example: turn_on timer'],
+	[editLabelAlign, 'Preferred position for the transition label.'],
+	[editLabelOffset, 'Label shift along the transition in pixels. Example: 20'],
+	[editLabelCrossOffset, 'Label shift perpendicular to the transition in pixels. Example: -10'],
+	[editCondition, 'Guard condition expression. Example: timer >= cook_time'],
+	[editTargetId, 'Transition target state id. Use (none) for no target.'],
+	[editTargetAnchorSide, 'Preferred side where the transition enters the target state.'],
+	[editTargetAnchorOffset, 'Target-anchor offset in pixels. Example: 10'],
+	[addTransitionAction, 'Add an action that runs when this transition fires.'],
+	[editRadius, 'Corner radius for routed transition bends, in pixels. Example: 20']
+]);
+
 window.addEventListener('message', event => {
 	const message = event.data;
 	switch (message.command) {
 		case 'clearSelection':
-				selectionSummary.textContent = '';
-				selectionSummary.hidden = true;
+			selectionSummary.textContent = '';
+			selectionSummary.hidden = true;
 			editSection.hidden = true;
 		break;
 
@@ -75,6 +103,32 @@ window.addEventListener('message', event => {
 });
 
 sendInspectorCommand('requestScxmlFiles', {});
+initializeFieldTooltips();
+
+function initializeFieldTooltips() {
+	for (const [element, tooltip] of staticFieldTooltips) {
+		if (!element) {
+			continue;
+		}
+		applyTooltip(element, tooltip);
+	}
+}
+
+function applyTooltip(element, tooltip) {
+	if (!element || !tooltip) {
+		return;
+	}
+
+	element.title = tooltip;
+	const label = element.closest('label');
+	if (label) {
+		label.title = tooltip;
+		const caption = label.querySelector(':scope > span');
+		if (caption) {
+			caption.title = tooltip;
+		}
+	}
+}
 
 function renderSelection(payload) {
 	setActiveScxmlFile(payload.documentUri || null);
@@ -244,7 +298,9 @@ function renderEditor(payload, items) {
 	}
 
 	stateKindRow.hidden = isTransition;
-	editStateKind.value = isState ? (single ? stateKind(item) : commonStateKind(items)) : '';
+	if (isState) {
+		configureStateKindControl(single, item, items);
+	}
 	stateParentRow.hidden = isTransition;
 	stateEntryRow.hidden = isTransition;
 	stateExitRow.hidden = isTransition;
@@ -299,6 +355,61 @@ function renderEditor(payload, items) {
 function stateKind(item) {
 	if (item.tagName==='history') return item.isDeep ? 'deep history' : 'shallow history';
 	return item.tagName || 'state';
+}
+
+function isStateKindMutable(tagName) {
+	return tagName==='state' || tagName==='parallel';
+}
+
+function configureStateKindControl(single, item, items) {
+	editStateKind.innerHTML = '';
+
+	const addOption = (value, text) => {
+		const opt = document.createElement('option');
+		opt.value = value;
+		opt.textContent = text;
+		editStateKind.appendChild(opt);
+	};
+
+	if (single) {
+		if (isStateKindMutable(item.tagName)) {
+			addOption('state', 'state');
+			addOption('parallel', 'parallel');
+			editStateKind.value = item.tagName;
+			editStateKind.disabled = false;
+			applyTooltip(editStateKind, 'State type. Use parallel for orthogonal child regions.');
+		} else {
+			addOption(stateKind(item), stateKind(item));
+			editStateKind.disabled = true;
+			applyTooltip(editStateKind, 'State type for this node is fixed.');
+		}
+		return;
+	}
+
+	const allMutable = items.every(candidate => isStateKindMutable(candidate.tagName));
+	if (!allMutable) {
+		const kind = commonStateKind(items);
+		addOption(kind, kind);
+		editStateKind.disabled = true;
+		applyTooltip(editStateKind, 'State type is fixed for one or more selected nodes.');
+		return;
+	}
+
+	addOption('state', 'state');
+	addOption('parallel', 'parallel');
+	const sharedTag = commonValue(items, 'tagName');
+	if (sharedTag==='state' || sharedTag==='parallel') {
+		editStateKind.value = sharedTag;
+	} else {
+		const mixed = document.createElement('option');
+		mixed.value = '-';
+		mixed.textContent = '-';
+		editStateKind.prepend(mixed);
+		editStateKind.value = '-';
+	}
+
+	editStateKind.disabled = false;
+	applyTooltip(editStateKind, 'Apply state or parallel to all selected states.');
 }
 
 function commonStateKind(items) {
@@ -416,6 +527,9 @@ function renderActions(payload, location, actions, container) {
 			header.appendChild(typeLabel);
 
 			const typeSelect = document.createElement('select');
+			const typeTooltip = schema.tip || 'Action type to execute at this step.';
+			typeLabel.title = typeTooltip;
+			typeSelect.title = typeTooltip;
 			typeLabel.appendChild(typeSelect);
 			for (const t of actionTypes) {
 				const opt = document.createElement('option');
@@ -472,6 +586,9 @@ function renderActions(payload, location, actions, container) {
 			const ta = document.createElement('textarea');
 			ta.rows = 3;
 			ta.value = action.textContent || '';
+			const contentTooltip = schema.cdataTip || 'Action text content. Example: timer = timer + 1';
+			textLabel.title = contentTooltip;
+			ta.title = contentTooltip;
 			ta.addEventListener('input', () => {
 				sendInspectorCommand('setActionText', {location, index:i, text:ta.value});
 			});
@@ -483,9 +600,12 @@ function renderActions(payload, location, actions, container) {
 			const label = document.createElement('label');
 			label.textContent = attr.name;
 			const value = action.attrs?.[attr.name] ?? '';
+			const attrTooltip = actionAttributeTooltip(attr);
+			label.title = attrTooltip;
 
 			if (attr.type==='choice') {
 				const sel = document.createElement('select');
+				sel.title = attrTooltip;
 				for (const v of (attr.values || '').split(/,\s*/).filter(Boolean)) {
 					const opt = document.createElement('option');
 					opt.value = v;
@@ -500,6 +620,7 @@ function renderActions(payload, location, actions, container) {
 			} else if (attr.type==='boolean') {
 				const chk = document.createElement('input');
 				chk.type = 'checkbox';
+				chk.title = attrTooltip;
 				chk.checked = value==='true';
 				chk.addEventListener('change', () => {
 					sendInspectorCommand('setActionAttr', {location, index:i, name:attr.name, value:String(chk.checked)});
@@ -508,6 +629,7 @@ function renderActions(payload, location, actions, container) {
 			} else {
 				const inp = document.createElement('input');
 				inp.type = attr.type==='int' || attr.type==='float' ? 'number' : 'text';
+				inp.title = attrTooltip;
 				if (attr.min!==undefined) inp.min = attr.min;
 				if (attr.max!==undefined) inp.max = attr.max;
 				if (attr.type==='float' && attr.step) inp.step = attr.step;
@@ -523,6 +645,55 @@ function renderActions(payload, location, actions, container) {
 
 		container.appendChild(card);
 	}
+}
+
+function actionAttributeTooltip(attr) {
+	const name = attr?.name || 'attribute';
+	const lowerName = name.toLowerCase();
+	if (attr?.tip) {
+		return String(attr.tip).trim();
+	}
+
+	if (attr?.type==='choice') {
+		const choices = (attr.values || '').split(/,\s*/).filter(Boolean);
+		const sample = choices[0] || 'value';
+		return `${name}: choose a supported value. Example: ${sample}`;
+	}
+
+	if (attr?.type==='boolean') {
+		return `${name}: on/off flag (true or false).`;
+	}
+
+	const rangeParts = [];
+	if (attr?.min!==undefined) rangeParts.push(`min ${attr.min}`);
+	if (attr?.max!==undefined) rangeParts.push(`max ${attr.max}`);
+	const rangeText = rangeParts.length ? ` (${rangeParts.join(', ')})` : '';
+
+	if (lowerName.includes('expr')) {
+		return `${name}: expression.${rangeText} Example: timer + 1`;
+	}
+
+	if (lowerName.includes('cond')) {
+		return `${name}: guard condition.${rangeText} Example: timer >= cook_time`;
+	}
+
+	if (lowerName.includes('event')) {
+		return `${name}: event name.${rangeText} Example: door_open`;
+	}
+
+	if (lowerName.includes('target')) {
+		return `${name}: target id.${rangeText} Example: cooking`;
+	}
+
+	if (lowerName.includes('location')) {
+		return `${name}: data location.${rangeText} Example: timer`;
+	}
+
+	if (attr?.type==='int' || attr?.type==='float') {
+		return `${name}: numeric value.${rangeText} Example: 10`;
+	}
+
+	return `${name}: value.${rangeText} Example: value`;
 }
 
 function serializeUnknownActionSummary(action) {
@@ -543,6 +714,7 @@ function sendInspectorCommand(command, payload) {
 }
 
 editId.addEventListener('input', () => setProperty('id', editId.value));
+editStateKind.addEventListener('change', () => setProperty('stateKind', editStateKind.value));
 editParentId.addEventListener('change', () => setProperty('parentId', editParentId.value));
 const applyColorFromPicker = () => setProperty('rgbhex', editColor.value);
 editColor.addEventListener('input', applyColorFromPicker);

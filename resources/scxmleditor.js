@@ -120,6 +120,25 @@ window.addEventListener('message', event => {
 });
 
 function applyInspectorPropertyChange(property, value) {
+	if (property==='stateKind') {
+		const previousSelection = visualEditor.selection.concat();
+		visualEditor.setSelection([]);
+
+		const nextSelection = [];
+		for (const node of previousSelection) {
+			const replacement = mutateStateKind(node, value);
+			if (replacement && replacement!==node) {
+				nextSelection.push(replacement);
+			} else if (node?.parentNode) {
+				nextSelection.push(node);
+			}
+		}
+
+		visualEditor.setSelection(nextSelection);
+		notifyInspectorData(visualEditor.selection);
+		return;
+	}
+
 	let anyChanged = false;
 	for (const o of visualEditor.selection) {
 		if (!(property in o)) continue;
@@ -137,6 +156,35 @@ function applyInspectorPropertyChange(property, value) {
 		visualEditor.setSelection(visualEditor.selection.concat());
 	}
 	notifyInspectorData(visualEditor.selection);
+}
+
+function mutateStateKind(node, kind) {
+	if (!node?.isState || node.isSCXML) return null;
+	if (!(kind==='state' || kind==='parallel')) return null;
+	if (!(node.nodeName==='state' || node.nodeName==='parallel')) return null;
+	if (node.nodeName===kind) return null;
+
+	const replacement = node.ownerDocument.createElementNS(node.namespaceURI, kind);
+	for (const attr of Array.from(node.attributes)) {
+		if (attr.namespaceURI) replacement.setAttributeNS(attr.namespaceURI, attr.name, attr.value);
+		else replacement.setAttribute(attr.name, attr.value);
+	}
+
+	if (kind==='parallel') {
+		replacement.removeAttribute('initial');
+	}
+
+	while (node.firstChild) {
+		replacement.appendChild(node.firstChild);
+	}
+
+	node.replaceWith(replacement);
+	replacement.initialize?.(visualEditor);
+	replacement.parentNode?.updateStyleForDescendants?.();
+	replacement.updateStyleForContainment?.();
+	replacement.updateStyleForDescendants?.();
+
+	return replacement;
 }
 
 function applyInspectorAddAction(location) {
@@ -288,7 +336,9 @@ function parseActionSchemaDoc(scxmlDoc) {
 		const action = {
 			ns: el.namespaceURI,
 			name: el.localName,
+			tip: el.getAttributeNS(visualNS, 'tip') || '',
 			cdata: el.getAttributeNS(visualNS, 'cdata') === 'true',
+			cdataTip: el.getAttributeNS(visualNS, 'cdataTip') || '',
 			attrs: Array.from(el.querySelectorAll('attribute'))
 				.filter(a => a.namespaceURI===visualNS)
 				.map(a => Object.fromEntries(Array.from(a.attributes).map(n => [n.name, n.value])))
@@ -373,14 +423,17 @@ function serializeActionTypes(schemaList=[]) {
 	return schemaList.map(s => ({
 		ns: s.ns,
 		name: s.name,
+		tip: s.tip,
 		cdata: !!s.cdata,
+		cdataTip: s.cdataTip,
 		attrs: s.attrs.map(a => ({
 			name: a.name,
 			type: a.type,
 			min: a.min,
 			max: a.max,
 			step: a.step,
-			values: a.values
+			values: a.values,
+			tip: a.tip
 		}))
 	}));
 }

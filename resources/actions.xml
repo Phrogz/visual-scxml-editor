@@ -3,26 +3,26 @@
        xmlns:viz="http://phrogz.net/visual-scxml"
        version="1.0">
 	<viz:actions>
-        <script viz:cdata="true"/>
-		<assign>
-			<viz:attribute name="location" type="string"/>
-			<viz:attribute name="expr" type="string"/>
+        <script viz:cdata="true" viz:tip="Run code when this action executes." viz:cdataTip="Script content to execute."/>
+        <assign viz:tip="Assign an expression result into a data location.">
+            <viz:attribute name="location" type="string" tip="Destination variable name, e.g. `timer`"/>
+            <viz:attribute name="expr" type="string" tip="Script expression to evaluate and assign, e.g. `timer + 1`"/>
 		</assign>
-		<log>
-            <viz:attribute name="label" type="string"/>
-			<viz:attribute name="expr" type="string"/>
+        <log viz:tip="Write a diagnostic message to the platform log.">
+            <viz:attribute name="label" type="string" tip="Label prefix for the log message. Example: cook"/>
+            <viz:attribute name="expr" type="string" tip="Expression to evaluate and print."/>
 		</log>
-        <raise>
-            <viz:attribute name="event" type="string"/>
+        <raise viz:tip="Raise an internal event immediately.">
+            <viz:attribute name="event" type="string" tip="Event to raise, e.g. `door_open`"/>
         </raise>
-        <send>
-            <viz:attribute name="event" type="string"/>
-            <viz:attribute name="id" type="string"/>
-            <viz:attribute name="delay" type="string"/>
-            <viz:attribute name="namelist" type="string"/>
+        <send viz:tip="Send an event, optionally delayed.">
+            <viz:attribute name="event" type="string" tip="Event to send, e.g. `timed_out`"/>
+            <viz:attribute name="id" type="string" tip="Identifier used to later cancel this send, e.g. `delayed_timeout`"/>
+            <viz:attribute name="delay" type="string" tip="Delay before sending; SCXML duration string, e.g. `1s`"/>
+            <viz:attribute name="namelist" type="string" tip="Space-separated data names to include, e.g. `timer cook_time`"/>
         </send>
-        <cancel>
-            <viz:attribute name="sendid" type="string"/>
+        <cancel viz:tip="Cancel a previously scheduled send.">
+            <viz:attribute name="sendid" type="string" tip="id of the pending send to cancel, e.g. `delayed_timeout`"/>
         </cancel>
 	</viz:actions>
 </scxml>
