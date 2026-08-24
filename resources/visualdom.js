@@ -951,29 +951,36 @@ export class VisualTransition extends SCXMLTransition {
 		const ego = this._vse;
 		if (!ego.selectors) return;
 		const anchors = this.anchors;
-		const viewport = calculateViewport(ego.editor.svg);
+		const viewBox = ego.editor.svg.viewBox.baseVal;
+		const viewport = calculateViewport(ego.editor.svg) || {
+			x: viewBox.x,
+			y: viewBox.y,
+			width: viewBox.width,
+			height: viewBox.height,
+		};
 
 		const zoom = Math.min(1, ego.editor.zoomFactor);
 		const [r, rw, rh] = [4*zoom, 18*zoom, 8*zoom];
 		let x,y,w,h;
 		for (const sel of ego.selectors) {
-			const axis = sel.label.dataset.axis;
 			const [prev, anchor, next] = [anchors[sel.anchorIndex-1], anchors[sel.anchorIndex], anchors[sel.anchorIndex+1]];
 			if (anchor?.axis==='Y') {
+				sel.guide.setAttribute('x1', viewport.x);
+				sel.guide.setAttribute('x2', viewport.x + viewport.width);
 				sel.guide.setAttribute('y1', anchor.y);
 				sel.guide.setAttribute('y2', anchor.y);
 				sel.label.setAttribute('x', viewport.x + 10);
 				sel.label.setAttribute('y', anchor.y);
 				[x,y,w,h] = [(prev.x + next.x)/2 - rw/2, anchor.y - rh/2, rw, rh];
 			} else if (anchor?.axis==='X') {
+				sel.guide.setAttribute('y1', viewport.y);
+				sel.guide.setAttribute('y2', viewport.y + viewport.height);
 				sel.guide.setAttribute('x1', anchor.x);
 				sel.guide.setAttribute('x2', anchor.x);
 				sel.label.setAttribute('x', anchor.x);
 				sel.label.setAttribute('y', viewport.y + 10);
 				[x,y,w,h] = [anchor.x - rh/2, (prev.y + next.y)/2 - rw/2, rh, rw];
 			}
-
-			sel.label.setAttribute(axis, viewport[axis] + 10);
 			sel.label.style.fontSize = `${30*zoom}px`;
 
 			sel.handle.setAttribute('x', x);
