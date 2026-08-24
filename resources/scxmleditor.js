@@ -7,55 +7,27 @@ import VisualEditor from 'visualEditor';
 import { parseRoutingPoints } from 'visualDOM';
 import neatXML from 'neatXML';
 
-const NS = 'http://www.w3.org/2005/07/scxml';
-const visualNS  = 'http://phrogz.net/visual-scxml';
+const visualNS = 'http://phrogz.net/visual-scxml';
 const vscode = acquireVsCodeApi();
 const visualEditor = new VisualEditor(document.querySelector('svg'));
 window.vse = visualEditor;
-inspector.addEventListener('mousedown', evt => evt.stopPropagation(), false);
+
 visualEditor.onSelectionChanged = (sel) => {
 	console.info('scxmleditor.js is notified that the visual selection changed');
 	notifyDocumentOfSelection(sel);
-	updateInspectorForSelection(sel);
+	notifyInspectorData(sel);
 };
 visualEditor.onUndo = () => vscode.postMessage({command:'undo'});
-
-// Inspector inputs
-watchInput(insParent, 'parentId');
-watchInput(insId, 'id');
-watchInput(insColor, 'rgbhex');
-watchInput(insWidth, 'w');
-watchInput(insHeight, 'h');
-
-watchInput(insSource, 'sourceId');
-watchInput(insSourceAnchorSide, 'sourceAnchorSide');
-watchInput(insSourceAnchorOffset, 'sourceAnchorOffset');
-
-watchInput(insEvent, 'event');
-watchInput(insCondition, 'condition');
-
-watchInput(insTarget, 'targetId');
-watchInput(insTargetAnchorSide, 'targetAnchorSide');
-watchInput(insTargetAnchorOffset, 'targetAnchorOffset');
-
-watchInput(insRadius, 'radius');
-watchInput(insLabelAlign, 'align');
-watchInput(insLabelOffset, 'labelMainOffset');
-watchInput(insLabelCrossOffset, 'labelCrossOffset');
-
-insAddEntry.addEventListener('click', _ => addNewAction('entry'));
-insAddExit.addEventListener('click', _ => addNewAction('exit'));
-insAddTransitionExecutable.addEventListener('click', _ => addNewAction('transition'));
 
 let actionSchema;
 const baseActionSchemaText = JSON.parse(document.getElementById('baseActionSchemaText')?.textContent || '""');
 
 // Wait a short time before updating the document once only, so that quick changes (e.g. dragging) do not keep dirtying the document until done
-const serializationOptions = {strip:true, indent:'\t', sort:true, cdata:true, tightcdata:true};
-let handleChangeTimer, changeDelayMS = 250;
+const serializationOptions = {strip:true, indent:'\t', sort:true, cdata:true, tightcdata:false};
+let handleChangeTimer;
+const changeDelayMS = 250;
 function onSCXMLDocChanged() {
 	vscode.postMessage({command:'validIDs', ids:visualEditor.scxmlDoc.ids});
-	// This does not error if the timer has never been set
 	clearTimeout(handleChangeTimer);
 	handleChangeTimer = setTimeout(sendXMLToTextEditor, changeDelayMS);
 }
@@ -72,7 +44,7 @@ window.addEventListener('message', event => {
 	const message = event.data;
 	console.info(`scxmleditor.js received message '${message.command}'`);
 	switch (message.command) {
-		case 'updateFromText':
+		case 'updateFromText': {
 			const xmlString = message.document;
 			const scxmlDocOrErrors = loadSCXML(xmlString);
 			if (Array.isArray(scxmlDocOrErrors)) {
@@ -84,9 +56,11 @@ window.addEventListener('message', event => {
 				vscode.postMessage({command:'validIDs', ids:scxmlDocOrErrors.ids});
 				visualEditor.scxmlDoc.addEventListener('changed', onSCXMLDocChanged, false);
 				actionSchema = readActionSchema(scxmlDocOrErrors);
+				notifyInspectorData(visualEditor.selection || []);
 				return true;
 			}
-		break;
+			break;
+		}
 
 		case 'createState':
 		case 'createChildState':
@@ -96,15 +70,15 @@ window.addEventListener('message', event => {
 				const newElements = parentElements.map(parent => parent.addChild());
 				visualEditor.setSelection(newElements);
 			} else {
-				// TODO: show this to user?
-				console.error("Visual editor does not have a valid SCXML Doc to create a state in");
+				console.error('Visual editor does not have a valid SCXML Doc to create a state in');
 			}
 		break;
 
-		case 'fitChildren':
+		case 'fitChildren': {
 			const parents = visualEditor.selection.filter(el => el.isState && el.isParent);
 			for (const el of parents) el.expandToFitChildren();
-		break;
+			break;
+		}
 
 		case 'createTransition':
 		case 'layoutDiagram':
@@ -118,14 +92,196 @@ window.addEventListener('message', event => {
 		case 'addVerticalWayline':
 		case 'addHorizontalWayline':
 		case 'setInitial':
+		case 'inspectorSetProperty':
+		case 'inspectorAddAction':
+		case 'inspectorDeleteAction':
+		case 'inspectorSetActionType':
+		case 'inspectorSetActionAttr':
+		case 'inspectorSetActionText':
 			if (visualEditor[message.command] instanceof Function) {
 				visualEditor[message.command](message);
+			} else if (message.command==='inspectorSetProperty') {
+				applyInspectorPropertyChange(message.property, message.value);
+			} else if (message.command==='inspectorAddAction') {
+				applyInspectorAddAction(message.location);
+			} else if (message.command==='inspectorDeleteAction') {
+				applyInspectorDeleteAction(message.location, message.index);
+			} else if (message.command==='inspectorSetActionType') {
+				applyInspectorSetActionType(message.location, message.index, message.ns, message.name);
+			} else if (message.command==='inspectorSetActionAttr') {
+				applyInspectorSetActionAttr(message.location, message.index, message.name, message.value);
+			} else if (message.command==='inspectorSetActionText') {
+				applyInspectorSetActionText(message.location, message.index, message.text);
 			} else {
 				console.error(`scxmleditor.js unable to handle message ${message.command}`);
 			}
 		break;
 	}
 });
+
+function applyInspectorPropertyChange(property, value) {
+	if (property==='stateKind') {
+		const previousSelection = visualEditor.selection.concat();
+		visualEditor.setSelection([]);
+
+		const nextSelection = [];
+		for (const node of previousSelection) {
+			const replacement = mutateStateKind(node, value);
+			if (replacement && replacement!==node) {
+				nextSelection.push(replacement);
+			} else if (node?.parentNode) {
+				nextSelection.push(node);
+			}
+		}
+
+		visualEditor.setSelection(nextSelection);
+		notifyInspectorData(visualEditor.selection);
+		return;
+	}
+
+	let anyChanged = false;
+	for (const o of visualEditor.selection) {
+		if (!(property in o)) continue;
+		let v = value;
+		if (v==='(none)' || v==='(auto)') v = '';
+		if (property==='isInternal') v = value===true || value==='true';
+		if (property==='w' || property==='h' || property==='radius' || property==='sourceAnchorOffset' || property==='targetAnchorOffset' || property==='labelMainOffset' || property==='labelCrossOffset') {
+			v = (v==='') ? '' : Number(v);
+		}
+		anyChanged = true;
+		o[property] = v;
+	}
+	if (anyChanged && visualEditor.selection.length) {
+		// Reapply the same selection to force selector handles to recompute geometry.
+		visualEditor.setSelection(visualEditor.selection.concat());
+	}
+	notifyInspectorData(visualEditor.selection);
+}
+
+function mutateStateKind(node, kind) {
+	if (!node?.isState || node.isSCXML) return null;
+	if (!(kind==='state' || kind==='parallel')) return null;
+	if (!(node.nodeName==='state' || node.nodeName==='parallel')) return null;
+	if (node.nodeName===kind) return null;
+
+	const replacement = node.ownerDocument.createElementNS(node.namespaceURI, kind);
+	for (const attr of Array.from(node.attributes)) {
+		if (attr.namespaceURI) replacement.setAttributeNS(attr.namespaceURI, attr.name, attr.value);
+		else replacement.setAttribute(attr.name, attr.value);
+	}
+
+	if (kind==='parallel') {
+		replacement.removeAttribute('initial');
+	}
+
+	while (node.firstChild) {
+		replacement.appendChild(node.firstChild);
+	}
+
+	node.replaceWith(replacement);
+	replacement.initialize?.(visualEditor);
+	replacement.parentNode?.updateStyleForDescendants?.();
+	replacement.updateStyleForContainment?.();
+	replacement.updateStyleForDescendants?.();
+
+	return replacement;
+}
+
+function applyInspectorAddAction(location) {
+	const sel = visualEditor.selection;
+	if (sel.length!==1) return;
+	addNewAction(location);
+	notifyInspectorData(sel);
+}
+
+function applyInspectorDeleteAction(location, index) {
+	const ex = getInspectorExecutable(location, index);
+	if (!ex) return;
+	ex.delete();
+	notifyInspectorData(visualEditor.selection);
+}
+
+function applyInspectorSetActionType(location, index, ns, name) {
+	const ex = getInspectorExecutable(location, index);
+	if (!ex) return;
+	changeAction(ex, ns, name);
+	notifyInspectorData(visualEditor.selection);
+}
+
+function applyInspectorSetActionAttr(location, index, attrName, value) {
+	const ex = getInspectorExecutable(location, index);
+	if (!ex) return;
+	const schema = findActionSchema(ex.namespaceURI, ex.localName);
+	const attr = schema?.attrs?.find(a => a.name===attrName);
+	if (!attr) {
+		if (value==='') ex.removeAttribute(attrName);
+		else ex.setAttribute(attrName, value);
+	} else {
+		const normalized = normalizeAttrValue(attr, value);
+		if (normalized===undefined || normalized==='') ex.removeAttribute(attrName);
+		else ex.setAttribute(attrName, normalized);
+	}
+}
+
+function applyInspectorSetActionText(location, index, text) {
+	const ex = getInspectorExecutable(location, index);
+	if (!ex) return;
+	const normalized = normalizeActionText(text);
+	ex.textContent = normalized;
+}
+
+function normalizeActionText(text) {
+	if (text===undefined || text===null) return '';
+	return String(text).trim();
+}
+
+function getInspectorExecutable(location, index) {
+	const sel = visualEditor.selection;
+	if (sel.length!==1) return null;
+	const item = sel[0];
+	if (location==='transition' && item.isTransition) return item.executables[index] || null;
+	if (item.isState && location==='entry') return item.enterExecutables[index] || null;
+	if (item.isState && location==='exit') return item.exitExecutables[index] || null;
+	return null;
+}
+
+function findActionSchema(ns, name) {
+	return actionSchema?.find(a => a.ns===ns && a.name===name) || null;
+}
+
+function normalizeAttrValue(attr, rawValue) {
+	switch (attr.type) {
+		case 'boolean':
+			return (rawValue===true || rawValue==='true') ? 'true' : 'false';
+
+		case 'int': {
+			if (rawValue==='') return undefined;
+			let n = Math.round(Number(rawValue));
+			if (Number.isNaN(n)) return undefined;
+			if (attr.max!==undefined && n > +attr.max) n = +attr.max;
+			if (attr.min!==undefined && n < +attr.min) n = +attr.min;
+			return String(n);
+		}
+
+		case 'float': {
+			if (rawValue==='') return undefined;
+			let n = Number(rawValue);
+			if (Number.isNaN(n)) return undefined;
+			if (attr.max!==undefined && n > +attr.max) n = +attr.max;
+			if (attr.min!==undefined && n < +attr.min) n = +attr.min;
+			return String(n);
+		}
+
+		case 'choice': {
+			const legal = attr.values?.split(/,\s*/).filter(Boolean) || [];
+			if (!legal.length) return undefined;
+			return legal.includes(rawValue) ? rawValue : legal[0];
+		}
+
+		default:
+			return rawValue;
+	}
+}
 
 function routingWarnings(scxmlDoc, xmlString) {
 	let searchIndex = 0;
@@ -152,24 +308,6 @@ function routingWarnings(scxmlDoc, xmlString) {
 	});
 }
 
-function setOptions(sel, values, selectedValue) {
-	sel.options.length = 0;
-	for (const val of values) sel.appendChild(new Option(val));
-	if (selectedValue) sel.value = selectedValue;
-}
-
-function watchInput(input, propertyName) {
-	input.addEventListener('input', evt => {
-		visualEditor.selection.forEach(o => {
-			if (propertyName in o) {
-				o[propertyName] = (input.value==='(none)' || input.value==='(auto)') ? '' : input.value;
-			}
-		});
-	}, false);
-	// Prevent typing 'e' from getting eaten by the editor's body keydown handler
-	input.addEventListener('keydown', evt => evt.stopPropagation(), false);
-}
-
 function readActionSchema(scxmlDoc) {
 	const schemaByKey = new Map();
 
@@ -186,7 +324,7 @@ function readActionSchema(scxmlDoc) {
 
 function parseXMLString(str) {
 	if (!str) return null;
-	const xmldoc = (new DOMParser).parseFromString(str, 'text/xml');
+	const xmldoc = (new DOMParser()).parseFromString(str, 'text/xml');
 	return xmldoc.querySelector('parsererror') ? null : xmldoc;
 }
 
@@ -196,13 +334,14 @@ function parseActionSchemaDoc(scxmlDoc) {
 
 	return Array.from(wrapper.children).map(el => {
 		const action = {
-			ns:    el.namespaceURI,
-			name:  el.localName,
+			ns: el.namespaceURI,
+			name: el.localName,
+			tip: el.getAttributeNS(visualNS, 'tip') || '',
 			cdata: el.getAttributeNS(visualNS, 'cdata') === 'true',
+			cdataTip: el.getAttributeNS(visualNS, 'cdataTip') || '',
 			attrs: Array.from(el.querySelectorAll('attribute'))
-			            .filter(a => a.namespaceURI === visualNS)
-			            .map(a => Object.fromEntries(Array.from(a.attributes)
-			                                      .map(n => [n.name, n.value])))
+				.filter(a => a.namespaceURI===visualNS)
+				.map(a => Object.fromEntries(Array.from(a.attributes).map(n => [n.name, n.value])))
 		};
 		action.attrs.forEach(a => {
 			let defaultValue;
@@ -230,214 +369,6 @@ function parseActionSchemaDoc(scxmlDoc) {
 	});
 }
 
-function updateInspectorForSelection(sel) {
-	inspector.style.display = sel.length ? 'table' : 'none';
-	if (sel.length) {
-		const multipleSelected = sel.length>1;
-		const states=[], transitions=[];
-		for (const o of sel) {
-			(o.tagName==='transition' ? transitions : states).push(o);
-		}
-
-		const stateIds = visualEditor.scxmlDoc.ids.sort();
-		const sourceIds = ['(scxml)', ...stateIds];
-		const targetIds = ['(none)', ...stateIds];
-		if (multipleSelected) {
-			sourceIds.unshift('-');
-			targetIds.unshift('-');
-		}
-
-		stateProperties.style.display = states.length ? '' : 'none';
-		if (states.length) {
-			insId.readOnly = multipleSelected;
-			entryExecutables.tBodies[0]?.replaceWith(document.createElement('tbody'));
-			exitExecutables.tBodies[0]?.replaceWith(document.createElement('tbody'));
-			if (multipleSelected) {
-				setOptions(insParent, sourceIds, getCommonValue(states, 'parentId'));
-				insId.value = '-';
-				let commonKind = getCommonValue(states, 'tagName');
-				if (commonKind==='history') {
-					const allDeep = getCommonValue(states, 'deep');
-					commonKind = allDeep ? 'deep history' : allDeep===false ? 'shallow history' : '-';
-				}
-				insKindState.value = commonKind;
-				insColor.value = getCommonValue(states, 'rgbhex') || '#000000';
-				insWidth.value = getCommonValue(states, 'w');
-				insHeight.value = getCommonValue(states, 'h');
-			} else {
-				sel = sel[0];
-				setOptions(insParent, sourceIds, sel.parent.id);
-				insId.value = sel.id;
-				insKindState.value = sel.tagName!=='history' ? sel.tagName : sel.isDeep ? 'deep history' : 'shallow history';
-				insColor.value = sel.rgbhex || '#808080';
-				showActions(entryExecutables, sel.enterExecutables);
-				showActions(exitExecutables,  sel.exitExecutables);
-				insWidth.value = sel.w;
-				insHeight.value = sel.h;
-			}
-		}
-
-		transProperties.style.display = transitions.length ? '' : 'none';
-		if (transitions.length) {
-			transitionExecutables.tBodies[0]?.replaceWith(document.createElement('tbody'));
-			if (multipleSelected) {
-				setOptions(insSource, sourceIds, getCommonValue(transitions, 'sourceId'));
-				setOptions(insTarget, targetIds, getCommonValue(transitions, 'targetId'));
-				insRadius.value = getCommonValue(transitions, 'radius');
-				insLabelAlign.value = getCommonValue(transitions, 'align');
-				insLabelOffset.value = getCommonValue(transitions, 'labelMainOffset');
-				insLabelCrossOffset.value = getCommonValue(transitions, 'labelCrossOffset');
-
-				insEvent.value = getCommonValue(transitions, 'event');
-				insCondition.value = getCommonValue(transitions, 'condition');
-
-				insSourceAnchorSide.value   = getCommonValue(transitions, 'sourceAnchorSide');
-				insSourceAnchorOffset.value = getCommonValue(transitions, 'sourceAnchorOffset');
-				insTargetAnchorSide.value   = getCommonValue(transitions, 'targetAnchorSide');
-				insTargetAnchorOffset.value = getCommonValue(transitions, 'targetAnchorOffset');
-			} else {
-				sel = sel[0];
-				setOptions(insSource, sourceIds, sel.sourceId);
-				insSourceAnchorSide.value = sel.sourceAnchorSide;
-				insSourceAnchorOffset.value = sel.sourceAnchorOffset;
-
-				insEvent.value = sel.event;
-				insCondition.value = sel.condition;
-
-				setOptions(insTarget, targetIds, sel.targetId);
-				insTargetAnchorSide.value = sel.targetAnchorSide || 'a';
-				insTargetAnchorOffset.value = sel.targetAnchorOffset || 'a';
-				showActions(transitionExecutables, sel.executables);
-
-				insRadius.value = sel.radius;
-				insLabelAlign.value = sel.align;
-				insLabelOffset.value = sel.labelMainOffset;
-				insLabelCrossOffset.value = sel.labelCrossOffset;
-			}
-		}
-	}
-
-	function getCommonValue(collection, fieldName) {
-		let value;
-		for (const o of collection) {
-			const v = o[fieldName];
-			if (value===undefined) value = v;
-			else if (v!==value) return;
-		}
-		return value;
-	}
-
-	function showActions(table, executables) {
-		const tbody = table.tBodies[0] || addEl('tbody', table);
-		executables.forEach(ex => {
-			const schema = actionSchema?.find(a => a.name===ex.localName && a.ns===ex.namespaceURI);
-			const tr = addEl('tr', tbody);
-			let td = addEl('td', tr);
-			if (schema) {
-				// we know how to edit this action
-				const sel = addEl('select', td);
-				populateType(sel, ex);
-				sel.addEventListener('input', _ => changeAction(ex, sel.value, sel.options[sel.selectedIndex].text));
-
-				td = addEl('td', tr);
-				populateAttributes(td, schema, ex);
-			} else {
-				// show a read-only, delete-only version
-				td.innerText = ex.localName;
-				td = addEl('td', tr, {_text: Array.from(ex.attributes)
-				                                  .map(a => [a.localName, `"${a.value}"`].join('='))
-				                                  .join(' ')});
-			}
-			td = addEl('td', tr, {'class':'button'});
-			const del = addEl('button', td, {
-				'class': 'deleteAction',
-				_text:   '×',
-				title:   'remove action'
-			});
-			del.addEventListener('click', _ => {
-				ex.delete();
-				updateInspectorForSelection(visualEditor.selection);
-			});
-		});
-
-		function populateType(sel, el=null) {
-			actionSchema.forEach(ca => {
-				const opt = sel.appendChild(new Option(ca.name, ca.ns));
-				opt.selected = el?.namespaceURI===ca.ns && el?.localName===ca.name;
-			});
-		}
-
-		function populateAttributes(td, schema, executable) {
-			td.innerHTML = '';
-			if (schema.cdata) {
-				const label = addEl('label', td, {_text:'content '});
-				const inp = addEl('textarea', label, {name:'content', rows:'3'});
-				inp.value = executable.textContent || '';
-				inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
-				inp.addEventListener('input', _ => {
-					executable.textContent = inp.value;
-				});
-			}
-			schema.attrs.forEach(attr => {
-				const label = addEl('label', td, {_text:`${attr.name} `});
-				const val = executable.getAttribute(attr.name);
-				switch (attr.type) {
-					case 'int':
-						var inp = addEl('input', label, {
-							type:  'number',
-							name:  attr.name,
-							min:   attr.min,
-							max:   attr.max,
-							value: val
-						});
-						inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
-					break;
-					case 'float':
-						var inp = addEl('input', label, {
-							type:  'number',
-							name:  attr.name,
-							min:   attr.min,
-							max:   attr.max,
-							step:  attr.step || 'any',
-							value: val
-						});
-						inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
-					break;
-					case 'boolean':
-						var inp = addEl('input', label, {
-							type:  'checkbox',
-							name:  attr.name,
-							value: 'true',
-							checked: val==='true'
-						});
-					break;
-					case 'choice':
-						var inp = addEl('select', label, {name:attr.name});
-						attr.values.split(/,\s*/).forEach(v => {
-							const opt = inp.appendChild(new Option(v));
-							opt.selected = val===v;
-						});
-					break;
-					case 'string':
-						var inp = addEl('input', label, {type:'text', name:attr.name, value:val ?? ""});
-						inp.addEventListener('keydown', evt => evt.stopPropagation(), false);
-					break;
-				}
-				inp.addEventListener('change', _ => {
-					if (inp.type==='checkbox') {
-						executable.setAttribute(attr.name, inp.checked);
-					} else {
-						const value = inp.value;
-						if (attr.type==='string' && value==='') executable.removeAttribute(attr.name);
-						else if (value==='')                   executable.removeAttribute(attr.name);
-						else                                   executable.setAttribute(attr.name, value);
-					}
-				});
-			});
-		}
-	}
-}
-
 function changeAction(oldExec, actionNS, actionName) {
 	const schema = actionSchema?.find(a => a.name===actionName && a.ns===actionNS);
 	if (!schema) return console.error(`Cannot find custom action schema for ${actionName} in namespace ${actionNS}`);
@@ -451,48 +382,107 @@ function changeAction(oldExec, actionNS, actionName) {
 				if (attr.max < value) value = attr.max;
 				if (attr.min > value) value = attr.min;
 			break;
-			case 'choice':
+			case 'choice': {
 				const legal = attr.values?.split(/,\s*/);
 				if (!legal.includes(value)) value = legal[0] || '';
-			break;
+				break;
+			}
 		}
 		return [attr.name, value];
 	}).filter(([,value]) => value!==undefined && value!==''));
-	const cdata = schema.cdata ? oldExec.textContent || '' : null;
+	const cdata = schema.cdata ? normalizeActionText(oldExec.textContent || '') : null;
 	oldExec.mutateInto(actionNS, actionName, newValues, cdata);
-	updateInspectorForSelection(visualEditor.selection);
 }
 
 function notifyDocumentOfSelection(sel) {
 	vscode.postMessage({
 		command:'selectedItems',
 		selection:sel.map(node => ({
-			name          : node.tagName,
-			id            : node.id,
-			parentName    : node.parentNode.tagName,
-			parentId      : node.parentNode.id,
-			indexInParent : node.parentNode.transitions.indexOf(node),
-			hasChildren   : node.isState && node.isParent
+			name: node.tagName,
+			id: node.id,
+			parentName: node.parentNode.tagName,
+			parentId: node.parentNode.id,
+			indexInParent: node.parentNode.transitions.indexOf(node),
+			hasChildren: node.isState && node.isParent
 		}))
 	});
 }
 
-function addEl(name, parent, opts={}) {
-    const el = parent.appendChild(document.createElement(name));
-    for (const k of Object.keys(opts)){
-		const val = opts[k];
-		if (val!==undefined) {
-			switch(k){
-				case '_text':
-					el.appendChild(document.createTextNode(val));
-				break;
-
-				default:
-					el.setAttribute(k, val);
-			}
+function notifyInspectorData(sel) {
+	vscode.postMessage({
+		command:'inspectorData',
+		payload: {
+			items: sel.map(serializeInspectorItem),
+			stateIds: visualEditor.scxmlDoc?.ids || [],
+			actionTypes: serializeActionTypes(actionSchema)
 		}
-    }
-    return el;
+	});
+}
+
+function serializeActionTypes(schemaList=[]) {
+	return schemaList.map(s => ({
+		ns: s.ns,
+		name: s.name,
+		tip: s.tip,
+		cdata: !!s.cdata,
+		cdataTip: s.cdataTip,
+		attrs: s.attrs.map(a => ({
+			name: a.name,
+			type: a.type,
+			min: a.min,
+			max: a.max,
+			step: a.step,
+			values: a.values,
+			tip: a.tip
+		}))
+	}));
+}
+
+function serializeInspectorItem(node) {
+	const base = {
+		type: node.isTransition ? 'transition' : 'state',
+		tagName: node.tagName,
+		id: node.id || '',
+		parentId: node.parentNode?.id || ''
+	};
+
+	if (node.isTransition) {
+		return {
+			...base,
+			sourceId: node.sourceId,
+			targetId: node.targetId,
+			isInternal: !!node.isInternal,
+			event: node.event || '',
+			condition: node.condition || '',
+			radius: node.radius,
+			align: node.align || '',
+			labelMainOffset: node.labelMainOffset,
+			labelCrossOffset: node.labelCrossOffset,
+			sourceAnchorSide: node.sourceAnchorSide || '',
+			sourceAnchorOffset: node.sourceAnchorOffset,
+			targetAnchorSide: node.targetAnchorSide || '',
+			targetAnchorOffset: node.targetAnchorOffset,
+			executables: node.executables.map(serializeExecutable)
+		};
+	}
+
+	return {
+		...base,
+		rgbhex: node.rgbhex || '',
+		w: node.w,
+		h: node.h,
+		enterExecutables: node.enterExecutables.map(serializeExecutable),
+		exitExecutables: node.exitExecutables.map(serializeExecutable)
+	};
+}
+
+function serializeExecutable(ex) {
+	return {
+		namespaceURI: ex.namespaceURI,
+		localName: ex.localName,
+		attrs: Object.fromEntries(Array.from(ex.attributes).map(a => [a.name, a.value])),
+		textContent: normalizeActionText(ex.textContent || '')
+	};
 }
 
 function addNewAction(location) {
@@ -519,5 +509,5 @@ function addNewAction(location) {
 			break;
 		}
 	});
-	if (anyAdded) updateInspectorForSelection(visualEditor.selection);
+	if (anyAdded) notifyInspectorData(visualEditor.selection);
 }

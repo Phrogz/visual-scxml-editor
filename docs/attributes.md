@@ -34,6 +34,9 @@ should be a human-readable and human-editable XML file.
   * Either endpoint may be omitted; the editor automatically chooses the missing attachment point.
     For example, `viz:pts="N10"` fixes the source on its north edge and automatically attaches the
     other end to the target state.
+  * The token `a` may be used to explicitly indicate an automatic endpoint when the other endpoint
+    is explicitly set. For example, `viz:pts="a E20"` keeps the source endpoint automatic while
+    fixing the target endpoint to its east side, and `viz:pts="W20 a"` does the inverse.
   * The first and last values (`start` and `end`) describe offsets along an edge of the initial and
     target state; for example, `E20` is a point 20 units down from the top of the right edge, while
     `N0` is a point (nominally) along the of the state at the left edge. Transitions cannot attach

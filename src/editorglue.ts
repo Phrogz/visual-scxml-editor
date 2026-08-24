@@ -6,21 +6,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { Disposable, TextEditor, WebviewPanel} from 'vscode';
 import { window, ViewColumn } from 'vscode';
-import { SCXMLEditorManager, SelectionTypes } from './extension';
-
-interface SelectedItem {
-	name          : string,
-	id            : string,
-	parentName    : string,
-	parentId      : string,
-	indexInParent : number,
-	hasChildren   : boolean
-}
+import { SCXMLEditorManager, SelectedItem, SelectionTypes } from './extension';
 
 export class EditorGlue {
 	public panel: WebviewPanel;
 	public selectedTypes: SelectionTypes;
 	public selectedItems: SelectedItem[] = [];
+	public inspectorData: any = {items:[]};
 	public stateIDs: string[] = [];
 	public readonly editor: TextEditor;
 	private readonly resourceMap: Map<string, string> = new Map();
@@ -127,6 +119,11 @@ export class EditorGlue {
 
 				case 'selectedItems':
 					this.showSelection(message.selection);
+				break;
+
+				case 'inspectorData':
+					this.inspectorData = message.payload || {items:[]};
+					this.manager.updateInspectorSelection(this);
 				break;
 			}
 		});
@@ -236,24 +233,43 @@ export class EditorGlue {
 			// TODO: use information from serialization to find where a given node is placed, instead of regex
 			if (item.name==='transition') {
 				this.selectedTypes.transitionSelected = true;
-				const parentMatcher = new RegExp(`^(\\s*)<${item.parentName}[^\n>]+?id=["']${item.parentId}["'][^>]+>`, 'm');
-				const match = parentMatcher.exec(scxml);
-				if (match) {
-					// FIXME: we assume that serialization indentation is using tabs, and so add a tab to find only child transitions of the parent
-					const transitionMatcher = new RegExp(`^${match[1]}\\t(<transition.+?>)`, 'gm');
-					// Start searching at the index of the parent
-					transitionMatcher.lastIndex = match.index+match[0].length;
-					let transitionMatch, transitionIndex = -1;
-					while (transitionMatch=transitionMatcher.exec(scxml)) {
-						if (++transitionIndex===item.indexInParent) {
+				const parentMatcher = new RegExp(`^(\\s*)<${item.parentName}[^\\n>]+?id=["']${item.parentId}["'][^>]*>`, 'm');
+				const parentMatch = parentMatcher.exec(scxml);
+				if (parentMatch) {
+					const parentIndentLen = parentMatch[1].length;
+					const parentLine = doc.positionAt(parentMatch.index).line;
+					const closeParent = new RegExp(`^\\s{0,${parentIndentLen}}</${item.parentName}>`);
+					const transitionLineMatch = /^\s*<transition\b[^>]*>/;
+
+					type Candidate = { line: number; indentLen: number };
+					const candidates: Candidate[] = [];
+
+					for (let line = parentLine + 1; line < doc.lineCount; ++line) {
+						const text = doc.lineAt(line).text;
+						if (closeParent.test(text)) break;
+
+						const transitionMatch = transitionLineMatch.exec(text);
+						if (!transitionMatch) continue;
+
+						const indentLen = transitionMatch[0].indexOf('<');
+						if (indentLen <= parentIndentLen) continue;
+						candidates.push({line, indentLen});
+					}
+
+					if (candidates.length) {
+						const minIndent = Math.min(...candidates.map(c => c.indentLen));
+						const directChildren = candidates.filter(c => c.indentLen===minIndent);
+						const hit = directChildren[item.indexInParent];
+						if (hit) {
+							const lineInfo = doc.lineAt(hit.line);
 							decoratedRanges.push({
 								range: new vscode.Range(
-									// Start decoration after the leading indentation
-									doc.positionAt(transitionMatch.index + match[1].length + 1),
-									doc.positionAt(transitionMatch.index + transitionMatch[0].length)
+									hit.line,
+									lineInfo.firstNonWhitespaceCharacterIndex,
+									hit.line,
+									lineInfo.text.length
 								)
 							});
-							break;
 						}
 					}
 				}
@@ -283,9 +299,11 @@ export class EditorGlue {
 		}
 
 		this.manager.updateSelectionScopes(this);
+		this.manager.updateInspectorSelection(this);
 	}
 
 	public dispose() {
+		if (this.manager.activeGlue===this) this.manager.activeGlue = null;
 		this.disposables.forEach(disposable => disposable && disposable.dispose());
 		this.disposables = [];
 		this.disposed = true;

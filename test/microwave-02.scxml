@@ -1,0 +1,34 @@
+<scxml initial="microwave" version="1.0" xmlns="http://www.w3.org/2005/07/scxml" xmlns:nv="http://nvidia.com/drive/architect" xmlns:viz="http://phrogz.net/visual-scxml">
+	<parallel id="microwave" nv:xywh="10 10 600 240" viz:xywh="-40 -60 560 250">
+		<onexit>
+			<script/>
+            <nv:bork ya="yes"/>
+		</onexit>
+		<state id="oven" initial="off" nv:xywh="10 40 300 210" viz:xywh="-40 -30 400 220">
+			<state id="off" nv:xywh="20 70 80 30" viz:xywh="0 0 120 40">
+				<transition event="turn_on" target="on"/>
+			</state>
+			<state id="on" initial="idle" nv:xywh="110 110 180 120" viz:xywh="-20 80 360 90">
+				<transition event="turn_off" target="off" viz:pts="X95"/>
+				<transition cond="timer >= cook_time" target="off" viz:pts="X140 E20"/>
+				<state id="idle" nv:xywh="120 140 160 20" viz:xywh="0 110 120 40">
+					<transition cond="In('closed')" target="cooking"/>
+				</state>
+				<state id="cooking" nv:xywh="120 190 160 20" viz:xywh="200 110 120 40">
+					<transition cond="not In('closed')" target="idle"/>
+					<transition event="time" target="cooking" nv:pts="S130">
+						<assign expr="timer + 1" location="timer"/>
+					</transition>
+				</state>
+			</state>
+		</state>
+		<state id="door" initial="closed" nv:xywh="310 40 300 210" viz:xywh="360 -30 160 220">
+			<state id="closed" viz:xywh="380 0 120 40">
+				<transition event="door_open" target="open"/>
+			</state>
+			<state id="open" nv:xywh="480 160 120 40" viz:xywh="380 80 120 40">
+				<transition event="door_close" target="closed"/>
+			</state>
+		</state>
+	</parallel>
+</scxml>

@@ -147,8 +147,13 @@ export class VisualState extends SCXMLState {
 	}
 
 	visuallySelect() {
-		if (!this._vse.main.classList.contains('selected')) {
-			this._vse.main.classList.add('selected');
+		const main = this._vse?.main;
+		if (!main) {
+			return;
+		}
+
+		if (!main.classList.contains('selected')) {
+			main.classList.add('selected');
 			if (!this.isParallelChild) this.createSelectors();
 			else {
 				// TODO: draw selectors for a parallel child
@@ -157,7 +162,12 @@ export class VisualState extends SCXMLState {
 	}
 
 	visuallyDeselect() {
-		this._vse.main.classList.remove('selected');
+		const main = this._vse?.main;
+		if (!main) {
+			return;
+		}
+
+		main.classList.remove('selected');
 		if (!this.isParallelChild) this.removeSelectors();
 	}
 
@@ -506,7 +516,7 @@ export class VisualState extends SCXMLState {
 	}
 
 	removeSelectors() {
-		if (!this._vse.selectors) return;
+		if (!this._vse?.selectors) return;
 		Object.values(this._vse.selectors).forEach(el => el.parentNode.removeChild(el));
 		delete this._vse.selectors;
 	}
@@ -846,14 +856,23 @@ export class VisualTransition extends SCXMLTransition {
 	}
 
 	visuallySelect() {
-		const main = this._vse.main;
+		const main = this._vse?.main;
+		if (!main) {
+			return;
+		}
+
 		main.parentNode.appendChild(main);
 		main.classList.add('selected');
 		this.createSelectors();
 	}
 
 	visuallyDeselect() {
-		this._vse.main.classList.remove('selected');
+		const main = this._vse?.main;
+		if (!main) {
+			return;
+		}
+
+		main.classList.remove('selected');
 		this.removeSelectors();
 	}
 
@@ -932,29 +951,36 @@ export class VisualTransition extends SCXMLTransition {
 		const ego = this._vse;
 		if (!ego.selectors) return;
 		const anchors = this.anchors;
-		const viewport = calculateViewport(ego.editor.svg);
+		const viewBox = ego.editor.svg.viewBox.baseVal;
+		const viewport = calculateViewport(ego.editor.svg) || {
+			x: viewBox.x,
+			y: viewBox.y,
+			width: viewBox.width,
+			height: viewBox.height,
+		};
 
 		const zoom = Math.min(1, ego.editor.zoomFactor);
 		const [r, rw, rh] = [4*zoom, 18*zoom, 8*zoom];
 		let x,y,w,h;
 		for (const sel of ego.selectors) {
-			const axis = sel.label.dataset.axis;
 			const [prev, anchor, next] = [anchors[sel.anchorIndex-1], anchors[sel.anchorIndex], anchors[sel.anchorIndex+1]];
 			if (anchor?.axis==='Y') {
+				sel.guide.setAttribute('x1', viewport.x);
+				sel.guide.setAttribute('x2', viewport.x + viewport.width);
 				sel.guide.setAttribute('y1', anchor.y);
 				sel.guide.setAttribute('y2', anchor.y);
 				sel.label.setAttribute('x', viewport.x + 10);
 				sel.label.setAttribute('y', anchor.y);
 				[x,y,w,h] = [(prev.x + next.x)/2 - rw/2, anchor.y - rh/2, rw, rh];
 			} else if (anchor?.axis==='X') {
+				sel.guide.setAttribute('y1', viewport.y);
+				sel.guide.setAttribute('y2', viewport.y + viewport.height);
 				sel.guide.setAttribute('x1', anchor.x);
 				sel.guide.setAttribute('x2', anchor.x);
 				sel.label.setAttribute('x', anchor.x);
 				sel.label.setAttribute('y', viewport.y + 10);
 				[x,y,w,h] = [anchor.x - rh/2, (prev.y + next.y)/2 - rw/2, rh, rw];
 			}
-
-			sel.label.setAttribute(axis, viewport[axis] + 10);
 			sel.label.style.fontSize = `${30*zoom}px`;
 
 			sel.handle.setAttribute('x', x);
@@ -1378,7 +1404,18 @@ export class VisualTransition extends SCXMLTransition {
 		}
 	}
 	set anchors(anchors) {
-		this.pts = anchors.filter(a => !a.auto).map(a => [a.side||a.axis, Math.round(a.offset)].join('') ).join(' ');
+		const pointTokens = anchors
+			.map(anchor => {
+				if (anchor.auto) return 'a';
+				const direction = anchor.side || anchor.axis;
+				if (!direction) return '';
+				const offset = Number.isFinite(anchor.offset) ? Math.round(anchor.offset) : 0;
+				return `${direction}${offset}`;
+			})
+			.filter(Boolean);
+
+		const hasExplicitPoint = pointTokens.some(token => token!=='a');
+		this.pts = hasExplicitPoint ? pointTokens.join(' ') : '';
 		delete this._anchors;
 	}
 
