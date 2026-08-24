@@ -9,6 +9,8 @@ between modules.
    For each text editor document where the `showEditor` command is invoked, the manager
    creates a new `EditorGlue` instance [`editorglue.ts`](../src/editorglue.ts) and associates
    it with the document uri.
+   It also registers the `SCXML Inspector` sidebar webview provider
+   [`inspectorview.ts`](../src/inspectorview.ts).
 2. Each `EditorGlue` instance creates its own `WebviewPanel` where the visualization takes place,
    building it from [`scxmleditor.html`](../resources/scxmleditor.html), which in turn pulls
    in other files in the [`resources`](../resources) directory.
@@ -17,7 +19,7 @@ between modules.
      shell, including the shapes of the "markers" that are applied to the ends of transitions.
      The rest of the SVG is created dynamically by [`visualeditor.js`](../resources/visualeditor.js).
    * Visually, the following CSS files are applied to the document:
-     * **[`base.css`](../resources/base.css)** layout of the page elements, including the Inspector
+     * **[`base.css`](../resources/base.css)** layout of the diagram host page
      * **[`scxmleditor.css`](../resources/scxmleditor.css)** base style for all diagram pieces
      * **[`theme.css`](../resources/theme.css)** colors the diagram based on the current VS Code theme
      * **[`mutable.css`](../resources/mutable.css)** holds styles to be modified by script at runtime
@@ -37,8 +39,16 @@ between modules.
        Changes to the diagram mutate the SCXMLDocument document.
      * **[`neatxml.js`](../resources/neatxml.js)** provides stable, custom serialization of the in-memory
        XML document to produce updated code for the editor when the SCXMLDoc changes
-3. The `EditorGlue` receives commands from the webview to rewrite the editor's text to match the
-   visual changes, or to show selections in the editor.
+3. The `InspectorViewProvider` receives selection and schema data from the manager and renders the
+   sidebar inspector using [`inspectorview.html`](../resources/inspectorview.html),
+   [`inspectorview.css`](../resources/inspectorview.css), and
+   [`inspectorview.js`](../resources/inspectorview.js).
+   Inspector edit commands are routed by document URI through `SCXMLEditorManager` to the matching
+   `EditorGlue`/diagram instance.
+
+4. The `EditorGlue` receives commands from the diagram webview to rewrite the editor's text to match
+   visual changes, and relays selection information back to the extension host so the inspector and
+   text-editor decorations stay synchronized.
 
 ![diagrams summarizing event and method calls for common interactions](sequence-diagrams.png)
 

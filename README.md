@@ -23,6 +23,7 @@ in a manner that allows the SCXML to still be used in production.
 * Default visual style matches the current VS Code theme
   * Customization of state colors allows for additional information to be conveyed
 * Sidebar Inspector supports authoring of custom actions ([see below](#authoring-custom-executable-actions) for details)
+* Custom View for the extension provides editing of selected states and transitions using native VS Code interface.
 * Route transitions around states via waylines
   * Add horizontal or vertical waylines from the command palette or visual-editor context menu
   * Hand-edit the XML attribute when exact wayline ordering is needed;
@@ -31,15 +32,16 @@ in a manner that allows the SCXML to still be used in production.
 ## Instructions
 
 1. Open an SCXML file, _ensure that the language for the file is set to XML_,
-   and then invoke the command `SCXML Editor: Open to the Side`
+   and then invoke the command `SCXML Editor: Open to the Side` or use the
+   `Show Diagram` button in the SCXML Inspector sidebar view.
    * If this is your first time working on this file, the `Layout Entire Diagram`
      command will be run for you to roughly make an initial sensible layout.
    * Alternatively, the command `SCXML Editor: Create Blank State Machine` will create
      a new text editor, fill it out with the minimum needed for a state machine, and
      open a visual editor connected to it.
 2. Drag states to impose order and clarity.
-3. Select states or transitions and edit them in the `SCXML Inspector` sidebar view
-  in the SCXML Activity Bar view.
+3. Select states or transitions in the diagram, and edit them in the `SCXML Inspector`
+   sidebar view.
 
 ### Available Commands
 
@@ -173,22 +175,20 @@ for core concepts on how the extension works and information flows.
 
 ### **(pending)**
 
-#### New Features (0.6.0)
+#### New Features (pending)
 
 * The Inspector can now create and edit common executable actions out of the box, including `script`, `assign`, `log`, `raise`, `send`, and `cancel`.
 * The Inspector has moved from an overlay in the diagram to a dedicated `SCXML Inspector` sidebar view.
-* Sidebar editing now supports bulk updates for same-type multi-selection (states-only or transitions-only).
+* The Inspector can change selected mutable states between `state` and `parallel`.
+* Improved action type conversion so compatible values are preserved when switching one action kind to another.
 
-#### Bug Fixes (0.6.0)
+#### Bug Fixes (pending)
 
 * Fixed action editing to refresh immediately after user changes.
 * Fixed executable presence markers on states/transitions to show when a first action is added, and hide when the last action is removed.
 * Fixed action attribute handling so empty fields stay empty and no longer get saved as invalid placeholder values.
-* Fixed inspector lifecycle syncing when switching between open SCXML documents.
-
-#### Changes
-
-* Improved action type conversion so compatible values are preserved when switching one action kind to another.
+* Fixed transition anchor serialization so changing one endpoint no longer reinterprets the other endpoint.
+* Fixed selected-wayline guide rendering to improve panning performance.
 
 ### **0.6.0** — 2026-Aug-7
 
