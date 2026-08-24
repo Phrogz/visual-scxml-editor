@@ -1397,7 +1397,18 @@ export class VisualTransition extends SCXMLTransition {
 		}
 	}
 	set anchors(anchors) {
-		this.pts = anchors.filter(a => !a.auto).map(a => [a.side||a.axis, Math.round(a.offset)].join('') ).join(' ');
+		const pointTokens = anchors
+			.map(anchor => {
+				if (anchor.auto) return 'a';
+				const direction = anchor.side || anchor.axis;
+				if (!direction) return '';
+				const offset = Number.isFinite(anchor.offset) ? Math.round(anchor.offset) : 0;
+				return `${direction}${offset}`;
+			})
+			.filter(Boolean);
+
+		const hasExplicitPoint = pointTokens.some(token => token!=='a');
+		this.pts = hasExplicitPoint ? pointTokens.join(' ') : '';
 		delete this._anchors;
 	}
 

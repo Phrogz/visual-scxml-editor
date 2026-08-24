@@ -54,31 +54,32 @@ const addEntryAction = document.getElementById('addEntryAction');
 const addExitAction = document.getElementById('addExitAction');
 const addTransitionAction = document.getElementById('addTransitionAction');
 let activeDiagramUri = null;
+let currentDocumentUri = null;
 
 const staticFieldTooltips = new Map([
 	[scxmlFileSelect, 'Choose which SCXML file this inspector controls.'],
 	[openScxmlFileButton, 'Open the selected SCXML in the visual diagram editor.'],
 	[editStateKind, 'State type. Toggle between state and parallel when allowed.'],
-	[editId, 'Identifier for the selected item. Example: cooking'],
-	[editParentId, 'Parent state for this state. Use (scxml) for top-level.'],
+	[editId, 'Identifier for the selected item.'],
+	[editParentId, 'Parent state for this state; use (scxml) for top-level.'],
 	[addEntryAction, 'Add an action that runs when entering this state.'],
 	[addExitAction, 'Add an action that runs when exiting this state.'],
-	[editColor, 'Custom state color. Example: choose a color used by related states.'],
-	[clearColorButton, 'Remove custom color and use the default theme color.'],
+	[editColor, 'Custom state color.'],
+	[clearColorButton, 'Use default theme color instead of custom color.'],
 	[editWidth, 'State width in pixels. Example: 160'],
 	[editHeight, 'State height in pixels. Example: 80'],
 	[editTransitionKind, 'External exits/re-enters target; internal stays within source.'],
 	[editSourceId, 'Transition source state id.'],
-	[editSourceAnchorSide, 'Preferred side where the transition leaves the source state.'],
-	[editSourceAnchorOffset, 'Source-anchor offset in pixels. Example: 20'],
-	[editEvent, 'Space-separated event names. Example: turn_on timer'],
-	[editLabelAlign, 'Preferred position for the transition label.'],
-	[editLabelOffset, 'Label shift along the transition in pixels. Example: 20'],
-	[editLabelCrossOffset, 'Label shift perpendicular to the transition in pixels. Example: -10'],
-	[editCondition, 'Guard condition expression. Example: timer >= cook_time'],
-	[editTargetId, 'Transition target state id. Use (none) for no target.'],
-	[editTargetAnchorSide, 'Preferred side where the transition enters the target state.'],
-	[editTargetAnchorOffset, 'Target-anchor offset in pixels. Example: 10'],
+	[editSourceAnchorSide, 'Source state side to attach the transition to.'],
+	[editSourceAnchorOffset, 'Distance to slide attachment along the source edge side.'],
+	[editEvent, 'Event name(s) that trigger this transition; separate with spaces for multiple.'],
+	[editLabelAlign, 'Alignment for the label.'],
+	[editLabelOffset, 'Slide label along the transition line.'],
+	[editLabelCrossOffset, 'Slide label perpendicular to the transition line.'],
+	[editCondition, 'Expression that is evaluated to determine if the transition should occur, e.g. `timer >= cook_time`'],
+	[editTargetId, 'Transition target state; use (none) for no target.'],
+	[editTargetAnchorSide, 'Target state side to attach the transition to.'],
+	[editTargetAnchorOffset, 'Distance to slide attachment along the target edge side.'],
 	[addTransitionAction, 'Add an action that runs when this transition fires.'],
 	[editRadius, 'Corner radius for routed transition bends, in pixels. Example: 20']
 ]);
@@ -87,6 +88,7 @@ window.addEventListener('message', event => {
 	const message = event.data;
 	switch (message.command) {
 		case 'clearSelection':
+			currentDocumentUri = null;
 			selectionSummary.textContent = '';
 			selectionSummary.hidden = true;
 			editSection.hidden = true;
@@ -112,6 +114,35 @@ function initializeFieldTooltips() {
 		}
 		applyTooltip(element, tooltip);
 	}
+
+	const rowTooltipPairs = [
+		[stateKindRow, staticFieldTooltips.get(editStateKind)],
+		[idRow, staticFieldTooltips.get(editId)],
+		[stateParentRow, staticFieldTooltips.get(editParentId)],
+		[stateColorRow, staticFieldTooltips.get(editColor)],
+		[stateDimensionsRow, staticFieldTooltips.get(editWidth)],
+		[transKindRow, staticFieldTooltips.get(editTransitionKind)],
+		[transSourceRow, staticFieldTooltips.get(editSourceId)],
+		[transSourceAnchorRow, staticFieldTooltips.get(editSourceAnchorSide)],
+		[transEventRow, staticFieldTooltips.get(editEvent)],
+		[transPlacementRow, staticFieldTooltips.get(editLabelAlign)],
+		[transCondRow, staticFieldTooltips.get(editCondition)],
+		[transTargetRow, staticFieldTooltips.get(editTargetId)],
+		[transTargetAnchorRow, staticFieldTooltips.get(editTargetAnchorSide)],
+		[transActionsRow, staticFieldTooltips.get(addTransitionAction)],
+		[transRadiusRow, staticFieldTooltips.get(editRadius)]
+	];
+
+	for (const [row, tooltip] of rowTooltipPairs) {
+		if (!row || !tooltip) {
+			continue;
+		}
+		row.title = tooltip;
+		const caption = row.querySelector(':scope > span');
+		if (caption) {
+			caption.title = tooltip;
+		}
+	}
 }
 
 function applyTooltip(element, tooltip) {
@@ -131,6 +162,7 @@ function applyTooltip(element, tooltip) {
 }
 
 function renderSelection(payload) {
+	currentDocumentUri = payload.documentUri || null;
 	setActiveScxmlFile(payload.documentUri || null);
 	const detailedItems = payload.inspectorData?.items || [];
 	const items = detailedItems.length ? detailedItems : (payload.selectedItems || []);
@@ -289,7 +321,7 @@ function renderEditor(payload, items) {
 	const sourceValue = single ? (item.sourceId || '(scxml)') : commonValue(items, 'sourceId');
 	const targetValue = single ? (item.targetId || '(none)') : commonValue(items, 'targetId');
 	populateStateOptions(editParentId, ['(scxml)', ...stateIds], parentValue);
-	populateStateOptions(editSourceId, ['(scxml)', ...stateIds], sourceValue);
+	populateStateOptions(editSourceId, [...stateIds], sourceValue);
 	populateStateOptions(editTargetId, ['(none)', ...stateIds], targetValue);
 
 	if (!single) {
@@ -317,9 +349,10 @@ function renderEditor(payload, items) {
 	transRadiusRow.hidden = !isTransition;
 
 	if (isTransition) {
-		clearColorButton.disabled = true;
+		setClearColorButtonVisibility(false);
 		setSelectValue(editSourceAnchorSide, single ? (item.sourceAnchorSide || '') : commonValue(items, 'sourceAnchorSide'));
 		setScalar(editSourceAnchorOffset, single ? (item.sourceAnchorOffset || '') : commonValue(items, 'sourceAnchorOffset'));
+		refreshSourceAnchorOffsetVisibility();
 		setSelectValue(editTransitionKind, single ? String(!!item.isInternal) : (commonValue(items, 'isInternal')===undefined ? undefined : String(!!commonValue(items, 'isInternal'))));
 		setScalar(editEvent, single ? (item.event || '') : commonValue(items, 'event'));
 		transPlacementRow.hidden = !hasAnyValidEvents(editEvent.value);
@@ -329,6 +362,7 @@ function renderEditor(payload, items) {
 		setScalar(editCondition, single ? (item.condition || '') : commonValue(items, 'condition'));
 		setSelectValue(editTargetAnchorSide, single ? (item.targetAnchorSide || '') : commonValue(items, 'targetAnchorSide'));
 		setScalar(editTargetAnchorOffset, single ? (item.targetAnchorOffset || '') : commonValue(items, 'targetAnchorOffset'));
+		refreshTargetAnchorVisibility();
 		setScalar(editRadius, single ? (item.radius || '') : commonValue(items, 'radius'));
 		stateEntryActionsRow.hidden = true;
 		stateExitActionsRow.hidden = true;
@@ -338,8 +372,11 @@ function renderEditor(payload, items) {
 		}
 	} else {
 		transPlacementRow.hidden = true;
+		transTargetAnchorRow.hidden = true;
+		setOffsetInputVisibility(editSourceAnchorOffset, false);
+		setOffsetInputVisibility(editTargetAnchorOffset, false);
 		setColor(editColor, single ? (item.rgbhex || '') : commonValue(items, 'rgbhex'));
-		clearColorButton.disabled = false;
+		setClearColorButtonVisibility(hasAnyCustomColor(items));
 		setScalar(editWidth, single ? (item.w || 0) : commonValue(items, 'w'));
 		setScalar(editHeight, single ? (item.h || 0) : commonValue(items, 'h'));
 		stateEntryActionsRow.hidden = !single;
@@ -474,6 +511,15 @@ function setColor(input, value) {
 	}
 }
 
+function setClearColorButtonVisibility(show) {
+	clearColorButton.style.visibility = show ? 'visible' : 'hidden';
+	clearColorButton.disabled = !show;
+}
+
+function hasAnyCustomColor(items) {
+	return items.some(item => !!item?.rgbhex);
+}
+
 function commonValue(items, key) {
 	let first = undefined;
 	for (const item of items) {
@@ -505,6 +551,36 @@ function refreshPlacementVisibilityFromEventInput() {
 		return;
 	}
 	transPlacementRow.hidden = !hasAnyValidEvents(editEvent.value);
+}
+
+function refreshTargetAnchorVisibility() {
+	if (transTargetRow.hidden) {
+		transTargetAnchorRow.hidden = true;
+		setOffsetInputVisibility(editTargetAnchorOffset, false);
+		return;
+	}
+
+	const hasTarget = !!editTargetId.value && editTargetId.value !== '(none)';
+	transTargetAnchorRow.hidden = !hasTarget;
+	refreshTargetAnchorOffsetVisibility();
+}
+
+function refreshSourceAnchorOffsetVisibility() {
+	const showOffset = !transSourceAnchorRow.hidden && editSourceAnchorSide.value !== '';
+	setOffsetInputVisibility(editSourceAnchorOffset, showOffset);
+}
+
+function refreshTargetAnchorOffsetVisibility() {
+	const showOffset = !transTargetAnchorRow.hidden && editTargetAnchorSide.value !== '';
+	setOffsetInputVisibility(editTargetAnchorOffset, showOffset);
+}
+
+function setOffsetInputVisibility(input, show) {
+	input.hidden = !show;
+	const wrapper = input.parentElement;
+	if (wrapper) {
+		wrapper.style.gridTemplateColumns = show ? '' : '1fr';
+	}
 }
 
 function renderActions(payload, location, actions, container) {
@@ -710,23 +786,34 @@ function setProperty(property, value) {
 }
 
 function sendInspectorCommand(command, payload) {
-	vscode.postMessage({command, ...payload});
+	const message = {command, ...payload};
+	if (currentDocumentUri && command!=='requestScxmlFiles' && command!=='openScxmlInVisualEditor') {
+		message.documentUri = currentDocumentUri;
+	}
+	vscode.postMessage(message);
 }
 
 editId.addEventListener('input', () => setProperty('id', editId.value));
 editStateKind.addEventListener('change', () => setProperty('stateKind', editStateKind.value));
 editParentId.addEventListener('change', () => setProperty('parentId', editParentId.value));
-const applyColorFromPicker = () => setProperty('rgbhex', editColor.value);
+const applyColorFromPicker = () => {
+	setProperty('rgbhex', editColor.value);
+	setClearColorButtonVisibility(true);
+};
 editColor.addEventListener('input', applyColorFromPicker);
 editColor.addEventListener('change', applyColorFromPicker);
 clearColorButton.addEventListener('click', () => {
 	setProperty('rgbhex', '');
 	setColor(editColor, '');
+	setClearColorButtonVisibility(false);
 });
 editWidth.addEventListener('input', () => setProperty('w', editWidth.value));
 editHeight.addEventListener('input', () => setProperty('h', editHeight.value));
 editSourceId.addEventListener('change', () => setProperty('sourceId', editSourceId.value));
-editSourceAnchorSide.addEventListener('change', () => setProperty('sourceAnchorSide', editSourceAnchorSide.value));
+editSourceAnchorSide.addEventListener('change', () => {
+	setProperty('sourceAnchorSide', editSourceAnchorSide.value);
+	refreshSourceAnchorOffsetVisibility();
+});
 editSourceAnchorOffset.addEventListener('input', () => setProperty('sourceAnchorOffset', editSourceAnchorOffset.value));
 editTransitionKind.addEventListener('change', () => setProperty('isInternal', editTransitionKind.value));
 editEvent.addEventListener('input', () => {
@@ -737,8 +824,14 @@ editLabelAlign.addEventListener('change', () => setProperty('align', editLabelAl
 editLabelOffset.addEventListener('input', () => setProperty('labelMainOffset', editLabelOffset.value));
 editLabelCrossOffset.addEventListener('input', () => setProperty('labelCrossOffset', editLabelCrossOffset.value));
 editCondition.addEventListener('input', () => setProperty('condition', editCondition.value));
-editTargetId.addEventListener('change', () => setProperty('targetId', editTargetId.value));
-editTargetAnchorSide.addEventListener('change', () => setProperty('targetAnchorSide', editTargetAnchorSide.value));
+editTargetId.addEventListener('change', () => {
+	setProperty('targetId', editTargetId.value);
+	refreshTargetAnchorVisibility();
+});
+editTargetAnchorSide.addEventListener('change', () => {
+	setProperty('targetAnchorSide', editTargetAnchorSide.value);
+	refreshTargetAnchorOffsetVisibility();
+});
 editTargetAnchorOffset.addEventListener('input', () => setProperty('targetAnchorOffset', editTargetAnchorOffset.value));
 editRadius.addEventListener('input', () => setProperty('radius', editRadius.value));
 

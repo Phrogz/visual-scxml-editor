@@ -345,13 +345,14 @@ export class SCXMLEditorManager {
 			return;
 		}
 
-		if (!this.activeGlue) {
+		const glue = this.glueForInspectorMessage(message);
+		if (!glue) {
 			return;
 		}
 
 		switch (message.command) {
 			case 'setProperty':
-				this.activeGlue.panel.webview.postMessage({
+				glue.panel.webview.postMessage({
 					command: 'inspectorSetProperty',
 					property: message.property,
 					value: message.value
@@ -359,14 +360,14 @@ export class SCXMLEditorManager {
 			break;
 
 			case 'addAction':
-				this.activeGlue.panel.webview.postMessage({
+				glue.panel.webview.postMessage({
 					command: 'inspectorAddAction',
 					location: message.location
 				});
 			break;
 
 			case 'deleteAction':
-				this.activeGlue.panel.webview.postMessage({
+				glue.panel.webview.postMessage({
 					command: 'inspectorDeleteAction',
 					location: message.location,
 					index: message.index
@@ -374,7 +375,7 @@ export class SCXMLEditorManager {
 			break;
 
 			case 'setActionType':
-				this.activeGlue.panel.webview.postMessage({
+				glue.panel.webview.postMessage({
 					command: 'inspectorSetActionType',
 					location: message.location,
 					index: message.index,
@@ -384,7 +385,7 @@ export class SCXMLEditorManager {
 			break;
 
 			case 'setActionAttr':
-				this.activeGlue.panel.webview.postMessage({
+				glue.panel.webview.postMessage({
 					command: 'inspectorSetActionAttr',
 					location: message.location,
 					index: message.index,
@@ -394,7 +395,7 @@ export class SCXMLEditorManager {
 			break;
 
 			case 'setActionText':
-				this.activeGlue.panel.webview.postMessage({
+				glue.panel.webview.postMessage({
 					command: 'inspectorSetActionText',
 					location: message.location,
 					index: message.index,
@@ -402,6 +403,19 @@ export class SCXMLEditorManager {
 				});
 			break;
 		}
+	}
+
+	private glueForInspectorMessage(message: any): EditorGlue | null {
+		const messageUri = typeof message.documentUri==='string' ? message.documentUri : '';
+		if (messageUri) {
+			for (const glue of this.glueByURI.values()) {
+				if (glue.editor.document.uri.toString()===messageUri) {
+					return glue;
+				}
+			}
+		}
+
+		return this.activeGlue;
 	}
 
 	public dispose() {
