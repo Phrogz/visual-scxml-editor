@@ -61,8 +61,26 @@ export class VisualRoot extends SCXMLState {
 
 	addChild(...args) {
 		console.log(`VisualState.addChild() called on ${this.nodeName}#${this.id}`);
+		const existingChildren = this.states;
 		const el = super.addChild(...args);
-		el.initialize(this._vse.editor);
+		const ed = this._vse.editor;
+		el.initialize(ed);
+
+		// Without a position the state lands at (0,0), which may be panned out of
+		// view and look as though nothing was created. Centre it in the visible
+		// area instead, stepping diagonally past any root state already there.
+		const view = ed.svg?.viewBox?.baseVal;
+		if (view?.width && view?.height) {
+			const w = VisualState.defaultLeafWidth;
+			const h = VisualState.defaultLeafHeight;
+			let [x, y] = ed.snap([view.x + (view.width - w)/2, view.y + (view.height - h)/2]);
+			while (existingChildren.some(child => child.x===x && child.y===y)) {
+				x += ed.gridSize;
+				y += ed.gridSize;
+			}
+			el.xywh = [x, y, w, h];
+		}
+
 		return el;
 	}
 
